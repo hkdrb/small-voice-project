@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+pandas
+google-generativeai
+plotly
+python-dotenv
+sqlalchemy
+scikit-learn
+bcrypt
+alembic
+psycopg2-binary
