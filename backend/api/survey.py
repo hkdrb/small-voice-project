@@ -1,0 +1,464 @@
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session, joinedload
+from typing import List, Optional
+from pydantic import BaseModel
+from datetime import datetime
+import csv
+import io
+
+from backend.database import SessionLocal, Survey, Question, Answer, User, OrganizationMember, get_db
+from backend.api.auth import get_current_user, UserResponse
+
+router = APIRouter()
+
+# --- Pydantic Models ---
+
+class QuestionBase(BaseModel):
+    text: str
+    is_required: bool
+    order: int
+
+class QuestionCreate(QuestionBase):
+    pass
+
+class QuestionResponse(QuestionBase):
+    id: int
+    
+    class Config:
+        from_attributes = True
+
+class SurveyCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    questions: List[QuestionCreate]
+
+class SurveyResponse(BaseModel):
+    id: int
+    uuid: str
+    title: str
+    description: Optional[str]
+    is_active: bool
+    created_at: datetime
+    questions: List[QuestionResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+class AnswerSubmit(BaseModel):
+    question_id: int
+    content: str
+
+class SurveySubmit(BaseModel):
+    answers: List[AnswerSubmit]
+
+# --- Endpoints ---
+
+@router.post("/", response_model=SurveyResponse)
+def create_survey(
+    survey_data: SurveyCreate,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user.current_org_id:
+        raise HTTPException(status_code=403, detail="No organization context")
+
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    
+    new_survey = Survey(
+        title=survey_data.title,
+        description=survey_data.description,
+        created_by=current_user.id,
+        organization_id=current_user.current_org_id,
+        is_active=False, # Default to inactive/draft
+        source="manual" if is_admin else "request",
+        approval_status="approved" if is_admin else "pending"
+    )
+    db.add(new_survey)
+    db.commit()
+    db.refresh(new_survey)
+    
+    for q in survey_data.questions:
+        new_q = Question(
+            survey_id=new_survey.id,
+            text=q.text,
+            is_required=q.is_required,
+            order=q.order
+        )
+        db.add(new_q)
+    
+    db.commit()
+    db.refresh(new_survey)
+    return new_survey
+
+@router.get("/{survey_id}", response_model=SurveyResponse)
+def get_survey(
+    survey_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).options(joinedload(Survey.questions)).filter(
+        Survey.id == survey_id,
+        Survey.organization_id == current_user.current_org_id
+    ).first()
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+        
+    return survey
+
+@router.get("/uuid/{uuid}", response_model=SurveyResponse)
+def get_survey_by_uuid(
+    uuid: str,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Public/Member access logic
+    survey = db.query(Survey).options(joinedload(Survey.questions)).filter(Survey.uuid == uuid).first()
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+
+    # Check Org Membership
+    if survey.organization_id:
+        member = db.query(OrganizationMember).filter(
+            OrganizationMember.user_id == current_user.id,
+            OrganizationMember.organization_id == survey.organization_id
+        ).first()
+        if not member:
+            raise HTTPException(status_code=403, detail="Access denied")
+            
+    return survey
+
+@router.post("/{survey_id}/response")
+def submit_response(
+    survey_id: int,
+    submission: SurveySubmit,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Verify access again
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    if survey.organization_id:
+         member = db.query(OrganizationMember).filter(
+            OrganizationMember.user_id == current_user.id,
+            OrganizationMember.organization_id == survey.organization_id
+        ).first()
+         if not member:
+             raise HTTPException(status_code=403, detail="Access denied")
+
+    # 1. Fetch existing answers
+    existing_answers = db.query(Answer).filter(
+        Answer.survey_id == survey.id,
+        Answer.user_id == current_user.id
+    ).all()
+    existing_map = {a.question_id: a for a in existing_answers}
+    
+    # 2. Process submission
+    for ans in submission.answers:
+        if not ans.content.strip():
+            continue
+            
+        if ans.question_id in existing_map:
+            existing_map[ans.question_id].content = ans.content
+        else:
+            new_ans = Answer(
+                survey_id=survey.id,
+                question_id=ans.question_id,
+                user_id=current_user.id,
+                content=ans.content
+            )
+            db.add(new_ans)
+            
+    db.commit()
+    return {"message": "Response submitted successfully"}
+@router.post("/import")
+def import_csv(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    description: str = Form(None),
+    selected_columns: str = Form(None), # Comma-separated list of column names
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user.current_org_id:
+        raise HTTPException(status_code=403, detail="No organization context")
+        
+    import pandas as pd
+    import io
+    
+    try:
+        contents = file.file.read()
+        df = pd.read_csv(io.BytesIO(contents))
+        
+        # Filter columns if selected_columns is provided
+        if selected_columns:
+            target_cols = [c.strip() for c in selected_columns.split(',') if c.strip()]
+            # Validate columns exist
+            target_cols = [c for c in target_cols if c in df.columns]
+            if not target_cols:
+                 raise HTTPException(status_code=400, detail="No valid columns selected")
+        else:
+            target_cols = df.columns.tolist()
+        
+        # 1. Create Survey
+        new_survey = Survey(
+            title=title,
+            description=description or f"Imported from {file.filename}",
+            created_by=current_user.id,
+            organization_id=current_user.current_org_id,
+            is_active=False,
+            source="csv",
+            approval_status="approved"
+        )
+        db.add(new_survey)
+        db.commit()
+        db.refresh(new_survey)
+        
+        # 2. Questions & Answers
+        questions = []
+        for i, col in enumerate(target_cols):
+            q = Question(
+                survey_id=new_survey.id,
+                text=col,
+                order=i + 1,
+                is_required=False
+            )
+            db.add(q)
+            db.commit()
+            db.refresh(q)
+            questions.append(q)
+            
+            # Answers
+            col_data = df[col].dropna().astype(str).tolist()
+            answers = [
+                Answer(
+                    survey_id=new_survey.id,
+                    question_id=q.id,
+                    user_id=None,
+                    content=val
+                ) for val in col_data if val.strip()
+            ]
+            db.add_all(answers)
+            
+        db.commit()
+        return {"message": "Import successful", "survey_id": new_survey.id}
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+@router.get("/{survey_id}/responses/csv")
+def get_survey_responses_csv(
+    survey_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # 1. Permission check: Admin only
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # 2. Get Survey and Questions
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    questions = db.query(Question).filter(Question.survey_id == survey_id).order_by(Question.order).all()
+    q_ids = [q.id for q in questions]
+
+    # 3. Get Answers (joined with User)
+    answers = db.query(Answer).options(joinedload(Answer.user)).filter(
+        Answer.survey_id == survey_id
+    ).all()
+
+    # 4. Group by User
+    # Since each user can only have one set of answers for a survey, we group by user_id.
+    from collections import defaultdict
+    user_responses = defaultdict(lambda: {"user_info": {"username": "ゲスト", "email": "-"}, "answers": {}})
+
+    for ans in answers:
+        user_id = ans.user_id if ans.user_id is not None else f"guest_{ans.id}" # Handle nulls if any
+        if ans.user:
+            user_responses[user_id]["user_info"] = {
+                "username": ans.user.username or ans.user.email,
+                "email": ans.user.email
+            }
+        
+        user_responses[user_id]["answers"][ans.question_id] = ans.content
+        if "created_at" not in user_responses[user_id] or ans.created_at > user_responses[user_id]["created_at"]:
+            user_responses[user_id]["created_at"] = ans.created_at
+
+    # 5. Generate CSV
+    output = io.StringIO()
+    output.write('\ufeff') # BOM for Excel
+    writer = csv.writer(output)
+
+    # Header
+    header = ["回答日時", "ユーザー名", "メールアドレス"]
+    for q in questions:
+        header.append(f"[{q.order}] {q.text}")
+    writer.writerow(header)
+
+    # Data Rows (sorted by created_at)
+    sorted_items = sorted(user_responses.values(), key=lambda x: x.get("created_at", datetime.min), reverse=True)
+    
+    for data in sorted_items:
+        row = [
+            data.get("created_at", "").strftime("%Y-%m-%d %H:%M:%S") if "created_at" in data else "-",
+            data["user_info"]["username"],
+            data["user_info"]["email"]
+        ]
+        for q_id in q_ids:
+            row.append(data["answers"].get(q_id, ""))
+        writer.writerow(row)
+
+    output.seek(0)
+    filename = f"survey_responses_{survey_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@router.put("/{survey_id}", response_model=SurveyResponse)
+def update_survey(
+    survey_id: int,
+    data: SurveyCreate,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+        
+    # Permission check: Admin or Creator
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    if not is_admin and survey.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    # Non-admins can only edit pending or rejected surveys
+    if not is_admin and survey.approval_status not in ['pending', 'rejected']:
+        raise HTTPException(status_code=403, detail="Cannot edit published surveys")
+        
+    # Update basics
+    survey.title = data.title
+    survey.description = data.description
+    
+    # Reset status if it's a request by a non-admin
+    if not is_admin and survey.source == 'request':
+        survey.approval_status = 'pending'
+        survey.is_active = False # Require re-approval
+        survey.rejection_reason = None
+
+    # Sync Questions
+    # 1. Delete old
+    db.query(Question).filter(Question.survey_id == survey_id).delete()
+    # 2. Add new
+    for idx, q_data in enumerate(data.questions):
+        db.add(Question(
+            survey_id=survey.id,
+            text=q_data.text,
+            is_required=q_data.is_required,
+            order=idx + 1
+        ))
+        
+    db.commit()
+    db.refresh(survey)
+    return survey
+
+@router.delete("/{survey_id}")
+def delete_survey(
+    survey_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Permission: Admin or Creator
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+
+    if not is_admin and survey.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Non-admins can only delete pending surveys
+    if not is_admin and survey.approval_status != 'pending':
+        raise HTTPException(status_code=403, detail="Cannot delete published or rejected surveys")
+        
+    db.delete(survey)
+    db.commit()
+    return {"message": "Survey deleted"}
+
+@router.patch("/{survey_id}/toggle")
+def toggle_survey_status(
+    survey_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Permission: Admin only
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
+        
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+        
+    survey.is_active = not survey.is_active
+    
+    # 公開にした場合は承認済みとする
+    if survey.is_active:
+        survey.approval_status = "approved"
+        
+    db.commit()
+    return {"message": "Toggled status", "is_active": survey.is_active}
+
+@router.put("/{survey_id}/approve")
+def approve_survey(
+    survey_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Permission: Admin only
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
+        
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+        
+    survey.approval_status = "approved"
+    survey.is_active = False # Default to stopped after approval
+    
+    db.commit()
+    return {"message": "Survey approved", "approval_status": survey.approval_status}
+
+@router.put("/{survey_id}/reject")
+def reject_survey(
+    survey_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Permission: Admin only
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
+        
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+        
+    survey.approval_status = "rejected"
+    # survey.rejection_reason = reason # Removed per user request
+    survey.is_active = False # Ensures it is treated as "Stopped" and hidden from general users
+    
+    db.commit()
+    return {"message": "Survey rejected", "approval_status": survey.approval_status}

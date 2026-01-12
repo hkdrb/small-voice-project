@@ -1,0 +1,234 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', 'Noto Sans JP', sans-serif;
+
+  --color-sage-primary: #8DA399;
+  --color-sage-light: #F1F4F2;
+  --color-sage-dark: #4A5D54;
+  --color-sage-btn: #5C7066;
+
+  --color-orange-accent: #E8A87C;
+  --color-orange-soft: #FDF6F0;
+
+  --image-sage-gradient: linear-gradient(135deg, #F1F4F2 0%, #E0E8E4 100%);
+  --image-sage-btn: linear-gradient(135deg, #7E948B 0%, #5C7066 100%);
+  --image-gray-btn: linear-gradient(135deg, #7F8C8D 0%, #616A6B 100%);
+}
+
+:root {
+  --background: #F1F4F2;
+  /* Fallback */
+  --foreground: #333333;
+}
+
+body {
+  background: linear-gradient(135deg, #F1F4F2 0%, #E0E8E4 100%);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Custom Glass Utilities */
+@utility glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  /* Slightly more opaque for better readability */
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+@utility glass-input {
+  background-color: #f0f2f6;
+  border: 1px solid rgba(200, 210, 205, 0.5);
+  border-radius: 12px;
+  color: #333333;
+  transition: all 0.2s ease;
+
+  &:focus {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-color: #8DA399;
+    box-shadow: 0 0 0 3px rgba(141, 163, 153, 0.15);
+    outline: none;
+  }
+}
+
+@utility btn-primary {
+  background: linear-gradient(135deg, #7E948B 0%, #5C7066 100%);
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(92, 112, 102, 0.4);
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(126, 148, 139, 0.4);
+  }
+}
+
+@utility prose-analysis {
+
+  & h1,
+  & h2,
+  & h3 {
+    color: var(--color-sage-dark);
+    font-weight: 800;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  & h3 {
+    font-size: 1.25rem;
+    border-bottom: 2px solid rgba(141, 163, 153, 0.2);
+    padding-bottom: 0.5rem;
+  }
+
+  & p {
+    color: #4A5568;
+    line-height: 1.8;
+    margin-bottom: 1.25rem;
+  }
+
+  & ul {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  & li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #4A5568;
+
+    &::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--color-sage-primary);
+      font-weight: bold;
+      font-size: 1.5rem;
+      line-height: 1;
+      top: -0.1rem;
+    }
+  }
+
+  & strong {
+    color: var(--color-sage-btn);
+    font-weight: 700;
+  }
+
+  & blockquote {
+    border-left: 4px solid var(--color-sage-primary);
+    background: rgba(141, 163, 153, 0.05);
+    padding: 1rem 1.5rem;
+    border-radius: 0 12px 12px 0;
+    font-style: italic;
+    color: #2D3748;
+    margin: 1.5rem 0;
+  }
+}
+
+@utility markdown-body {
+
+  /* Ensure block level elements have spacing */
+  &>*+* {
+    margin-top: 1em;
+  }
+
+  & ul {
+    list-style-type: disc !important;
+    padding-left: 1.5em !important;
+    margin-bottom: 1em;
+  }
+
+  & ol {
+    list-style-type: decimal !important;
+    padding-left: 1.5em !important;
+    margin-bottom: 1em;
+  }
+
+  & li {
+    margin-bottom: 0.25em;
+    display: list-item !important;
+    /* Force display list-item */
+  }
+
+  & ul ul,
+  & ol ul,
+  & ul ol,
+  & ol ol {
+    margin-bottom: 0;
+  }
+
+  & strong {
+    font-weight: 700;
+  }
+
+  & em {
+    font-style: italic;
+  }
+
+  & s {
+    text-decoration: line-through;
+  }
+
+  & blockquote {
+    border-left: 3px solid #cbd5e1;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #64748b;
+    font-style: italic;
+  }
+
+  & pre {
+    background: #0d0d0d;
+    color: #fff;
+    font-family: monospace;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin-bottom: 1em;
+  }
+
+  & code {
+    background-color: #f1f5f9;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    color: #ef4444;
+    font-family: monospace;
+    font-size: 0.875em;
+  }
+
+  & pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+  }
+
+  & a {
+    color: #0369a1;
+    text-decoration: underline;
+
+    &:hover {
+      color: #0284c7;
+    }
+  }
+
+  & p {
+    margin-bottom: 0.75em;
+    min-height: 1em;
+    /* Ensure empty lines have height */
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}

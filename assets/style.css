@@ -1,0 +1,263 @@
+/* --- 0. Font Import --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+/* --- 1. Variables & Global Reset --- */
+:root {
+    --sage-primary: #8DA399;
+    --sage-light: #F1F4F2;
+    --sage-btn-grad: linear-gradient(135deg, #7E948B 0%, #5C7066 100%);
+    /* Darker Sage for White Text */
+    --sage-dark: #4A5D54;
+
+    --orange-accent: #E8A87C;
+    --orange-soft: #FDF6F0;
+
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.8);
+    --glass-shadow: 0 8px 32px 0 rgba(74, 93, 84, 0.05);
+
+    --text-main: #333333;
+    --text-muted: #666666;
+}
+
+/* Main App Background (Outer) - Pale Green */
+.stApp {
+    background: linear-gradient(135deg, #F1F4F2 0%, #E0E8E4 100%);
+    /* Pale Sage Green */
+    font-family: 'Inter', 'Noto Sans JP', sans-serif;
+    color: var(--text-main);
+}
+
+/* --- 2. Glassmorphism Utilities --- */
+/* Enhanced Glass Card (Inner) - Pale Gray & Distinct */
+.glass-card,
+div[data-testid="stVerticalBlockBorderWrapper"],
+div[data-testid="stForm"],
+div[data-baseweb="tab-panel"] {
+    background: #FFFFFF !important;
+    /* Pure White */
+    backdrop-filter: blur(20px);
+    border-radius: 20px !important;
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.9) !important;
+    /* Visual Highlight like Tabs */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 24px;
+    padding: 32px !important;
+    /* Unified padding */
+}
+
+/* Tab Panel Specific - ensuring no conflicting overrides */
+div[data-baseweb="tab-panel"] {
+    margin-top: 24px !important;
+    /* Adjusted to match card spacing feel */
+}
+
+/* --- Tab Labels (Bold) --- */
+button[data-baseweb="tab"] {
+    font-weight: bold !important;
+    color: var(--text-main);
+    border-radius: 8px !important;
+    margin-right: 8px !important;
+    padding: 8px 16px !important;
+}
+
+/* Force all text inside tabs to be bold */
+button[data-baseweb="tab"] * {
+    font-weight: bold !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    background-color: var(--sage-light) !important;
+    color: var(--sage-dark) !important;
+}
+
+/* Hover Effect for Cards (Subtle Lift) */
+div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px -4px rgba(0, 0, 0, 0.06);
+}
+
+/* Sidebar Styling */
+section[data-testid="stSidebar"] {
+    background-color: rgba(230, 233, 236, 0.95);
+    /* Light Gray base */
+    backdrop-filter: blur(24px);
+    border-right: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 20px 0 40px rgba(0, 0, 0, 0.03);
+}
+
+/* Explicit Sidebar Card Styling to match Main Content */
+/* Explicit Sidebar Card Styling to match Main Content */
+/* Explicit Sidebar Card Styling to match Main Content */
+section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: #FFFFFF !important;
+    background: #FFFFFF !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    padding: 20px !important;
+    margin-bottom: 16px;
+}
+
+/* Target the internal container to ensure no nested transparency issues */
+section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]>div {
+    background-color: transparent !important;
+}
+
+/* --- 3. Typography --- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--sage-dark) !important;
+    font-family: 'Inter', 'Noto Sans JP', sans-serif !important;
+    letter-spacing: -0.03em;
+}
+
+h1 {
+    font-weight: 800 !important;
+    font-size: 2.4rem !important;
+}
+
+h2 {
+    font-weight: 700 !important;
+    font-size: 1.7rem !important;
+    opacity: 0.9;
+}
+
+h3 {
+    font-weight: 600 !important;
+    font-size: 1.3rem !important;
+}
+
+p,
+label,
+li,
+span,
+div {
+    line-height: 1.8;
+    color: var(--text-main);
+}
+
+.stCaption {
+    color: var(--text-muted) !important;
+    font-size: 0.9rem;
+}
+
+/* --- 4. Interactive Elements --- */
+/* Standard Actions (Gray) - System Admin, Logout, Analyze etc. */
+div.stButton>button {
+    background: linear-gradient(135deg, #7F8C8D 0%, #616A6B 100%) !important;
+    /* Gray Gradient */
+    color: #FFFFFF !important;
+    border: none;
+    border-radius: 12px;
+    padding: 0.6rem 1.8rem;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+div.stButton>button:hover {
+    background: linear-gradient(135deg, #95A5A6 0%, #7F8C8D 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    color: #FFFFFF !important;
+}
+
+div.stButton>button:active {
+    transform: translateY(0);
+}
+
+/* Primary Actions (Green) - Form Submits, Major Confirmations */
+div[data-testid="stFormSubmitButton"]>button {
+    background: var(--sage-btn-grad) !important;
+    color: #FFFFFF !important;
+    border: none;
+    border-radius: 12px;
+    padding: 0.6rem 1.8rem;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 14px rgba(92, 112, 102, 0.4);
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+div[data-testid="stFormSubmitButton"]>button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(126, 148, 139, 0.4);
+    color: #FFFFFF !important;
+}
+
+div[data-testid="stFormSubmitButton"]>button:active {
+    transform: translateY(0);
+}
+
+/* Force text color for nested elements in ALL buttons */
+div.stButton>button p,
+div[data-testid="stFormSubmitButton"]>button p {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+}
+
+/* Secondary Buttons override (using specific css hierarchy if possible, otherwise rely on st.button type) */
+/* Streamlit doesn't expose button types clearly in CSS classes easily, but we can target specific widgets if needed. */
+
+/* Inputs */
+/* Inputs Container Styling (for Text Input incl Password eye) */
+.stTextInput div[data-baseweb="input"],
+.stSelectbox div[data-baseweb="select"]>div,
+.stTextArea textarea {
+    background-color: #f0f2f6 !important;
+    /* Original Gray Base */
+    border: 1px solid rgba(200, 210, 205, 0.5) !important;
+    border-radius: 12px !important;
+    color: var(--text-main) !important;
+    transition: all 0.2s ease;
+}
+
+/* Make actual input AND all inner containers transparent so main container bg shows */
+.stTextInput div[data-baseweb="input"]>div,
+.stTextInput div[data-baseweb="input"] input {
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--text-main) !important;
+}
+
+/* Hide Streamlit's default "Press Enter to..." hints */
+div[data-testid="InputInstructions"] {
+    display: none !important;
+}
+
+/* Focus States */
+.stTextInput div[data-baseweb="input"]:focus-within,
+.stTextArea textarea:focus,
+.stSelectbox div[data-baseweb="select"]:focus-within {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border-color: var(--sage-primary) !important;
+    box-shadow: 0 0 0 3px rgba(141, 163, 153, 0.15) !important;
+}
+
+/* --- 5. Custom Refinements --- */
+/* Hide Default Header decoration */
+header[data-testid="stHeader"] {
+    background: transparent;
+}
+
+/* Toast/Alerts */
+div[data-baseweb="toast"] {
+    background-color: white !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid var(--sage-light);
+}
+
+/* Metrics */
+div[data-testid="stMetricValue"] {
+    font-weight: 700;
+    color: var(--sage-dark);
+}
