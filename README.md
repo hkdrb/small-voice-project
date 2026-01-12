@@ -100,7 +100,9 @@ npm run dev
 | **User** | `user1@example.com` | 一般ユーザー。アンケート回答やチャット参加が可能。 |
 
 ## 📚 ドキュメント
-- [システムアーキテクチャ詳細](docs/system_documentation/architecture.md)
-- [データベース設計](docs/system_documentation/database.md)
-- [セットアップガイド](docs/system_documentation/setup_guide.md)
-- [ユーザー利用マニュアル](docs/system_documentation/user_manual.md)
+## 📚 ドキュメント
+- [システムアーキテクチャ詳細](docs/architecture.md)
+- [データベース設計](docs/database.md)
+- [セットアップガイド](docs/setup_guide.md): ローカル開発環境の構築手順
+- [デプロイメントガイド](docs/deployment_guide.md): Dockerを使用した本番サーバーへのデプロイ手順
+- [ユーザー利用マニュアル](docs/user_manual.md)
