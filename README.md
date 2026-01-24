@@ -100,7 +100,6 @@ npm run dev
 | **User** | `user1@example.com` | 一般ユーザー。アンケート回答やチャット参加が可能。 |
 
 ## 📚 ドキュメント
-## 📚 ドキュメント
 - [システムアーキテクチャ詳細](docs/architecture.md)
 - [データベース設計](docs/database.md)
 - [セットアップガイド](docs/setup_guide.md): ローカル開発環境の構築手順
