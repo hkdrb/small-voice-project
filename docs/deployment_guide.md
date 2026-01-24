@@ -60,14 +60,31 @@ Google Cloud Console にアクセスし、新しいプロジェクトを作成�
     - 外部 IPv4 アドレスで、先ほど予約した `small-voice-ip` を選択。
 8.  「作成」をクリック。
 
-### 1.4 ドメインとDNSの設定
+### 1.4 ドメインとDNSの設定 (Google Cloud DNS を使用)
 
-ドメインのDNS設定（レジストラの管理画面）を開き、以下のAレコードを追加します。
+DNSの反映を高速かつ確実にするため、**Google Cloud DNS** を使用します。
 
-- **Host/Name**: `@` (ルート)
-- **Value**: 手順1.2で取得した **外部IPアドレス**
+1.  GCPコンソールの検索バーで **「Cloud DNS」** を検索し、選択します。
+2.  **「ゾーンを作成」** をクリック。
+    - **ゾーンの種類**: `一般公開`
+    - **ゾーン名**: `small-voice-zone` (任意)
+    - **DNS名**: あなたのドメイン名 (例: `early-bird.xyz`)
+    - 「作成」をクリック。
+3.  **レコードセットの追加**:
+    - 「レコードセットを追加」をクリック。
+    - **DNS名**: 空欄（`@`相当）
+    - **リソースレコードのタイプ**: `A`
+    - **IPv4 アドレス**: 手順1.2で取得した **外部IPアドレス**
+    - 「作成」をクリック。
+4.  **ネームサーバーの確認**:
+    - 設定画面の右上（または一覧）にある `NS` レコードを探します。
+    - `ns-cloud-a1.googledomains.com.` などの4つのアドレスをメモします。
+5.  **レジストラ（お名前.com等）側の設定変更**:
+    - ドメイン管理画面（お名前.com Naviなど）にログイン。
+    - 「ネームサーバーの変更」→ **「他のネームサーバーを利用」** を選択。
+    - メモした4つのアドレス（`ns-cloud-...`）を入力して保存します。
 
-反映には時間がかかる場合があります。
+これでDNS管理がGoogle Cloud側に委譲されます。反映は比較的早いです（数分〜数十分）。
 
 ---
 
@@ -165,8 +182,8 @@ exit
 ### 3.1 リポジトリの取得
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git small-voice
-cd small-voice
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git small-voice-projec
+cd small-voice-projec
 ```
 
 ### 3.2 環境変数の設定
@@ -213,6 +230,7 @@ sudo certbot certonly --standalone -d your-domain.com
 `nginx/default.conf` を編集し、HTTPS設定を有効にします。
 
 ```bash
+mkdir nginx
 nano nginx/default.conf
 ```
 
@@ -258,23 +276,71 @@ server {
 
 #### 3.3.4 docker-compose.prod.yml の修正
 
-証明書ディレクトリを Nginx コンテナに読み込ませるため、少し編集が必要です。
+証明書ディレクトリをマウントするため、`docker-compose.prod.yml` を編集します。
+以下の内容でファイル全体を上書きしてください。
 
 ```bash
 nano docker-compose.prod.yml
 ```
 
-`nginx` サービスの `volumes` に以下を追加します。
+**`docker-compose.prod.yml` の完成形:**
 
 ```yaml
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: small_voice_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/small_voice_db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL_NAME=${GEMINI_MODEL_NAME:-gemini-pro}
+      - INITIAL_SYSTEM_PASSWORD=${INITIAL_SYSTEM_PASSWORD}
+      - INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD}
+      - INITIAL_USER_PASSWORD=${INITIAL_USER_PASSWORD}
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
   nginx:
-    # ...
+    image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"  # 443ポートを追加
+      - "443:443"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - /etc/letsencrypt:/etc/letsencrypt:ro  # 証明書ディレクトリをマウント
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
 ```
 
 ### 3.4 起動と確認
