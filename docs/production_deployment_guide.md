@@ -1,6 +1,8 @@
-# 本番環境デプロイメントガイド (Google Compute Engine 編)
+# 本番環境デプロイメントガイド (Production Deployment)
 
-このガイドでは、**Google Compute Engine (GCE)** を使用して Small Voice Project を本番環境にデプロイする手順を説明します。
+このガイドでは、**Google Compute Engine (GCE)** を使用して Small Voice Project を **本番環境(Production)** または **デモ環境** にデプロイする手順を説明します。
+**インフラ構築、SSL設定、および本番/デモ環境でのデータ管理** を扱います。
+
 Google Cloud Platform (GCP) の堅牢なインフラを活用し、安全かつ安定した運用を目指します。
 
 ## 前提条件
@@ -462,3 +464,34 @@ docker image prune -f
 ```
 
 これで最新のコードが反映され、アプリケーションが再起動します。更新中、数秒〜数十秒のダウンタイムが発生します。
+
+---
+
+## 6. デモ環境・開発用データの管理
+
+デモ環境や検証環境において、データベースを初期状態にリセットしたい場合の手順です。
+**本番運用中の環境では絶対に行わないでください。** ユーザーデータを含む全てのデータが削除されます。
+
+### 6.1 データベースの完全リセットとダミーデータ投入
+
+SSHでサーバーに接続し、以下の手順を実行します。
+ここでは本番用の構成ファイル `docker-compose.prod.yml` を使用してコマンドを実行します。
+
+```bash
+# プロジェクトディレクトリへ移動
+cd small-voice-project
+
+# 1. データベースを完全リセット (全テーブル削除)
+# ⚠️⚠️ 【危険】 警告: これを実行すると全てのデータが完全に消去されます！ ⚠️⚠️
+docker compose -f docker-compose.prod.yml exec backend python scripts/reset_db_clean.py
+
+# 2. 初期セットアップ (テーブル作成 + 初期ユーザー/データ投入)
+# デモ用に大量のダミーデータを投入する場合:
+docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --with-dummy-data
+
+# または、初期ユーザーのみ作成してデータは空にする場合:
+# docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py
+```
+
+### 6.2 実行後の確認
+ブラウザでアクセスし、初期ユーザー（`user1@example.com` 等）でログインできること、またはデータがクリアされていることを確認してください。
