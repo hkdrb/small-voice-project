@@ -139,17 +139,14 @@ def create_user_endpoint(
         db.commit()
         
     # Send Invitation
-    logger.info(f"About to send invitation email to {user.email}")
     try:
-        # Note: Ensure email_service is configured properly in env
         success = send_invitation_email(user.email, token)
-        logger.info(f"send_invitation_email returned: {success}")
         if success:
             logger.info(f"Invitation email sent successfully to {user.email}")
         else:
-            logger.warning(f"Failed to send invitation email to {user.email} - email service returned False")
+            logger.warning(f"Failed to send invitation email to {user.email}")
     except Exception as e:
-        logger.error(f"Exception while sending invitation email to {user.email}: {e}")
+        logger.error(f"Failed to send invitation email to {user.email}: {e}")
         # Continue, don't rollback user creation
         
     return new_user
