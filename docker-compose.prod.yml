@@ -28,7 +28,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=voice_insight_db
+      - POSTGRES_DB=small_voice_db
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
 
