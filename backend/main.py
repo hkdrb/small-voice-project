@@ -1,5 +1,15 @@
 import sys
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
 # Add parent directory to path to allow importing 'backend' package when running uvicorn from backend/ directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
