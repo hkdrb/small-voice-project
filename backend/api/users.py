@@ -5,6 +5,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import secrets
 import string
+import logging
 
 from backend.database import get_db, User, Organization, OrganizationMember
 from backend.api.auth import get_current_user, UserResponse
@@ -12,6 +13,7 @@ from backend.security_utils import hash_pass, validate_password_strength, genera
 from backend.services.email_service import send_invitation_email, generate_reset_token
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Models
 
@@ -139,11 +141,14 @@ def create_user_endpoint(
     # Send Invitation
     try:
         # Note: Ensure email_service is configured properly in env
-        send_invitation_email(user.email, token)
+        success = send_invitation_email(user.email, token)
+        if success:
+            logger.info(f"Invitation email sent successfully to {user.email}")
+        else:
+            logger.warning(f"Failed to send invitation email to {user.email} - email service returned False")
     except Exception as e:
-        print(f"Failed to send email: {e}")
-        # Continue, don't rollback user creation, but maybe warn? 
-        # For now, just log.
+        logger.error(f"Exception while sending invitation email to {user.email}: {e}")
+        # Continue, don't rollback user creation
         
     return new_user
 
