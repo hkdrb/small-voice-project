@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 # Environment Configuration
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 SMTP_SERVER = os.getenv("SMTP_SERVER")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME")
@@ -19,7 +20,7 @@ SENDER_NAME = os.getenv("SENDER_NAME", "Small Voice")
 
 def send_invitation_email(email, token):
     """招待メール送信（環境に応じて分岐）"""
-    invitation_link = f"http://localhost:3000/invite?token={token}"
+    invitation_link = f"{FRONTEND_URL}/invite?token={token}"
     subject = "Small Voice 招待のお知らせ"
     body = f"""
     <p>以下のリンクからパスワードを設定してログインしてください。</p>
@@ -35,7 +36,7 @@ def generate_reset_token():
 
 def send_reset_email(email, token):
     """パスワードリセットメール送信（環境に応じて分岐）"""
-    reset_link = f"http://localhost:3000/invite?token={token}"
+    reset_link = f"{FRONTEND_URL}/invite?token={token}"
     subject = "パスワードリセットのご案内"
     body = f"""
     <p>以下のリンクからパスワードを再設定してください。</p>

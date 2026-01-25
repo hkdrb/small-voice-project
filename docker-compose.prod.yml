@@ -16,6 +16,7 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SENDER_EMAIL=${SENDER_EMAIL}
       - SENDER_NAME=${SENDER_NAME}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
     depends_on:
       - db
 
