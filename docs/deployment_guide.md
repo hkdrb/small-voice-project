@@ -86,7 +86,41 @@ DNSの反映を高速かつ確実にするため、**Google Cloud DNS** を使�
 
 これでDNS管理がGoogle Cloud側に委譲されます。反映は比較的早いです（数分〜数十分）。
 
+
 ---
+
+### 1.5 メール配信サービスの準備 (Brevo)
+
+GCE環境では25番ポートがブロックされているため、587番ポート等を使用したメール送信設定が必要です。
+本プロジェクトでは、個人でも利用しやすく無料プラン（1日300通）のある **Brevo** (旧Sendinblue) を利用します。
+
+#### 1. Brevo アカウントの作成
+
+1.  [Brevo 公式サイト](https://www.brevo.com/) にアクセスします。
+2.  **「タダで始める (Sign up free)」** をクリックし、アカウントを作成します。
+3.  メールアドレス認証の手順を完了します。
+4.  氏名や住所などの基本情報を入力し、プラン選択で **「Free」** を継続します。
+
+#### 2. SMTP機能の有効化とキーの取得
+
+1.  ダッシュボードにログイン後、右上のユーザーネーム（会社名）をクリックし、**「SMTP & API」** を選択します。
+2.  **「SMTP」** タブをクリックします。
+3.  **「新しいSMTPキーを作成 (Create a new SMTP key)」** をクリックします。
+4.  **キーの名前**: `small-voice-prod` など任意の名前を入力し、「生成 (Generate)」をクリックします。
+5.  **SMTPキー** が表示されるので、コピーして**安全な場所に保存**します。
+    - ※ この画面を閉じるとキーは再表示されないため注意してください。
+
+#### 3. 設定値の確認
+
+同じ「SMTP & API」画面にある以下の情報を、後の手順で `.env` に設定します。
+
+- **SMTPサーバー**: `smtp-relay.brevo.com`
+- **ポート**: `587`
+- **ログイン**: (あなたのBrevo登録メールアドレス)
+- **パスワード**: (先ほど取得したSMTPキー)
+
+---
+
 
 ## 2. サーバーのセットアップ
 
@@ -202,6 +236,15 @@ GEMINI_MODEL_NAME=gemini-2.0-flash-exp
 INITIAL_SYSTEM_PASSWORD=prod_sys_pass
 INITIAL_ADMIN_PASSWORD=prod_admin_pass
 INITIAL_USER_PASSWORD=prod_user_pass
+
+# メール送信設定 (本番環境用 / Brevoの例)
+ENVIRONMENT=production
+SMTP_SERVER=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USERNAME=your_brevo_login_email@example.com
+SMTP_PASSWORD=your_generated_smtp_key
+SENDER_EMAIL=noreply@your-domain.com
+SENDER_NAME="Small Voice System"
 ```
 
 ### 3.3 SSL化 (HTTPS) と起動

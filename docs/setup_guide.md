@@ -27,9 +27,12 @@ GEMINI_MODEL_NAME=gemini-2.0-flash-exp
 
 # 開発用はコンテナ内のPostgreSQLを使用するため、DATABASE_URLの設定は不要です (docker-compose.yml内で自動設定されます)。
 # 初期パスワードの固定設定 (任意)
-INITIAL_SYSTEM_PASSWORD=admin
-INITIAL_ADMIN_PASSWORD=admin
 INITIAL_USER_PASSWORD=admin
+
+# メール機能について
+# ローカル環境(デフォルト)では、メールは実際には送信されず、
+# バックエンドのコンソールログに内容が出力されます。
+# 本番環境(GCE等)で Brevo 等のSMTP設定を行うことで、実際のメール送信が有効になります。
 ```
 
 ## アプリケーションの実行
