@@ -1,29 +1,30 @@
 services:
   backend:
-    # build:
-    #   context: .
-    #   dockerfile: backend/Dockerfile
-    image: ghcr.io/koderahayato/small-voice-project-backend:latest
-    env_file:
-      - .env
+    image: ghcr.io/hkdrb/small-voice-project-backend:latest
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend:/app
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/voice_insight_db
-    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/small_voice_db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL_NAME=${GEMINI_MODEL_NAME:-gemini-pro}
+      - INITIAL_SYSTEM_PASSWORD=${INITIAL_SYSTEM_PASSWORD}
+      - INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD}
+      - INITIAL_USER_PASSWORD=${INITIAL_USER_PASSWORD}
     depends_on:
       - db
-    restart: always
 
   frontend:
-    # build:
-    #   context: ./frontend
-    #   dockerfile: Dockerfile
-    image: ghcr.io/koderahayato/small-voice-project-frontend:latest
+    image: ghcr.io/hkdrb/small-voice-project-frontend:latest
+    restart: always
+    ports:
+      - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=/api
     command: npm run start
     depends_on:
       - backend
-    restart: always
 
   db:
     image: postgres:14

@@ -332,6 +332,8 @@ server {
 #### 3.3.4 docker-compose.prod.yml の修正
 
 証明書ディレクトリをマウントするため、`docker-compose.prod.yml` を編集します。
+ここでは、**サーバー上でソースコードからビルドする構成（基本構成）** を作成します。
+
 以下の内容でファイル全体を上書きしてください。
 
 ```bash
@@ -434,77 +436,87 @@ GCEのスナップショット機能を活用して、ディスク全体のバ�
 
 ---
 
-## 5. 更新手順 (ローカルの変更を反映する場合)
+## 5. アプリケーションの更新 (GitHub Actions + GHCR)
 
-開発が進み、ローカルでの変更を本番サーバーに反映させる手順は以下の通りです。
+開発が進み、ローカルでの変更を本番サーバーに反映させる際は、**GitHub Actions と GHCR (GitHub Container Registry)** を使用した高速デプロイを推奨します。
+サーバー上でのビルド時間をなくし、ダウンタイムを最小限（数秒〜数十秒）に抑えることができます。
 
-### 1. ローカルでの作業
-1.  変更内容を Git にコミットします。
-2.  リモートリポジトリ (GitHub) にプッシュします。
+### 5.1 初回準備 (GHCRへの移行)
+
+初期セットアップ（Step 3）では簡単のためサーバー上でビルドする構成にしていましたが、更新をスムーズにするために GHCR を使う構成に切り替えます。
+**この作業は初回のみ必要です。**
+
+#### 1. GitHub Packages の有効化
+1. リポジトリの `Settings` > `Actions` > `General` を確認します。
+2. `Workflow permissions` が `Read and write permissions` になっていることを確認してください。
+
+#### 2. サーバーでのログイン
+GitHub のコンテナレジストリからイメージをダウンロードできるように、サーバー側で認証します。
+
+1. **GitHub PAT (Personal Access Token) の作成**:
+    - GitHub の Settings > Developer settings > Personal access tokens (Classic) に移動します。
+    - `repo` レポジトリへのフルアクセス権限と `read:packages` スコープを持つトークンを作成します。
+2. **サーバーでのログイン**:
     ```bash
-    git push origin main
+    echo "YOUR_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
     ```
 
-### 2. サーバーでの作業
-サーバーに SSH 接続し、以下のコマンドを実行します。
+#### 3. docker-compose.prod.yml の書き換え
+サーバー上の `docker-compose.prod.yml` を編集し、ローカルビルド (`build: .`) から GHCR イメージ (`image: ghcr.io...`) を使うように変更します。
+
+```bash
+nano docker-compose.prod.yml
+```
+
+`backend` と `frontend` のセクションを以下のように書き換えてください。
+
+```yaml
+# 変更前 (初期構成 / Server Side Build)
+# build:
+#   context: .
+#   dockerfile: Dockerfile.backend
+
+# 変更後 (推奨構成 / GHCR Image)
+image: ghcr.io/your_username/your_repo_name/backend:latest
+```
+※ `frontend` も同様に `image: .../frontend:latest` に変更し、`build:` セクションを削除またはコメントアウトします。
+※ `your_username` と `your_repo_name` は適切な値（小文字）に置き換えてください。
+
+---
+
+### 5.2 通常の更新手順
+
+設定完了後は、以下の手順で更新を行います。
+
+#### 1. ローカルでの作業
+変更内容を `main` ブランチにプッシュします。GitHub Actions が自動的に新しいイメージをビルドし、GHCR にプッシュします。
+
+```bash
+git push origin main
+```
+GitHub Actions の完了を待ってください（通常数分）。
+
+#### 2. サーバーでの作業
+サーバーに SSH 接続し、新しいイメージを取得して再起動します。
 
 ```bash
 # 1. プロジェクトフォルダへ移動
 cd small-voice-project
 
-# 2. 最新のコードを取得
+# 2. 最新のコードと設定を取得 (composeファイルの変更などがなければ省略可)
 git pull origin main
 
-# 3. コンテナの再ビルドと再起動
-# (変更があった部分だけビルドされるので、初回より高速です)
-docker compose -f docker-compose.prod.yml up -d --build
+# 3. 最新イメージを取得して再起動
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
 
-# 4. 不要な古いイメージの削除 (ディスク容量節約のため推奨)
+# 4. 不要なイメージの削除 (任意)
 docker image prune -f
 ```
 
-これで最新のコードが反映され、アプリケーションが再起動します。更新中、数秒〜数十秒のダウンタイムが発生します。
+これで、サーバーへの負荷をかけずに数十秒で更新が完了します。
 
-### [推奨] 高速デプロイ (GitHub Actions + GHCR)
-
-サーバーでのビルド時間を短縮するため、GitHub Actions で事前にイメージを作成し、サーバーではそれをダウンロードするだけの構成にすることを強く推奨します。
-
-#### 1. 準備 (初回のみ)
-
-1.  **GitHub Packages の有効化**:
-    - リポジトリの `Settings` > `Actions` > `General` で `Read and write permissions` が有効であることを確認（デフォルトでOKな場合が多い）。
-2.  **サーバーでのログイン**:
-    - GitHub で Personal Access Token (Classic) を作成（スコープ: `read:packages`）。
-    - サーバー上でログイン:
-        ```bash
-        echo "YOUR_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
-        ```
-3.  **docker-compose.prod.yml の確認**:
-    - 本リポジトリの `docker-compose.prod.yml` は既に `image: ghcr.io/...` を使用するように更新されています。
-    - サーバー上で `git pull` した後、内容が更新されていることを確認してください。
-
-#### 2. デプロイ手順 (2回目以降)
-
-1.  ローカルで変更を `main` にプッシュ（GitHub Actions が自動でビルド開始）。
-2.  GitHub Actions の完了を待つ。
-3.  サーバーで以下を実行:
-    ```bash
-    # 1. 最新のコードと設定を取得
-    git pull origin main
-
-    # 2. 最新イメージを取得して再起動
-    docker compose -f docker-compose.prod.yml pull
-    docker compose -f docker-compose.prod.yml up -d
-    
-    # 3. 不要なイメージの削除 (任意)
-    docker image prune -f
-    ```
-
-これにより、重いビルド処理がサーバーで行われなくなり、デプロイが数十秒で完了するようになります。
-
-これにより、重いビルド処理がサーバーで行われなくなり、デプロイが数十秒で完了するようになります。
-
----
+> **Note**: もし何らかの理由で GHCR が使えない場合は、一時的に `docker-compose.prod.yml` を `build` 設定に戻し、`docker compose ... up -d --build` を実行することでサーバー上でビルドすることも可能です。
 
 ## 6. デモ環境・開発用データの管理
 
