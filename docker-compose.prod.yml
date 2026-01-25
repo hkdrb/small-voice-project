@@ -1,8 +1,9 @@
 services:
   backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    # build:
+    #   context: .
+    #   dockerfile: backend/Dockerfile
+    image: ghcr.io/koderahayato/small-voice-project-backend:latest
     env_file:
       - .env
     environment:
@@ -13,9 +14,10 @@ services:
     restart: always
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    # build:
+    #   context: ./frontend
+    #   dockerfile: Dockerfile
+    image: ghcr.io/koderahayato/small-voice-project-frontend:latest
     environment:
       - NEXT_PUBLIC_API_URL=/api
     command: npm run start

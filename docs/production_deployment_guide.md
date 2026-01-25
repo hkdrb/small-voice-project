@@ -465,6 +465,45 @@ docker image prune -f
 
 これで最新のコードが反映され、アプリケーションが再起動します。更新中、数秒〜数十秒のダウンタイムが発生します。
 
+### [推奨] 高速デプロイ (GitHub Actions + GHCR)
+
+サーバーでのビルド時間を短縮するため、GitHub Actions で事前にイメージを作成し、サーバーではそれをダウンロードするだけの構成にすることを強く推奨します。
+
+#### 1. 準備 (初回のみ)
+
+1.  **GitHub Packages の有効化**:
+    - リポジトリの `Settings` > `Actions` > `General` で `Read and write permissions` が有効であることを確認（デフォルトでOKな場合が多い）。
+2.  **サーバーでのログイン**:
+    - GitHub で Personal Access Token (Classic) を作成（スコープ: `read:packages`）。
+    - サーバー上でログイン:
+        ```bash
+        echo "YOUR_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+        ```
+3.  **docker-compose.prod.yml の確認**:
+    - 本リポジトリの `docker-compose.prod.yml` は既に `image: ghcr.io/...` を使用するように更新されています。
+    - サーバー上で `git pull` した後、内容が更新されていることを確認してください。
+
+#### 2. デプロイ手順 (2回目以降)
+
+1.  ローカルで変更を `main` にプッシュ（GitHub Actions が自動でビルド開始）。
+2.  GitHub Actions の完了を待つ。
+3.  サーバーで以下を実行:
+    ```bash
+    # 1. 最新のコードと設定を取得
+    git pull origin main
+
+    # 2. 最新イメージを取得して再起動
+    docker compose -f docker-compose.prod.yml pull
+    docker compose -f docker-compose.prod.yml up -d
+    
+    # 3. 不要なイメージの削除 (任意)
+    docker image prune -f
+    ```
+
+これにより、重いビルド処理がサーバーで行われなくなり、デプロイが数十秒で完了するようになります。
+
+これにより、重いビルド処理がサーバーで行われなくなり、デプロイが数十秒で完了するようになります。
+
 ---
 
 ## 6. デモ環境・開発用データの管理
