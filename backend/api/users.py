@@ -139,9 +139,11 @@ def create_user_endpoint(
         db.commit()
         
     # Send Invitation
+    logger.info(f"About to send invitation email to {user.email}")
     try:
         # Note: Ensure email_service is configured properly in env
         success = send_invitation_email(user.email, token)
+        logger.info(f"send_invitation_email returned: {success}")
         if success:
             logger.info(f"Invitation email sent successfully to {user.email}")
         else:
