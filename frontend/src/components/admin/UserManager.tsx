@@ -25,6 +25,7 @@ export default function UserManager() {
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
   const [email, setEmail] = useState('');
@@ -96,7 +97,8 @@ export default function UserManager() {
     if (!isSystemAdmin && assignments.length === 0) {
       return alert("一般ユーザーは少なくとも1つの組織に所属させる必要があります");
     }
-
+    
+    setIsSubmitting(true);
     try {
       if (editingUser) {
         // Update user
@@ -118,6 +120,8 @@ export default function UserManager() {
     } catch (error: any) {
       const msg = error.response?.data?.detail || "エラーが発生しました";
       alert(`エラー: ${msg}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -208,8 +212,11 @@ export default function UserManager() {
           </div>
 
           <div className="flex gap-2 justify-end mt-6">
-            <button onClick={() => { setIsCreating(false); setEditingUser(null); }} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg">キャンセル</button>
-            <button onClick={handleSave} className="btn-primary px-4 py-2">作成 (招待メール送信)</button>
+            <button onClick={() => { setIsCreating(false); setEditingUser(null); }} disabled={isSubmitting} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-50">キャンセル</button>
+            <button onClick={handleSave} disabled={isSubmitting} className="btn-primary px-4 py-2 disabled:opacity-50 flex items-center gap-2">
+              {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {isSubmitting ? '送信中...' : '作成 (招待メール送信)'}
+            </button>
           </div>
         </div>
       )}
@@ -276,10 +283,10 @@ export default function UserManager() {
                     </td>
                     <td className="px-6 py-4 text-right align-top">
                       <div className="flex justify-end gap-1 mt-4">
-                        <button onClick={handleSave} className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors" title="保存">
+                        <button onClick={handleSave} disabled={isSubmitting} className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50" title="保存">
                           <Check className="h-4 w-4" />
                         </button>
-                        <button onClick={() => setEditingUser(null)} className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors" title="キャンセル">
+                        <button onClick={() => setEditingUser(null)} disabled={isSubmitting} className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50" title="キャンセル">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
