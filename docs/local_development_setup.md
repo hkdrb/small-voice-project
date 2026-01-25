@@ -1,6 +1,8 @@
-# ローカル開発環境セットアップガイド
+# ローカル開発環境セットアップガイド (Local Development)
 
-このガイドでは、**Docker** を使用して Small Voice Project の開発環境を構築する手順を説明します。
+このガイドでは、**Docker** を使用して Small Voice Project の **ローカル開発環境** を構築する手順を説明します。
+**エンジニアが手元のマシンで開発・テストを行うための手順** です。本番環境やデモ環境の構築には `production_deployment_guide.md` を参照してください。
+
 Python や Node.js をローカルマシンにインストールする必要はなく、環境差異のないクリーンな開発環境を利用できます。
 
 ## 前提条件
@@ -71,11 +73,17 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/generate_te
 データベースを初期状態に戻す、またはダミーデータを再投入する場合に使用します。
 
 ```bash
-# 全データを消去し、初期ユーザーのみ作成
-docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py
+# 1. データベースを完全リセット (全テーブル削除)
+# ⚠️ 注意: ローカルの全てのデータが消去されます！
+docker-compose -f docker-compose.dev.yml exec backend python scripts/reset_db_clean.py
 
-# ダミーデータ(セッション・コメント)も含めて投入
+# 2. 初期セットアップ (テーブル作成 + 初期ユーザー/データ投入)
+# ダミーデータ(セッション・コメント)も含めて投入する場合:
 docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --with-dummy-data
+
+# 初期ユーザーのみ作成する場合 (データは空):
+# docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py
+```
 ```
 
 ### データベースへの接続
