@@ -47,7 +47,7 @@
     - **Google Gemini 2.0 Flash Thinking Exp**: 複雑な分析タスク（課題抽出、深層分析）に使用。推論特化モデル。
     - **Google Gemini 2.0 Flash Exp**: 軽量タスク（クラスター命名、要約）に使用。高速処理。
 - **機械学習・分析**:
-    - **Sentence Transformers**: 最高精度の多言語対応モデル（intfloat/multilingual-e5-large）による意味ベクトル化。
+    - **Gemini Embeddings API**: `models/text-embedding-004` を使用した、高速・軽量かつ高性能な多言語対応の意味ベクトル化。サーバーリソース（メモリ）を大幅に削減。
     - **HDBSCAN**: 密度ベースのクラスタリングによる、自然なグルーピングとノイズ分離。
     - **Isolation Forest + LOF**: 外れ値検出アルゴリズムによる「Small Voice」スコアリング。
     - **UMAP**: 非線形次元削減による高精度な2次元マップ座標の算出。
@@ -74,7 +74,7 @@
     *   「〜してほしいのですが」「〜だと助かります」といった表現は、ポジティブではなく**ネガティブ（スコア -0.3 〜 -0.7）**として判定するよう定義しています。これにより、表面上の丁寧さに隠れた現場のSOSを検知します。
 
 ### 3. 分析プロセスフロー
-7.  **意味ベクトル化 (Sentence Transformers)**: SOTAモデル `intfloat/multilingual-e5-large` により、テキストを高次元の意味ベクトルに変換。
+7.  **意味ベクトル化 (Gemini Embeddings API)**: Gemini API (`models/text-embedding-004`) により、テキストを高次元の意味ベクトルに変換。API利用によりサーバー負荷を最小化。
 2.  **クラスタリング (HDBSCAN)**: 密度ベースで自然なまとまりを抽出。無理な分類を行わず、ノイズを分離します。
 3.  **外れ値検出 (Isolation Forest + LOF)**: 2つの異常検知アルゴリズムを組み合わせ、各意見に「Small Voice スコア」を付与。少数だが重要な意見を定量的に特定します。
 4.  **次元削減 (UMAP)**: 高次元の意味空間を2次元に投影し、散布図にプロット。PCAより意味的な配置精度が高く、類似した意見が近くに配置されます。
@@ -112,7 +112,7 @@ small-voice-project/
 ### Backend (`backend/`)
 - **`main.py`**: アプリケーションのエントリーポイント。CORS設定やルーターの登録を行います。
 - **`api/`**: RESTful APIのエンドポイントを定義します。Frontendからのリクエストを受け付け、Service層やDatabase層を呼び出します。
-- **`services/`**: AI分析ロジック (Sentence Transformers, K-Means, UMAP, Isolation Forest/LOF, Gemini API) やメール機能等のビジネスロジックを集約しています。
+- **`services/`**: AI分析ロジック (Gemini Embeddings API, K-Means, UMAP, Isolation Forest/LOF, Gemini Generative API) やメール機能等のビジネスロジックを集約しています。
 
 ### Frontend (`frontend/`)
 - **`src/app/`**: ページルーティングを担当します。
