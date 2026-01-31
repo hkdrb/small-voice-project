@@ -195,7 +195,15 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 """
         try:
             resp = model.generate_content(prompt)
-            data = json.loads(resp.text)
+            
+            # Helper to safely get text
+            try:
+                text_content = resp.text
+            except ValueError:
+                logger.warning(f"Gemini response error (likely blocked): {resp.prompt_feedback}")
+                text_content = "{}"
+
+            data = json.loads(text_content)
             
             # Handle potential list output
             if isinstance(data, list):
@@ -325,7 +333,12 @@ def generate_issue_logic_from_clusters(df, theme_name):
 2. 「〜してほしい」という要望は「現場のニーズ未充足」として課題化すること
 """
         resp = model.generate_content(prompt)
-        text = resp.text
+        
+        try:
+            text = resp.text
+        except ValueError:
+            logger.warning(f"Gemini report generation error: {resp.prompt_feedback}")
+            return "[]"
         # Ensure pure JSON
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
@@ -399,7 +412,15 @@ def analyze_comments_logic(texts):
 重要: Notable Ideasには、件数は少なくても質的に優れた提案を含めること
 """
         resp = model.generate_content(prompt)
-        return resp.text
+        try:
+            return resp.text
+        except ValueError:
+             logger.warning(f"Gemini comment analysis error: {resp.prompt_feedback}")
+             return json.dumps({
+                "overall_summary": "AIによる分析が生成できませんでした（コンテンツフィルタ等の理由）",
+                "key_trends": [],
+                "notable_ideas": []
+            }, ensure_ascii=False)
     except Exception as e:
         logger.error(f"Comment analysis failed: {e}")
         return json.dumps({
