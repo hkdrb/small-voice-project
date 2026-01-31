@@ -1,212 +1,100 @@
-# 本番環境デプロイメントガイド (Production Deployment)
+# 本番環境デプロイメントガイド
 
-このガイドでは、**Google Compute Engine (GCE)** を使用して Small Voice Project を **本番環境(Production)** または **デモ環境** にデプロイする手順を説明します。
-**インフラ構築、SSL設定、および本番/デモ環境でのデータ管理** を扱います。
+Google Compute Engine (GCE) を使用した Small Voice Project の本番デプロイ手順です。
 
-Google Cloud Platform (GCP) の堅牢なインフラを活用し、安全かつ安定した運用を目指します。
+---
 
 ## 前提条件
 
-- **Google Cloud Platform アカウント**: 有効な請求先アカウントが設定されていること
-- **ドメイン**: 取得済みであること（Google Domains, お名前.comなど）
-- **gcloud CLI**: ローカルマシンにインストール済みであること（推奨）
-    - 未インストールの場合はブラウザの Cloud Shell でも代用可能です。
+- Google Cloud Platform アカウント（有効な請求先）
+- ドメイン取得済み（Google Domains、お名前.comなど）
+- gcloud CLI インストール済み（推奨）
 
 ---
 
-## 1. GCE インフラストラクチャの構築
+## 1. GCEインフラ構築
 
-### 1.1 プロジェクトの作成
+### 1.1 静的IPアドレスの予約
 
-Google Cloud Console にアクセスし、新しいプロジェクトを作成します（例: `small-voice-prod`）。
+1. GCPコンソール → **「VPC ネットワーク」→「IP アドレス」**
+2. 「外部静的 IP アドレスを予約」をクリック
+3. 設定値：
+   - **名前**: `small-voice-ip`
+   - **リージョン**: `asia-northeast1`（東京）
+4. 割り当てられた**IPアドレスをメモ**
 
-### 1.2 静的IPアドレスの予約
+### 1.2 VM インスタンスの作成
 
-サーバーのIPアドレスが変わらないように、静的IPを予約します。
+1. **「Compute Engine」→「VM インスタンス」→「インスタンスを作成」**
+2. 設定値：
+   - **名前**: `small-voice-server`
+   - **リージョン**: `asia-northeast1`
+   - **マシンタイプ**: `e2-micro`（低コスト構成）
+   - **ブートディスク**: Ubuntu 22.04 LTS、30GB以上
+   - **ファイアウォール**: HTTPとHTTPSを許可
+   - **外部IP**: 手順1.1で予約したIPを選択
 
-1.  Console 左メニューから **「VPC ネットワーク」 > 「IP アドレス」** を選択。
-2.  「外部静的 IP アドレスを予約」をクリック。
-3.  **名前**: `small-voice-ip` (任意)
-4.  **リージョン**: `asia-northeast1` (東京) など、ユーザーに近い場所。
-5.  「予約」をクリックし、割り当てられた **外部IPアドレス** をメモします。
+### 1.3 DNS設定（Google Cloud DNS）
 
-### 1.3 VM インスタンスの作成
-
-1.  メニューから **「Compute Engine」 > 「VM インスタンス」** を選択し、「インスタンスを作成」をクリック。
-2.  **名前**: `small-voice-server`
-3.  **リージョン**: IPアドレスと同じリージョンを選択（例: `asia-northeast1`）。
-4.  **マシン構成**:
-    - **シリーズ**: `E2`
-    - **マシンタイプ**: `e2-micro` (2 vCPU, 1GB メモリ)
-    - **VMプロビジョニングモデル**: 「スポット（Spot）」を選択すると、さらに大幅に安くなります（約60-90% OFF）。
-        - ※ デモ用途で「落ちても再起動すれば良い」場合はスポットが最強のコストパフォーマンスです。
-5.  **ブートディスク**:
-    - 「変更」をクリック。
-    - **OS**: `Ubuntu`
-    - **バージョン**: `Ubuntu 22.04 LTS` (x86/64)
-    - **ディスクの種類**: `バランス永続ディスク`
-    - **サイズ**: `30 GB` 以上
-
-
-    > **参考コスト（東京リージョン・最低コスト構成）**
-    > - **VM (e2-micro 標準)**: 約 $8/月
-    > - **VM (e2-micro Spot)**: **約 $3〜4/月** (強制停止のリスクあり)
-    > - **ディスク**: 約 $4/月
-    > - **合計**: **$7〜12/月** 目安
-    > - **無料枠**: 米国リージョン(us-central1等)ならe2-microは無料枠対象ですが、東京は対象外です。
-
-6.  **ファイアウォール**:
-    - 「HTTP トラフィックを許可する」にチェック。
-    - 「HTTPS トラフィックを許可する」にチェック。
-7.  **詳細オプション > ネットワーク インターフェース**:
-    - 外部 IPv4 アドレスで、先ほど予約した `small-voice-ip` を選択。
-8.  「作成」をクリック。
-
-### 1.4 ドメインとDNSの設定 (Google Cloud DNS を使用)
-
-DNSの反映を高速かつ確実にするため、**Google Cloud DNS** を使用します。
-
-1.  GCPコンソールの検索バーで **「Cloud DNS」** を検索し、選択します。
-2.  **「ゾーンを作成」** をクリック。
-    - **ゾーンの種類**: `一般公開`
-    - **ゾーン名**: `small-voice-zone` (任意)
-    - **DNS名**: あなたのドメイン名 (例: `early-bird.xyz`)
-    - 「作成」をクリック。
-3.  **レコードセットの追加**:
-    - 「レコードセットを追加」をクリック。
-    - **DNS名**: 空欄（`@`相当）
-    - **リソースレコードのタイプ**: `A`
-    - **IPv4 アドレス**: 手順1.2で取得した **外部IPアドレス**
-    - 「作成」をクリック。
-4.  **ネームサーバーの確認**:
-    - 設定画面の右上（または一覧）にある `NS` レコードを探します。
-    - `ns-cloud-a1.googledomains.com.` などの4つのアドレスをメモします。
-5.  **レジストラ（お名前.com等）側の設定変更**:
-    - ドメイン管理画面（お名前.com Naviなど）にログイン。
-    - 「ネームサーバーの変更」→ **「他のネームサーバーを利用」** を選択。
-    - メモした4つのアドレス（`ns-cloud-...`）を入力して保存します。
-
-これでDNS管理がGoogle Cloud側に委譲されます。反映は比較的早いです（数分〜数十分）。
-
+1. GCPコンソール → **「Cloud DNS」** → **「ゾーンを作成」**
+2. 設定値：
+   - **ゾーンの種類**: 一般公開
+   - **DNS名**: あなたのドメイン（例：`small-voice.xyz`）
+3. **Aレコードを追加**：
+   - **DNS名**: 空欄（@相当）
+   - **タイプ**: A
+   - **IPv4アドレス**: 手順1.1のIPアドレス
+4. **NSレコードをメモ**（`ns-cloud-a1.googledomains.com.` など4つ）
+5. **ドメインレジストラ（お名前.comなど）でネームサーバーを変更**：
+   - メモした4つのNSレコードを設定
 
 ---
 
-### 1.5 メール配信サービスの準備 (Brevo)
+## 2. サーバーセットアップ
 
-GCE環境では25番ポートがブロックされているため、587番ポート等を使用したメール送信設定が必要です。
-本プロジェクトでは、個人でも利用しやすく無料プラン（1日300通）のある **Brevo** (旧Sendinblue) を利用します。
+### 2.1 SSH接続
 
-#### 1. Brevo アカウントの作成
+GCPコンソール → **「VM インスタンス」** → 対象インスタンスの**「SSH」**ボタンをクリック
 
-1.  [Brevo 公式サイト](https://www.brevo.com/) にアクセスします。
-2.  **「Sign up free」** をクリックし、アカウントを作成します。
-3.  メールアドレス認証の手順を完了します。
-4.  氏名や住所などの基本情報を入力し、プラン選択で **「Free」** を継続します。
+> **Tip**: sudo権限がない場合、IAMで「Compute OS 管理者ログイン」ロールを追加し、再接続してください。
 
-#### 2. SMTP機能の有効化とキーの取得
-
-1.  ダッシュボードにログイン後、右上のユーザーネーム（会社名）をクリックし、**「SMTP & API」** を選択します。
-2.  **「SMTP」** タブをクリックします。
-3.  **「新しいSMTPキーを作成 (Create a new SMTP key)」** をクリックします。
-4.  **キーの名前**: `small-voice-prod` など任意の名前を入力し、「生成 (Generate)」をクリックします。
-5.  **SMTPキー** が表示されるので、コピーして**安全な場所に保存**します。
-    - ※ この画面を閉じるとキーは再表示されないため注意してください。
-
-#### 3. 設定値の確認
-
-同じ「SMTP & API」画面にある以下の情報を、後の手順で `.env` に設定します。
-
-- **SMTPサーバー**: `smtp-relay.brevo.com`
-- **ポート**: `587`
-- **ログイン**: (あなたのBrevo登録メールアドレス)
-- **パスワード**: (先ほど取得したSMTPキー)
-
-#### 4. 送信元アドレス (Sender) の変更 (任意)
-
-デフォルトではBrevoのログインアドレスが送信元になります。別のアドレス（例: `noreply@your-domain.com`）を使用したい場合は、Brevo側で追加認証が必要です。
-
-1.  Brevo ダッシュボード右上のメニューから **「差出人 & IP (Senders & IP)」** を選択します。
-2.  **「差出人」** タブで **「新しい差出人を追加 (Add a new sender)」** をクリックします。
-3.  使用したい名前とメールアドレスを入力し、保存します。
-4.  そのアドレス宛に届く確認メールのリンクをクリックして認証を完了させます。
-5.  認証完了後、`.env` の `SENDER_EMAIL` にそのアドレスを設定してください。
-
----
-
-
-## 2. サーバーのセットアップ
-
-### 2.1 ブラウザからの SSH 接続
-
-1. GCP コンソールにログインし、左側メニューの **Compute Engine → VM インスタンス** を開く。
-2. 対象のインスタンス（例: `small-voice-server`）の行にある **SSH** ボタンをクリック。
-3. ブラウザ上にターミナルが起動し、直接コマンドを入力できるようになる。
-   - 初回は自動的に SSH 鍵が作成・登録され、以降は同じブラウザで再利用できる。
-
-> **トラブルシューティング: `sudo` が使えない場合**
->
-> ブラウザから接続しても `sudo apt-get ...` で「権限がない」と言われる場合は、IAM 権限が不足しています。
-> 1. GCP コンソール「IAM と管理」→「IAM」を開く。
-> 2. 自分のアカウントの行末にある「編集（鉛筆）」をクリック。
-> 3. 「ロールを追加」で **「Compute OS 管理者ログイン (roles/compute.osAdminLogin)」** を追加して保存する。
-> 4. ブラウザ SSH を一度閉じ、再度「SSH」ボタンから接続し直す。
-
-> **Tip**: ブラウザ端末は一時的な環境です。永続的に作業したい場合は次の **gcloud CLI** でも接続できます。
-
-### 2.2 必要なツールのインストール (Docker)
+### 2.2 必要ツールのインストール
 
 ```bash
-# パッケージリスト更新 と 必要ツールのインストール
+# パッケージ更新とDocker準備
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl gnupg lsb-release git
 
-# Docker 公式 GPG キーの追加
+# Docker公式GPGキー追加
 sudo mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
-# Docker リポジトリの追加
+# Dockerリポジトリ追加
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Docker Engine のインストール
+# Dockerインストール
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Docker権限設定
+sudo usermod -aG docker $USER
 ```
 
-### 2.3 Docker の実行権限設定
+### 2.3 作業用ユーザー作成
 
 ```bash
-sudo usermod -aG docker $USER   # ログアウト・再ログインで反映
-```
-
-### 2.4 作業用ユーザー (workuser) の作成と権限付与
-
-```bash
-# 1. ユーザー作成（パスワードなし）
+# ユーザー作成
 sudo adduser workuser --gecos "Work User" --disabled-password
+echo "workuser:YourStrongPassword" | sudo chpasswd
 
-# 2. 必要ならパスワード設定（例: StrongPass123!）
-echo "workuser:StrongPass123!" | sudo chpasswd
-
-# 3. sudo グループへ追加（管理者権限）
+# sudo権限付与
 sudo usermod -aG sudo workuser
-
-# 4. パスワードなし sudo を許可（任意）
 echo "workuser ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/workuser
-
-# 5. SSH 鍵の設定（任意: ブラウザ接続のみならスキップ可）
-# ※ ブラウザ SSH のみ使用する場合は、以下の 4 行は実行しなくて OK です
-# sudo -u workuser mkdir -p /home/workuser/.ssh
-#
-# 下記は公開鍵を持っている場合のみ実行
-# echo "ssh-rsa AAAAB3... your_key" | sudo tee -a /home/workuser/.ssh/authorized_keys
-# sudo chmod 700 /home/workuser/.ssh
-# sudo chmod 600 /home/workuser/.ssh/authorized_keys
-# sudo chown -R workuser:workuser /home/workuser/.ssh
 ```
 
-### 2.5 スワップ領域の作成（e2‑micro 用）
+### 2.4 スワップ領域作成（e2-micro用）
 
 ```bash
 sudo fallocate -l 2G /swapfile
@@ -216,86 +104,77 @@ sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
-# 一度ログアウトして再ログイン（設定反映のため）
-exit
-```
-再度 SSH 接続してください。
+**一度ログアウトして再接続**してください。
 
 ---
 
-## 3. アプリケーションのデプロイ
+## 3. SSL証明書取得
 
-### 3.1 リポジトリの取得
+### 3.1 Certbotインストール
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git small-voice-projec
-cd small-voice-projec
+sudo apt-get install -y certbot
 ```
 
-### 3.2 環境変数の設定
+### 3.2 証明書取得
+
+```bash
+# Dockerコンテナが起動していないことを確認
+sudo certbot certonly --standalone -d your-domain.com
+```
+
+> ⚠️ `your-domain.com`を実際のドメインに置き換えてください。
+
+証明書は `/etc/letsencrypt/live/your-domain.com/` に保存されます。
+
+---
+
+## 4. アプリケーションデプロイ
+
+### 4.1 リポジトリ取得
+
+```bash
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git small-voice-project
+cd small-voice-project
+```
+
+### 4.2 環境変数設定
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-`.env` の編集例:
+**`.env` 設定例：**
+
 ```ini
+# Gemini API
 GEMINI_API_KEY=your_actual_key
 GEMINI_MODEL_NAME=gemini-2.0-flash-exp
 
-# セキュアなパスワードを設定
-INITIAL_SYSTEM_PASSWORD=prod_sys_pass
-INITIAL_ADMIN_PASSWORD=prod_admin_pass
-INITIAL_USER_PASSWORD=prod_user_pass
+# システムパスワード
+INITIAL_SYSTEM_PASSWORD=secure_system_pass
+INITIAL_ADMIN_PASSWORD=secure_admin_pass
+INITIAL_USER_PASSWORD=secure_user_pass
 
-# メール送信設定 (本番環境用 / Brevoの例)
+# メール設定（Brevo推奨）
 ENVIRONMENT=production
 SMTP_SERVER=smtp-relay.brevo.com
 SMTP_PORT=587
-SMTP_USERNAME=your_brevo_login_email@example.com
-SMTP_PASSWORD=your_generated_smtp_key
+SMTP_USERNAME=your_brevo_email@example.com
+SMTP_PASSWORD=your_brevo_smtp_key
 SENDER_EMAIL=noreply@your-domain.com
 SENDER_NAME="Small Voice System"
 ```
 
-### 3.3 SSL化 (HTTPS) と起動
+### 4.3 Nginx設定ファイル確認
 
-GCEのファイアウォール設定でHTTPSは許可されていますが、サーバー内部で証明書を取得・設定する必要があります。
-ここでは `certbot` を使って証明書を取得し、それを Nginx コンテナにマウントする方法を採用します。
-
-#### 3.3.1 Certbot のインストール (ホスト側)
-
-```bash
-sudo apt-get install -y certbot
-```
-
-#### 3.3.2 証明書の取得
-
-一時的に80番ポートを使用して証明書を取得します。Nginx等が起動していない状態で実行してください。
-
-```bash
-sudo certbot certonly --standalone -d your-domain.com
-```
-※ `your-domain.com` はあなたのドメインに置き換えてください。
-成功すると `/etc/letsencrypt/live/your-domain.com/` に証明書が保存されます。
-
-#### 3.3.3 Nginx設定の更新
-
-`nginx/default.conf` を編集し、HTTPS設定を有効にします。
-
-```bash
-mkdir nginx
-nano nginx/default.conf
-```
-
-**変更後の `nginx/default.conf` 例:**
+`nginx/default.conf` が以下の内容になっているか確認：
 
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
-    # HTTPSへのリダイレクト
     return 301 https://$host$request_uri;
 }
 
@@ -303,10 +182,8 @@ server {
     listen 443 ssl;
     server_name your-domain.com;
 
-    # 検索エンジンにインデックスされないようにする
     add_header X-Robots-Tag "noindex, nofollow, nosnippet, noarchive";
 
-    # 証明書のパス (コンテナ内のパス)
     ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
 
@@ -327,222 +204,210 @@ server {
     }
 }
 ```
-※ `server_name` と証明書パスのドメイン部分を書き換えてください。
 
-#### 3.3.4 docker-compose.prod.yml の修正
+> ⚠️ `your-domain.com` を実際のドメインに置き換えてください。
 
-証明書ディレクトリをマウントするため、`docker-compose.prod.yml` を編集します。
-ここでは、**サーバー上でソースコードからビルドする構成（基本構成）** を作成します。
+### 4.4 docker-compose.prod.yml 確認
 
-以下の内容でファイル全体を上書きしてください。
-
-```bash
-nano docker-compose.prod.yml
-```
-
-**`docker-compose.prod.yml` の完成形:**
+以下の内容が含まれているか確認：
 
 ```yaml
-version: '3.8'
-
 services:
-  db:
-    image: postgres:15-alpine
-    restart: always
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: small_voice_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-
-  backend:
-    build: 
-      context: .
-      dockerfile: Dockerfile.backend
-    restart: always
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-    volumes:
-      - ./backend:/app
-    environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/small_voice_db
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL_NAME=${GEMINI_MODEL_NAME:-gemini-pro}
-      - INITIAL_SYSTEM_PASSWORD=${INITIAL_SYSTEM_PASSWORD}
-      - INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD}
-      - INITIAL_USER_PASSWORD=${INITIAL_USER_PASSWORD}
-    depends_on:
-      - db
-
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    restart: always
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-
   nginx:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"
+      - "443:443"  # HTTPS用ポート
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro  # 証明書マウント
     depends_on:
+      - backend
       - frontend
+    restart: always
+
+  frontend:
+    image: ghcr.io/your_username/your_repo/frontend:latest
+    restart: always
+    # ポート公開なし（Nginx経由のみでアクセス）
+    environment:
+      - NEXT_PUBLIC_API_URL=/api
+    depends_on:
       - backend
 
+  backend:
+    image: ghcr.io/your_username/your_repo/backend:latest
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/small_voice_db
+      # その他環境変数...
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=small_voice_db
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+
 volumes:
-  postgres_data:
+  postgres_data_prod:
 ```
 
-### 3.4 起動と確認
+> 🔒 **セキュリティ推奨**: frontendの`ports`は削除し、すべてのアクセスをNginx（HTTPS）経由にします。
+
+### 4.5 起動
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-ブラウザで `https://your-domain.com` にアクセスし、アプリケーションが表示されること、鍵マーク（SSL保護）がついていることを確認してください。
+### 4.6 動作確認
+
+ブラウザで `https://your-domain.com` にアクセスし、🔒マークが表示されることを確認してください。
 
 ---
 
-## 4. 運用・メンテナンス
+## 5. トラブルシューティング
 
-### ログの確認
+### ❌ 「このサイトにアクセスできません」（接続が拒否されました）
+
+**原因**: Nginxコンテナが起動していない
+
+**確認方法**:
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+Nginxが`Restarting`状態の場合：
+
+**解決策**:
+```bash
+# ログを確認
+docker compose -f docker-compose.prod.yml logs nginx
+
+# よくあるエラー: 証明書ファイルが見つからない
+# → docker-compose.prod.ymlに証明書マウントがあるか確認
+# volumes:
+#   - /etc/letsencrypt:/etc/letsencrypt:ro
+
+# 443番ポートが公開されているか確認
+# ports:
+#   - "80:80"
+#   - "443:443"
+```
+
+設定を修正後：
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### ⚠️ 「危険なサイト」警告が表示される
+
+**原因**: ブラウザのキャッシュ
+
+**解決策**:
+1. **シークレットモード/プライベートウィンドウ**でアクセス
+2. または**ブラウザのキャッシュとCookieをクリア**
+
+証明書が有効か確認：
+```bash
+sudo certbot certificates
+```
+
+### 🔄 証明書の更新
+
+Let's Encryptの証明書は**90日間有効**です。更新手順：
+
+```bash
+# Nginx一時停止
+docker compose -f docker-compose.prod.yml stop nginx
+
+# 更新実行
+sudo certbot renew
+
+# Nginx再起動
+docker compose -f docker-compose.prod.yml start nginx
+```
+
+**自動更新（推奨）**:
+```bash
+# crontabに追加（毎月1日午前3時に実行）
+sudo crontab -e
+
+# 以下を追加
+0 3 1 * * docker compose -f /path/to/small-voice-project/docker-compose.prod.yml stop nginx && certbot renew --quiet && docker compose -f /path/to/small-voice-project/docker-compose.prod.yml start nginx
+```
+
+---
+
+## 6. アプリケーション更新
+
+### GitHub Actions + GHCR を使用した高速デプロイ
+
+#### 初回準備
+
+1. **GitHub PATの作成**: Settings → Developer settings → Personal access tokens
+   - スコープ: `repo`, `read:packages`
+
+2. **サーバーでログイン**:
+```bash
+echo "YOUR_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
+
+#### 更新手順
+
+**ローカル**:
+```bash
+git push origin main
+```
+
+GitHub Actionsが自動的にイメージをビルド・プッシュします（数分）。
+
+**サーバー**:
+```bash
+cd small-voice-project
+git pull origin main
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+docker image prune -f  # 不要イメージ削除
+```
+
+---
+
+## 7. 運用
+
+### ログ確認
 ```bash
 docker compose -f docker-compose.prod.yml logs -f
 ```
 
-### 証明書の更新
-Let's Encrypt の証明書は90日で切れます。更新するには：
-```bash
-# 一時的にNginxを停止
-docker compose -f docker-compose.prod.yml stop nginx
-
-# 更新
-sudo certbot renew
-
-# 再起動
-docker compose -f docker-compose.prod.yml start nginx
-```
-これをcronなどで自動化することを推奨します。
-
 ### データバックアップ
-GCEのスナップショット機能を活用して、ディスク全体のバックアップを定期的に取得するのが最も簡単で確実です。
+GCEのスナップショット機能を利用して定期的にバックアップを取得してください。
 
----
+### デモ環境のデータリセット
 
-## 5. アプリケーションの更新 (GitHub Actions + GHCR)
-
-開発が進み、ローカルでの変更を本番サーバーに反映させる際は、**GitHub Actions と GHCR (GitHub Container Registry)** を使用した高速デプロイを推奨します。
-サーバー上でのビルド時間をなくし、ダウンタイムを最小限（数秒〜数十秒）に抑えることができます。
-
-### 5.1 初回準備 (GHCRへの移行)
-
-初期セットアップ（Step 3）では簡単のためサーバー上でビルドする構成にしていましたが、更新をスムーズにするために GHCR を使う構成に切り替えます。
-**この作業は初回のみ必要です。**
-
-#### 1. GitHub Packages の有効化
-1. リポジトリの `Settings` > `Actions` > `General` を確認します。
-2. `Workflow permissions` が `Read and write permissions` になっていることを確認してください。
-
-#### 2. サーバーでのログイン
-GitHub のコンテナレジストリからイメージをダウンロードできるように、サーバー側で認証します。
-
-1. **GitHub PAT (Personal Access Token) の作成**:
-    - GitHub の Settings > Developer settings > Personal access tokens (Classic) に移動します。
-    - `repo` レポジトリへのフルアクセス権限と `read:packages` スコープを持つトークンを作成します。
-2. **サーバーでのログイン**:
-    ```bash
-    echo "YOUR_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
-    ```
-
-#### 3. docker-compose.prod.yml の書き換え
-サーバー上の `docker-compose.prod.yml` を編集し、ローカルビルド (`build: .`) から GHCR イメージ (`image: ghcr.io...`) を使うように変更します。
+> ⚠️ **警告**: 本番環境では絶対に実行しないでください！全データが削除されます。
 
 ```bash
-nano docker-compose.prod.yml
-```
-
-`backend` と `frontend` のセクションを以下のように書き換えてください。
-
-```yaml
-# 変更前 (初期構成 / Server Side Build)
-# build:
-#   context: .
-#   dockerfile: Dockerfile.backend
-
-# 変更後 (推奨構成 / GHCR Image)
-image: ghcr.io/your_username/your_repo_name/backend:latest
-```
-※ `frontend` も同様に `image: .../frontend:latest` に変更し、`build:` セクションを削除またはコメントアウトします。
-※ `your_username` と `your_repo_name` は適切な値（小文字）に置き換えてください。
-
----
-
-### 5.2 通常の更新手順
-
-設定完了後は、以下の手順で更新を行います。
-
-#### 1. ローカルでの作業
-変更内容を `main` ブランチにプッシュします。GitHub Actions が自動的に新しいイメージをビルドし、GHCR にプッシュします。
-
-```bash
-git push origin main
-```
-GitHub Actions の完了を待ってください（通常数分）。
-
-#### 2. サーバーでの作業
-サーバーに SSH 接続し、新しいイメージを取得して再起動します。
-
-```bash
-# 1. プロジェクトフォルダへ移動
-cd small-voice-project
-
-# 2. 最新のコードと設定を取得 (composeファイルの変更などがなければ省略可)
-git pull origin main
-
-# 3. 最新イメージを取得して再起動
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
-
-# 4. 不要なイメージの削除 (任意)
-docker image prune -f
-```
-
-これで、サーバーへの負荷をかけずに数十秒で更新が完了します。
-
-> **Note**: もし何らかの理由で GHCR が使えない場合は、一時的に `docker-compose.prod.yml` を `build` 設定に戻し、`docker compose ... up -d --build` を実行することでサーバー上でビルドすることも可能です。
-
-## 6. デモ環境・開発用データの管理
-
-デモ環境や検証環境において、データベースを初期状態にリセットしたい場合の手順です。
-**本番運用中の環境では絶対に行わないでください。** ユーザーデータを含む全てのデータが削除されます。
-
-### 6.1 データベースの完全リセットとダミーデータ投入
-
-SSHでサーバーに接続し、以下の手順を実行します。
-ここでは本番用の構成ファイル `docker-compose.prod.yml` を使用してコマンドを実行します。
-
-```bash
-# プロジェクトディレクトリへ移動
-cd small-voice-project
-
-# 1. データベースを完全リセット (全テーブル削除)
-# ⚠️⚠️ 【危険】 警告: これを実行すると全てのデータが完全に消去されます！ ⚠️⚠️
+# 全データ削除
 docker compose -f docker-compose.prod.yml exec backend python scripts/reset_db_clean.py
 
-# 2. 初期セットアップ (テーブル作成 + 初期ユーザー/データ投入)
-# デモ用に大量のダミーデータを投入する場合:
+# ダミーデータ投入
 docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --with-dummy-data
-
-# または、初期ユーザーのみ作成してデータは空にする場合:
-# docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py
 ```
 
-### 6.2 実行後の確認
-ブラウザでアクセスし、初期ユーザー（`user1@example.com` 等）でログインできること、またはデータがクリアされていることを確認してください。
+---
+
+## 参考: コスト目安（東京リージョン）
+
+- **e2-micro VM**: 約 $8/月
+- **e2-micro Spot**: 約 $3-4/月（停止リスクあり）
+- **ディスク (30GB)**: 約 $4/月
+- **合計**: **$7-12/月**
+
+> 💡 **無料枠**: 米国リージョン（us-central1等）ならe2-microは無料枠対象です。
