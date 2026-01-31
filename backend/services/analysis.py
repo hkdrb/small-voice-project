@@ -8,41 +8,37 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 import google.generativeai as genai
-from backend.utils import MODEL_NAME, MODEL_NAME_THINKING, MODEL_NAME_LIGHT, GEMINI_API_KEY, logger
+from backend.utils import MODEL_NAME, MODEL_NAME_THINKING, MODEL_NAME_LIGHT, EMBEDDING_MODEL_NAME, GEMINI_API_KEY, logger
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 import umap
-
 import hdbscan
 
-# Global model cache for performance
-_semantic_model = None
-
-def get_semantic_model():
-    """Get or load Sentence Transformer model (cached)."""
-    global _semantic_model
-    if _semantic_model is None:
-        logger.info("Loading Sentence Transformer model...")
-        # Use multilingual model optimized for semantic similarity
-        # 'intfloat/multilingual-e5-large' is SOTA for multilingual embeddings
-        _semantic_model = SentenceTransformer('intfloat/multilingual-e5-large')
-        logger.info("Model loaded successfully.")
-    return _semantic_model
+# No global model cache needed for API-based embeddings
 
 def get_vectors_semantic(texts):
-    """Generate semantic embeddings using Sentence Transformers."""
+    """Generate semantic embeddings using Gemini Embeddings API."""
     try:
-        model = get_semantic_model()
-        # e5-large requires "query: " prefix for asymmetric tasks, but for clustering we can use "passage: " or just raw text depending on usage.
-        # For clustering similar items, raw text or "passage: " is often used.
-        # However, e5 models are trained with "query: " / "passage: " prefixes.
-        # We will use "passage: " as these are the items being analyzed.
-        formatted_texts = [f"passage: {t}" for t in texts]
-        vectors = model.encode(formatted_texts, show_progress_bar=False, normalize_embeddings=True)
-        return vectors
+        genai.configure(api_key=GEMINI_API_KEY)
+        
+        # Gemini embedding-004 supports batching (usually up to 100 or 2048 depending on version)
+        # We'll batch to be safe and efficient if user has many texts
+        batch_size = 100
+        vectors = []
+        
+        for i in range(0, len(texts), batch_size):
+            batch_texts = texts[i:i + batch_size]
+            result = genai.embed_content(
+                model=EMBEDDING_MODEL_NAME,
+                content=batch_texts,
+                task_type="clustering"
+            )
+            # result['embedding'] is a list of lists if input is a list
+            vectors.extend(result['embedding'])
+            
+        return np.array(vectors)
     except Exception as e:
-        logger.error(f"Semantic vectorization failed: {e}")
-        # Fallback to TF-IDF if Sentence Transformers fails
+        logger.error(f"Semantic vectorization with Gemini failed: {e}")
+        # Fallback to TF-IDF
         return get_vectors_tfidf(texts)
 
 def get_vectors_tfidf(texts):
