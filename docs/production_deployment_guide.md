@@ -399,9 +399,22 @@ docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py
 
 > 💡 **節約Tips**: 米国リージョン（us-central1等）のe2-microは無料枠対象です。
 
+### データベース接続
+
+ローカルのDBクライアントツール（TablePlus、DBeaver等）から本番DBに接続する方法については、以下のガイドを参照してください：
+
+📖 **[本番DB接続ガイド](./db_connection_guide.md)**
+
+主な内容：
+- gcloud CLIのインストールと設定
+- SSH トンネル（IAP経由）の作成方法
+- 各種DBクライアントツールの接続手順
+- トラブルシューティング
+
 ### 参考リンク
 
 - [Google Cloud DNS ドキュメント](https://cloud.google.com/dns)
 - [Brevo（旧Sendinblue）](https://www.brevo.com/)
 - [Let's Encrypt](https://letsencrypt.org/)
 - [Docker Compose リファレンス](https://docs.docker.com/compose/)
+- [本番DB接続ガイド](./db_connection_guide.md)
