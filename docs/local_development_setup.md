@@ -85,6 +85,7 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/reset_db_cl
 # 2. 初期セットアップ (テーブル作成 + 初期ユーザー/データ投入)
 # ダミーデータ(セッション・コメント)も含めて投入する場合:
 docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --with-dummy-data
+# 注: 各セッションへのコメント生成（200件/つ）やCSVデータの生成（1000件）が行われるため、完了まで数秒かかります。
 
 # 初期ユーザーのみ作成する場合 (データは空):
 # docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py

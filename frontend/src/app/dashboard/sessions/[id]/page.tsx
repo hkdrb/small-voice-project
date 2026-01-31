@@ -298,35 +298,33 @@ export default function SessionDetailPage() {
                     x: data.results.map(r => r.x),
                     y: data.results.map(r => r.y),
                     text: data.results.map(r => {
-                      const score = r.small_voice_score || 0;
-                      const scoreLevel = score >= 0.8 ? "🔥 極めて高い" : score >= 0.6 ? "✨ 高い" : "通常";
-                      return `<b>${r.sub_topic}</b><br>${r.original_text}<br><br><b>Small Voice スコア:</b> ${score.toFixed(2)} (${scoreLevel})`;
+                      return `<b>${r.sub_topic}</b><br>${r.original_text}`;
                     }),
                     mode: 'markers',
                     type: 'scatter',
                     marker: viewMode === 'topic' ? {
                       // Topic Mode (Categorical)
-                      size: data.results.map(r => (r.small_voice_score || 0) >= 0.7 ? 18 : 12),
+                      size: 12,
                       color: data.results.map(r => categoryColorMap.get(r.sub_topic) || '#ccc'),
                       line: {
-                        width: data.results.map(r => (r.small_voice_score || 0) >= 0.7 ? 3 : 1.5),
-                        color: data.results.map(r => (r.small_voice_score || 0) >= 0.7 ? '#FFD700' : 'white')
+                        width: 1.5,
+                        color: 'white'
                       },
                       opacity: 0.9,
-                      symbol: data.results.map(r => (r.small_voice_score || 0) >= 0.7 ? 'star' : 'circle')
+                      symbol: 'circle'
                     } : {
                       // Sentiment Mode (Heatmap)
-                      size: data.results.map(r => (r.small_voice_score || 0) >= 0.7 ? 18 : 12),
+                      size: 12,
                       color: data.results.map(r => r.sentiment),
                       colorscale: 'RdBu', // Red (Negative) to Blue (Positive)
                       cmin: -1.0,
                       cmax: 1.0,
                       line: {
-                        width: data.results.map(r => (r.small_voice_score || 0) >= 0.7 ? 3 : 1),
-                        color: data.results.map(r => (r.small_voice_score || 0) >= 0.7 ? '#FFD700' : 'white')
+                        width: 1,
+                        color: 'white'
                       },
                       opacity: 0.9,
-                      symbol: data.results.map(r => (r.small_voice_score || 0) >= 0.7 ? 'star' : 'circle'),
+                      symbol: 'circle',
                       showscale: true,
                       colorbar: {
                         title: { text: 'Sentiment' },

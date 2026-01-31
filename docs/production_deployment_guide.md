@@ -387,6 +387,7 @@ docker compose -f docker-compose.prod.yml exec backend python scripts/reset_db_c
 
 # デモ用ダミーデータ投入
 docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --with-dummy-data
+# 生成されるデータ量: チャットコメント 200件/セッション, CSV分析データ 1000件
 ```
 
 ---
