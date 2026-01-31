@@ -272,79 +272,7 @@ docker compose -f docker-compose.prod.yml logs -f
 
 ---
 
-## 4. トラブルシューティング
-
-### ❌ 「接続が拒否されました」と表示される
-
-**原因**: Nginxコンテナが起動していません。
-
-**確認**:
-```bash
-docker compose -f docker-compose.prod.yml ps
-```
-
-Nginxが`Restarting`状態の場合、設定エラーです：
-
-```bash
-# エラーログを確認
-docker compose -f docker-compose.prod.yml logs nginx
-```
-
-**よくあるエラーと対処法**:
-
-| エラーメッセージ | 原因 | 対処法 |
-|-----------------|------|--------|
-| `cannot load certificate` | 証明書マウントが不足 | `docker-compose.prod.yml`に<br>`- /etc/letsencrypt:/etc/letsencrypt:ro`<br>を追加 |
-| `bind: address already in use` | ポートが使用中 | 既存のNginxを停止:<br>`sudo systemctl stop nginx` |
-
-修正後、再起動：
-```bash
-docker compose -f docker-compose.prod.yml up -d
-```
-
-### ⚠️ 「危険なサイト」と警告が表示される
-
-**原因**: ブラウザのキャッシュが古い証明書を保持しています。
-
-**解決策**:
-1. **シークレット/プライベートウィンドウで開く**
-2. または**ブラウザのキャッシュをクリア**
-
-証明書が本当に有効か確認：
-```bash
-sudo certbot certificates
-```
-
-`VALID`と表示されればOKです。
-
-### 🔄 証明書の更新（90日ごと）
-
-Let's Encrypt証明書は90日間有効です。更新手順：
-
-```bash
-# Nginx停止
-docker compose -f docker-compose.prod.yml stop nginx
-
-# 証明書更新
-sudo certbot renew
-
-# Nginx再起動
-docker compose -f docker-compose.prod.yml start nginx
-```
-
-**自動更新の設定（推奨）**:
-
-```bash
-# crontab編集
-sudo crontab -e
-
-# 以下を追加（毎月1日午前3時に自動更新）
-0 3 1 * * cd /home/$USER/small-voice-project && docker compose -f docker-compose.prod.yml stop nginx && certbot renew --quiet && docker compose -f docker-compose.prod.yml start nginx
-```
-
----
-
-## 5. アプリケーション更新
+## 4. アプリケーション更新
 
 コードを更新した場合の反映手順です。
 
@@ -393,7 +321,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 ---
 
-## 6. 運用管理
+## 5. 運用管理
 
 ### ログ確認
 
