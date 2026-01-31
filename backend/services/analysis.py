@@ -105,10 +105,10 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     logger.info("Clustering with HDBSCAN...")
     try:
         clusterer = hdbscan.HDBSCAN(
-            # データ数の約10%を最小サイズとする（ただし3〜15の範囲）
-            min_cluster_size=max(3, min(15, int(n_samples * 0.10))),
-            # クラスタの「核」となるデータの最小数
-            min_samples=max(2, min(10, int(n_samples * 0.05))),
+            # データ数の約5%を最小サイズとする（下限3、上限10）- より細かいクラスタを検出
+            min_cluster_size=max(3, min(10, int(n_samples * 0.05))),
+            # クラスタの「核」となるデータの最小数（下限2、上限5）
+            min_samples=max(2, min(5, int(n_samples * 0.03))),
             metric='euclidean', 
             cluster_selection_method='eom' # Excess of Mass
         )
@@ -185,11 +185,11 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 ### 指示
 1. 声の内容を要約し、共通するトピックを特定してください。
 2. **重要**: 「Category 1」「Group A」のような機械的な名前は**絶対に使用しないでください**。
-3. 内容を**10文字以内のシンプルな名詞句**で要約してください。
-   - 「〜についての意見」「〜に関する要望」などの冗長な表現は削除してください。
-   - 基本的に体言止め（名詞終わり）にしてください。
-   悪い例: "PCスペックが低いことへの不満", "給与制度を見直してほしい", "業務効率化についての意見"
-   良い例: "PCスペック不足", "給与制度の課題", "会議の効率化", "リモートワーク", "福利厚生"
+3. 内容を**6文字以内の体言止め（名詞）**で要約してください。一言で表現することを強く推奨します。
+   - 「〜についての意見」「〜に関する要望」などの冗長な表現は禁止です。
+   - 可能な限り短い単語を選んでください。
+   悪い例: "PCスペックが低いことへの不満", "給与制度を見直してほしい", "リモートワークの課題"
+   良い例: "PC性能", "給与制度", "会議過多", "リモート", "福利厚生", "勤怠管理"
 4. 全体の感情傾向を -1.0(ネガティブ) 〜 1.0(ポジティブ) で数値化してください。
 
 ### 出力フォーマット(JSON):
