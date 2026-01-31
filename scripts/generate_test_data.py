@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # --- Configuration ---
 NUM_ROWS_VALUES = 1000
-NUM_ROWS_OTHERS = 200
+NUM_ROWS_OTHERS = 1000
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "outputs", "test_data")
 
 # --- Utility Functions ---
@@ -317,24 +317,76 @@ SMALL_VOICES = {
 
 DENSE_CLUSTERS = {
     "project": [
-        {"topic": "会議過多", "templates": ["会議が多すぎて作業時間がありません。", "無駄な定例を減らすべきです。", "1日中Zoomに繋ぎっぱなしで疲弊しています。", "会議のための資料作成に時間を取られすぎています。"]},
-        {"topic": "情報共有不足", "templates": ["決定事項が現場に降りてきません。", "他部署が何をしているのか全くわかりません。", "ドキュメントが更新されておらず、口頭伝承になっています。", "情報の透明性が低く、噂レベルの話しか聞こえてきません。"]}
+        {"topic": "会議過多", "templates": [
+            "会議が多すぎて作業時間がありません。", "無駄な定例を減らすべきです。", "1日中Zoomに繋ぎっぱなしで疲弊しています。", 
+            "会議のための資料作成に時間を取られすぎています。", "定例会議のアジェンダが事前に共有されないため、時間が無駄になっています。", 
+            "意思決定のための会議なのか、報告のための会議なのか曖昧です。"
+        ]},
+        {"topic": "情報共有不足", "templates": [
+            "決定事項が現場に降りてきません。", "他部署が何をしているのか全くわかりません。", 
+            "ドキュメントが更新されておらず、口頭伝承になっています。", "情報の透明性が低く、噂レベルの話しか聞こえてきません。",
+            "Slackでの議論が流れてしまい、後から経緯を追うのが不可能です。", "Wikiの検索性が悪く、必要な情報が見つかりません。"
+        ]},
+        {"topic": "評価制度への不満", "templates": [
+            "定性的な評価基準が曖昧で、納得感がありません。", "成果を出しても給与に反映されにくいと感じます。",
+            "360度評価の結果がフィードバックされず、改善点がわかりません。", "マネージャーによって評価の厳しさにばらつきがあります。"
+        ]}
     ],
     "product": [
-        {"topic": "ドキュメント不備", "templates": ["仕様書が存在せず、実装が勘頼みになっています。", "要件定義がコロコロ変わり、手戻りが多いです。", "最新の仕様がどこにあるのか誰も知りません。", "ドキュメント管理を徹底してください。"]},
-        {"topic": "UX改善", "templates": ["画面遷移が複雑でユーザーが迷っています。", "もっと直感的なUIにする必要があります。", "モバイルでの操作性が著しく悪いです。", "デザインの一貫性がなく、使いにくいです。"]}
+        {"topic": "ドキュメント不備", "templates": [
+            "仕様書が存在せず、実装が勘頼みになっています。", "要件定義がコロコロ変わり、手戻りが多いです。", 
+            "最新の仕様がどこにあるのか誰も知りません。", "ドキュメント管理を徹底してください。",
+            "Figmaのデザインと実際の仕様に乖離があり、混乱しています。"
+        ]},
+        {"topic": "UX改善", "templates": [
+            "画面遷移が複雑でユーザーが迷っています。", "もっと直感的なUIにする必要があります。", 
+            "モバイルでの操作性が著しく悪いです。", "デザインの一貫性がなく、使いにくいです。",
+            "ロード時間が長く、ユーザーの離脱要因になっています。", "エラーメッセージが不親切で、どう対応すればいいかわかりません。"
+        ]}
     ],
     "welfare": [
-        {"topic": "CI/CD遅延", "templates": ["CIが遅すぎて開発フローが詰まっています。", "デプロイ待ちで1時間無駄にしました。", "ビルド時間の短縮に投資してください。", "GitHub Actionsの待ち時間がストレスです。"]},
-        {"topic": "PCスペック不足", "templates": ["メモリ8GBではDockerが重くて動きません。", "開発マシンのスペックを上げてください。", "古いPCを使わされており、生産性が低いです。", "M3 Macへのリプレイスを希望します。"]}
+        {"topic": "CI/CD遅延", "templates": [
+            "CIが遅すぎて開発フローが詰まっています。", "デプロイ待ちで1時間無駄にしました。", 
+            "ビルド時間の短縮に投資してください。", "GitHub Actionsの待ち時間がストレスです。",
+            "テストの並列実行をもっと増やすべきです。"
+        ]},
+        {"topic": "PCスペック不足", "templates": [
+            "メモリ8GBではDockerが重くて動きません。", "開発マシンのスペックを上げてください。", 
+            "古いPCを使わされており、生産性が低いです。", "M3 Macへのリプレイスを希望します。", 
+            "モニターが1枚しかなく、作業効率が悪いです。"
+        ]},
+        {"topic": "リモートワーク環境", "templates": [
+            "VPNが頻繁に切断され、業務に支障が出ています。", "リモート手当をもっと充実させてほしいです。",
+            "出社回帰の方針について、もっと議論したいです。", "ハイブリッドワークのルールを明確にしてほしいです。"
+        ]}
     ],
     "tech": [
-        {"topic": "技術的負債", "templates": ["レガシーコードが複雑すぎて修正できません。", "テストコードがなく、変更が怖いです。", "継ぎ接ぎの改修でアーキテクチャが破綻しています。", "リファクタリングの時間を確保させてください。"]},
-        {"topic": "エラー頻発", "templates": ["本番環境で謎のエラーが頻発しています。", "エラーハンドリングが統一されていません。", "ログ監視が不十分で原因特定に時間がかかります。", "システムが不安定で、夜間対応が増えています。"]}
+        {"topic": "技術的負債", "templates": [
+            "レガシーコードが複雑すぎて修正できません。", "テストコードがなく、変更が怖いです。", 
+            "継ぎ接ぎの改修でアーキテクチャが破綻しています。", "リファクタリングの時間を確保させてください。",
+            "古いライブラリの依存関係が足かせになっています。", "スパゲッティコード化したクラスを分割したいです。"
+        ]},
+        {"topic": "エラー頻発", "templates": [
+            "本番環境で謎のエラーが頻発しています。", "エラーハンドリングが統一されていません。", 
+            "ログ監視が不十分で原因特定に時間がかかります。", "システムが不安定で、夜間対応が増えています。",
+            "Sントリーのエラー通知が多すぎて、オオカミ少年状態です。"
+        ]}
     ],
     "values": [
-        {"topic": "称賛文化", "templates": ["お互いを褒め合う文化をもっと作りたいです。", "感謝を伝える仕組み（Thanksカードなど）が欲しいです。", "成果だけでなくプロセスも評価してほしいです。", "ポジティブなフィードバックを増やしましょう。"]},
-        {"topic": "挑戦", "templates": ["新しい技術への挑戦をもっと推奨すべきです。", "失敗を恐れずにチャレンジできる環境が必要です。", "守りに入らず、攻めの姿勢でいきましょう。", "イノベーションを起こすための余白が欲しいです。"]}
+        {"topic": "称賛文化", "templates": [
+            "お互いを褒め合う文化をもっと作りたいです。", "感謝を伝える仕組み（Thanksカードなど）が欲しいです。", 
+            "成果だけでなくプロセスも評価してほしいです。", "ポジティブなフィードバックを増やしましょう。",
+            "他チームの成功事例をもっと共有する場が欲しいです。"
+        ]},
+        {"topic": "挑戦", "templates": [
+            "新しい技術への挑戦をもっと推奨すべきです。", "失敗を恐れずにチャレンジできる環境が必要です。", 
+            "守りに入らず、攻めの姿勢でいきましょう。", "イノベーションを起こすための余白が欲しいです。",
+            "新しいツールの導入ハードルを下げてほしいです。"
+        ]},
+        {"topic": "心理的安全性", "templates": [
+            "ミスを責めるのではなく、仕組みで解決する文化にしたいです。", "反対意見をもっと言いやすい雰囲気にすべきです。",
+            "若手が発言しやすいミーティングの雰囲気が重要です。"
+        ]}
     ]
 }
 
@@ -401,12 +453,12 @@ DEPARTMENTS = ["SREチーム", "フロントエンド", "バックエンド", "�
 def generate_mixed_comments_list(count, category):
     """
     Generates a list of comments with weighted distribution:
-    - 5% Small Voice (Outliers)
-    - 25% Dense Clusters
-    - 70% General Noise
+    - 5% Small Voice (Outliers) - keeping small for realism
+    - 60% Dense Clusters - Increased for better visualization in demo
+    - 35% General Noise
     """
     n_small_voices = max(int(count * 0.05), 1)
-    n_dense_clusters = int(count * 0.25)
+    n_dense_clusters = int(count * 0.60)
     n_general = count - n_small_voices - n_dense_clusters
     
     comments = []
@@ -483,11 +535,8 @@ def generate_csv_files():
 
     # 4. Values (Large dataset)
     print("Generating Values data...")
-    # For Values, we keep Q3 as the main target for Small Voice/Cluster logic? 
-    # Q3 is "Proposal", which fits best. Q2 is Episode.
     
     q2_list = generate_unique_sentence_list(get_value_comment_q2, NUM_ROWS_VALUES)
-    # Apply mixed logic to Q3
     q3_list = generate_mixed_comments_list(NUM_ROWS_VALUES, "values")
     
     values_data = []
@@ -495,13 +544,13 @@ def generate_csv_files():
         values_data.append({
             "日時": generate_random_date(),
             "部署": random.choice(DEPARTMENTS),
-            "価値観のテーマ": get_value_comment_q1(), # Allowed to repeat
+            "価値観のテーマ": get_value_comment_q1(), 
             "きっかけのエピソード": q2_list[i],
             "提案する価値観": q3_list[i]
         })
     pd.DataFrame(values_data).to_csv(os.path.join(OUTPUT_DIR, "values.csv"), index=False, encoding="utf-8-sig")
 
-    print(f"✅ Generated data: Values({NUM_ROWS_VALUES}), Project/Dev/Tech({NUM_ROWS_OTHERS})")
+    print(f"✅ Generated data: All files have {NUM_ROWS_VALUES} rows.")
 
 
 

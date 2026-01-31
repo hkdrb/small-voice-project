@@ -196,8 +196,7 @@ AI分析の実行単位（セッション）を管理します。
 | `summary` | String | テキストの要約。 |
 | `x_coordinate` | Float | クラスタリング可視化用のX座標。 |
 | `y_coordinate` | Float | クラスタリング可視化用のY座標。 |
-| `cluster_id` | Integer | 所属するクラスタのID。 |
-| `small_voice_score` | Float | 外れ値検出スコア。高いほど「小さな声」としての重要性が高い。 |
+| `cluster_id` | Integer | 所属するクラスタID（-1はノイズ）。 |
 | `session` | relationship | 紐付く分析セッション。 |
 ### 課題定義レポート (`issue_definitions`)
 セッション全体を通してAIが生成した課題レポートを格納します。

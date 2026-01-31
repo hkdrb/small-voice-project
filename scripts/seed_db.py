@@ -125,7 +125,7 @@ def create_dummy_sessions(db):
     print(f"Prepared {len(created_sessions)} sessions.")
     return created_sessions
 
-def create_dummy_comments(db, users, num_comments=50):
+def create_dummy_comments(db, users, num_comments=200):
     print(f"\n--- Checking Sessions for Comment Generation ---")
     
     sessions = db.query(AnalysisSession).all()
@@ -172,7 +172,7 @@ def create_dummy_comments(db, users, num_comments=50):
         # 70% General Noise (Combinatorial sentences)
         
         n_small_voices = max(2, int(num_comments * 0.05))
-        n_dense_clusters = int(num_comments * 0.25)
+        n_dense_clusters = int(num_comments * 0.60) # Increased to 60% for denser clusters
         n_general = num_comments - n_small_voices - n_dense_clusters
         
         comments_payload = []
@@ -249,7 +249,7 @@ if __name__ == "__main__":
                 print("❌ No dummy users found (unexpected).")
             else:
                 create_dummy_sessions(db)
-                create_dummy_comments(db, all_dummy_users, num_comments=50)
+                create_dummy_comments(db, all_dummy_users, num_comments=200)
         else:
             print("\nℹ️  Skipping dummy data (sessions/comments). Use '--with-dummy-data' to generate them.")
             

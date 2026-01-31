@@ -89,8 +89,7 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     1. Semantic Vectors (Sentence Transformers)
     2. KMeans Clustering
     3. UMAP for 2D coords
-    4. Outlier detection (Isolation Forest + LOF)
-    5. Enhanced LLM-based cluster naming with CoT + Few-Shot
+    4. Enhanced LLM-based cluster naming with CoT + Few-Shot
     """
     if not texts: return []
     
@@ -152,11 +151,7 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     else:
         coords = np.zeros((n_samples, 2))
 
-    # 4. Outlier Detection (NEW: Small Voice Score)
-    logger.info("Detecting outliers (Small Voice)...")
-    small_voice_scores = detect_outliers(vectors)
-
-    # 5. Naming Clusters with Enhanced Prompts (NEW: CoT + Few-Shot)
+    # 4. Naming Clusters with Enhanced Prompts (NEW: CoT + Few-Shot)
     genai.configure(api_key=GEMINI_API_KEY)
     # Use LIGHT model for quick cluster naming
     model = genai.GenerativeModel(MODEL_NAME_LIGHT, generation_config={"response_mime_type": "application/json"})
@@ -170,60 +165,45 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         if not indices: continue
 
         if cid == -1:
-            cluster_info[cid] = {"name": "特異点・外れ値", "sentiment": 0.0}
+            cluster_info[cid] = {"name": "その他・分類不能", "sentiment": 0.0}
             continue
 
-        sample_texts = [texts[i] for i in indices[:min(5, len(indices))]]
+        sample_texts = [texts[i] for i in indices[:min(8, len(indices))]]
         
         # Enhanced Prompt with Chain of Thought + Few-Shot
-        prompt = f"""あなたはデータアナリストです。以下の社員の声を段階的に分析してください。
+        prompt = f"""あなたはデータアナリストです。以下の社員の声を分析し、適切なカテゴリ名を付けてください。
 
-### ステップ1: 表層的な意味の理解
-各コメントが何について述べているか、明示的な内容を把握してください。
+### 分析対象のテーマ
+{theme_name}
 
-### ステップ2: 隠れた感情・意図の推定
-日本的な間接表現（「〜だと嬉しいです」「〜は少し…」など）に注意し、本音の感情を推測してください。
-
-### ステップ3: カテゴリ分類
-技術的問題、業務改善、人間関係、職場環境などのカテゴリに分類してください。
-
-テーマ: {theme_name}
-
-声の例:
+### 声の例
 {json.dumps(sample_texts, ensure_ascii=False)}
 
-### 参考例（Few-Shot）:
-入力例1: "画面の読み込みが遅いときがあります"
-→ カテゴリ: "システムパフォーマンス", 感情スコア: -0.4
-
-入力例2: "もっと柔軟な働き方ができると嬉しいです"
-→ カテゴリ: "働き方改革への要望", 感情スコア: -0.3 (丁寧だが現状への不満)
-
-入力例3: "チームの雰囲気が良くて働きやすいです"
-→ カテゴリ: "職場環境の評価", 感情スコア: 0.8
+### 指示
+1. 声の内容を要約し、共通するトピックを特定してください。
+2. 「Group X」のような機械的な名前ではなく、**具体的で内容がわかる短いカテゴリ名**（10文字以内推奨）を作成してください。
+   悪い例: "Group 1", "業務について", "ポジティブな意見"
+   良い例: "PCスペックへの不満", "リモートワークの要望", "評価制度への疑問"
+3. 全体の感情傾向を -1.0(ネガティブ) 〜 1.0(ポジティブ) で数値化してください。
 
 ### 出力フォーマット(JSON):
 {{
-    "name": "カテゴリ名（簡潔に）",
-    "sentiment": -0.5
+    "name": "カテゴリ名",
+    "sentiment": 0.0
 }}
-
-重要: 
-- 技術的キーワード（バグ、エラー、重い、遅い等）は必ず技術カテゴリに
-- 日本語の丁寧な不満表現は適切にネガティブ判定すること
 """
         try:
             resp = model.generate_content(prompt)
             data = json.loads(resp.text)
             cluster_info[cid] = {
-                "name": data.get("name", f"Group {cid+1}"),
+                "name": data.get("name", f"カテゴリー {cid+1}"),
                 "sentiment": float(data.get("sentiment", 0.0))
             }
         except Exception as e:
             logger.error(f"Generate cluster info failed: {e}")
-            cluster_info[cid] = {"name": f"Group {cid+1}", "sentiment": 0.0}
+            cluster_info[cid] = {"name": f"カテゴリー {cid+1}", "sentiment": 0.0}
     
-    # Construct Result with Small Voice Score
+    # Construct Result without Small Voice Score
     results = []
     for i, text in enumerate(texts):
         cid = cluster_ids[i]
@@ -237,7 +217,6 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
             "x_coordinate": float(coords[i, 0]),
             "y_coordinate": float(coords[i, 1]),
             "cluster_id": int(cid),
-            "small_voice_score": float(small_voice_scores[i]),  # Outlier score
             "is_noise": bool(cid == -1) # Flag for HDBSCAN noise
         })
         
@@ -256,20 +235,6 @@ def generate_issue_logic_from_clusters(df, theme_name):
         # Aggregate counts by sub_topic
         topic_counts = df['sub_topic'].value_counts().to_dict()
         counts_str = ", ".join([f"{k}: {v}件" for k, v in topic_counts.items()])
-        
-        # Small Voice detection: identify high-score outliers
-        small_voice_info = ""
-        if 'small_voice_score' in df.columns:
-            high_score_threshold = 0.7
-            small_voices = df[df['small_voice_score'] >= high_score_threshold]
-            if len(small_voices) > 0:
-                small_voice_examples = small_voices['original_text'].head(3).tolist()
-                small_voice_info = f"""
-【Small Voice検出】
-統計的に外れ値として検出された「少数だが重要な可能性のある意見」:
-{json.dumps(small_voice_examples, ensure_ascii=False)}
-→ これらは件数が少なくても、組織にとって重要なリスクや機会の可能性があります。
-"""
         
         # Trend info
         trend_info = ""
@@ -299,7 +264,7 @@ def generate_issue_logic_from_clusters(df, theme_name):
 ### 分析ステップ
 
 #### ステップ1: データの理解
-トピック分布、トレンド、外れ値情報を総合的に把握する
+トピック分布とトレンドを総合的に把握する。
 
 #### ステップ2: 深刻度の評価
 - 技術的リスク（システム障害の予兆）
@@ -307,10 +272,10 @@ def generate_issue_logic_from_clusters(df, theme_name):
 - 機会（改善提案、イノベーションの種）
 
 #### ステップ3: 優先順位付け
-件数だけでなく、影響度、緊急性、実現可能性を考慮
+件数だけでなく、影響度、緊急性、実現可能性を考慮。
 
 #### ステップ4: 課題の抽出
-3〜5個の重要課題を選定
+3〜5個の重要課題を選定。
 
 ---
 
@@ -320,8 +285,6 @@ def generate_issue_logic_from_clusters(df, theme_name):
 {counts_str}
 
 {trend_info}
-
-{small_voice_info}
 
 ---
 
@@ -336,12 +299,18 @@ def generate_issue_logic_from_clusters(df, theme_name):
 ]
 
 重要な分析ポイント:
-1. Small Voice（外れ値）は件数が少なくても重視すること
-2. 技術的問題は組織全体への影響が大きいため優先度を上げること
-3. 「〜してほしい」という要望は「現場のニーズ未充足」として課題化すること
+1. 技術的問題は組織全体への影響が大きいため優先度を上げること
+2. 「〜してほしい」という要望は「現場のニーズ未充足」として課題化すること
 """
         resp = model.generate_content(prompt)
-        return resp.text
+        text = resp.text
+        # Ensure pure JSON
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].strip()
+            
+        return text
     except Exception as e:
         logger.error(f"Report generation failed: {e}")
         return "[]"
