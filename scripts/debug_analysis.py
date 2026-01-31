@@ -2,69 +2,64 @@
 import sys
 import os
 import logging
+import pandas as pd
+import json
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def test_imports():
-    print("Testing imports...")
+def test_analysis_with_csv():
+    print("\nTesting analysis logic with generated CSV...")
     try:
-        import hdbscan
-        print(f"hdbscan imported successfully. Version: {getattr(hdbscan, '__version__', 'unknown')}")
-    except ImportError as e:
-        print(f"Failed to import hdbscan: {e}")
-    except Exception as e:
-        print(f"Error importing hdbscan: {e}")
-
-    try:
-        import umap
-        print(f"umap imported successfully. Version: {getattr(umap, '__version__', 'unknown')}")
-    except ImportError as e:
-        print(f"Failed to import umap: {e}")
-    except Exception as e:
-        print(f"Error importing umap: {e}")
-        
-    try:
-        import google.generativeai as genai
-        print(f"google.generativeai imported successfully. Version: {getattr(genai, '__version__', 'unknown')}")
-    except ImportError as e:
-        print(f"Failed to import google.generativeai: {e}")
-
-def test_analysis():
-    print("\nTesting analysis logic...")
-    try:
-        # Add backend to path if needed (assuming running from project root)
+        # Add backend to path
         sys.path.append(os.getcwd())
         
         from backend.services.analysis import analyze_clusters_logic
-        from backend.utils import GEMINI_API_KEY
         
-        print(f"GEMINI_API_KEY present: {bool(GEMINI_API_KEY)}")
+        csv_path = "outputs/test_data/project.csv"
+        if not os.path.exists(csv_path):
+            print(f"CSV file not found: {csv_path}")
+            return
+
+        df = pd.read_csv(csv_path)
+        print(f"Loaded CSV with {len(df)} rows.")
         
-        texts = [
-            "システムが遅いです",
-            "画面が重い",
-            "もっと早くしてほしい",
-            "人間関係が悩みです",
-            "上司と合わない",
-            "福利厚生を良くして"
-        ]
+        # Sample 200 rows to ensure we get clusters
+        sample_df = df.head(200)
+        texts = sample_df["プロセスへのコメント"].tolist() # Using one of the columns
         
         print(f"Running analyze_clusters_logic with {len(texts)} texts...")
-        results = analyze_clusters_logic(texts, "Test Theme")
+        results = analyze_clusters_logic(texts, "Project Management Test")
         
         print(f"Analysis complete. Result count: {len(results)}")
-        if results:
-            print("First result sample:", results[0])
-        else:
-            print("Results are empty!")
+        
+        # Check cluster names
+        unique_clusters = set()
+        cluster_names = {}
+        
+        for r in results:
+            cid = r['cluster_id']
+            name = r['sub_topic']
+            unique_clusters.add(cid)
+            cluster_names[cid] = name
             
+        print(f"Found {len(unique_clusters)} unique clusters.")
+        print("Cluster Names:")
+        for cid in sorted(unique_clusters):
+            print(f"ID {cid}: {cluster_names[cid]}")
+            
+        # Verify no "Category X"
+        failed_names = [name for name in cluster_names.values() if "Category" in name or "Group" in name]
+        if failed_names:
+            print(f"❌ Failed: Found generic names: {failed_names}")
+        else:
+            print("✅ Success: No generic names found.")
+
     except Exception as e:
         print(f"Analysis failed with error: {e}")
         import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":
-    test_imports()
-    test_analysis()
+    test_analysis_with_csv()
