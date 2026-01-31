@@ -165,13 +165,13 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         if not indices: continue
 
         if cid == -1:
-            cluster_info[cid] = {"name": "その他・分類不能", "sentiment": 0.0}
+            cluster_info[cid] = {"name": "Small Voice (特異点)", "sentiment": 0.0}
             continue
 
         sample_texts = [texts[i] for i in indices[:min(8, len(indices))]]
         
         # Enhanced Prompt with Chain of Thought + Few-Shot
-        prompt = f"""あなたはデータアナリストです。以下の社員の声を分析し、適切なカテゴリ名を付けてください。
+        prompt = f"""あなたはデータアナリストです。以下の社員の声を分析し、内容を端的に表す日本語のカテゴリ名を付けてください。
 
 ### 分析対象のテーマ
 {theme_name}
@@ -181,10 +181,11 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 
 ### 指示
 1. 声の内容を要約し、共通するトピックを特定してください。
-2. 「Group X」のような機械的な名前ではなく、**具体的で内容がわかる短いカテゴリ名**（10文字以内推奨）を作成してください。
-   悪い例: "Group 1", "業務について", "ポジティブな意見"
-   良い例: "PCスペックへの不満", "リモートワークの要望", "評価制度への疑問"
-3. 全体の感情傾向を -1.0(ネガティブ) 〜 1.0(ポジティブ) で数値化してください。
+2. **重要**: 「Category 1」「Group A」のような機械的な名前は**絶対に使用しないでください**。
+3. 内容が具体的にわかる、**15文字以内の日本語のカテゴリ名**を作成してください。
+   悪い例: "Group 1", "カテゴリー1", "業務について", "ポジティブな意見", "その他"
+   良い例: "PCスペックへの不満", "リモートワークの要望", "評価制度への疑問", "会議の効率化", "福利厚生の拡充"
+4. 全体の感情傾向を -1.0(ネガティブ) 〜 1.0(ポジティブ) で数値化してください。
 
 ### 出力フォーマット(JSON):
 {{
@@ -195,13 +196,34 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         try:
             resp = model.generate_content(prompt)
             data = json.loads(resp.text)
+            
+            # Handle potential list output
+            if isinstance(data, list):
+                if len(data) > 0:
+                    data = data[0]
+                else:
+                    data = {}
+
+            name = data.get("name", "")
+            
+            # Post-processing: If LLM still returns generic name, force fallback or clean up
+            if not name or name.lower().startswith("category") or name.lower().startswith("group") or "カテゴリー" in name:
+                # Fallback to a summary of the first item if name is bad
+                if sample_texts:
+                    # Summarize first item simply by taking first 15 chars
+                    name = sample_texts[0][:15] + "..."
+                else:
+                    name = "その他のトピック"
+
             cluster_info[cid] = {
-                "name": data.get("name", f"カテゴリー {cid+1}"),
+                "name": name,
                 "sentiment": float(data.get("sentiment", 0.0))
             }
         except Exception as e:
             logger.error(f"Generate cluster info failed: {e}")
-            cluster_info[cid] = {"name": f"カテゴリー {cid+1}", "sentiment": 0.0}
+            # Fallback for errors
+            fallback_name = sample_texts[0][:15] + "..." if sample_texts else "未分類"
+            cluster_info[cid] = {"name": fallback_name, "sentiment": 0.0}
     
     # Construct Result without Small Voice Score
     results = []

@@ -357,6 +357,12 @@ export default function SessionDetailPage() {
                   plot_bgcolor: 'rgba(255,255,255,0.3)', // Slight background for contrast
                   showlegend: false,
                   dragmode: 'zoom',
+                  hoverlabel: {
+                    bgcolor: 'rgba(255, 255, 255, 0.95)',
+                    bordercolor: '#e2e8f0',
+                    font: { family: 'sans-serif', size: 14, color: '#334155' },
+                    align: 'left'
+                  }
                 }}
                 style={{ width: '100%', height: '100%' }}
                 useResizeHandler
