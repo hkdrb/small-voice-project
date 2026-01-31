@@ -305,40 +305,26 @@ docker compose -f docker-compose.prod.yml logs -f
 
 コードを更新した場合の反映手順です。
 
-### 方法1: サーバー上で直接ビルド（初回デプロイ時）
+### 方法1: サーバー上で直接ビルド（即時反映）
+GitHub Actionsの完了を待たずに、今すぐ反映したい場合に推奨されます。
+`docker-compose.prod.yml` にビルド設定を追加したため、以下のコマンドでサーバー上のコードを使ってイメージを再構築できます。
 
 ```bash
 cd small-voice-project
 git pull origin main
 docker compose -f docker-compose.prod.yml up -d --build
 ```
+※ `--build` オプションが重要です。これがないと古いイメージが使い続けられてしまいます。
 
-### 方法2: GitHub Container Registry (GHCR) を使用（推奨）
+### 方法2: GitHub Container Registry (GHCR) を使用
+GitHub Actionsでの自動ビルド完了（約3〜5分）を待ってから反映する方法です。
+ビルド済みイメージをダウンロードするだけなので高速ですが、CIの完了を待つ必要があります。
 
-更新が高速（数十秒）になります。
-
-#### 初回準備
-
-1. **GitHub Personal Access Tokenの作成**:
-   - GitHub → Settings → Developer settings → Personal access tokens (Classic)
-   - スコープ: `repo`, `read:packages` を選択
-   - トークンを生成してコピー
-
-2. **サーバーでGHCRにログイン**:
-```bash
-echo "YOUR_GITHUB_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
-```
+#### 初回準備（省略可能）
+※前述の手順でログイン済みであれば不要
 
 #### 更新手順
-
-**ローカル（開発マシン）**:
-```bash
-git add .
-git commit -m "Update message"
-git push origin main
-```
-
-GitHub Actionsが自動的にイメージをビルド（数分）。
+必ず **GitHub Actionsの「Build and Push」ジョブが成功したこと** を確認してから実行してください。
 
 **サーバー**:
 ```bash

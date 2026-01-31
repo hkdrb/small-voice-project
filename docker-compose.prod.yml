@@ -1,5 +1,8 @@
 services:
   backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     image: ghcr.io/hkdrb/small-voice-project-backend:latest
     restart: always
     environment:
@@ -21,6 +24,9 @@ services:
       - db
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     image: ghcr.io/hkdrb/small-voice-project-frontend:latest
     restart: always
     environment:
