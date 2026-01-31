@@ -98,7 +98,31 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plu
 sudo usermod -aG docker $USER
 ```
 
-### 2.3 スワップ領域の作成
+### 2.3 作業用ユーザーの作成と切り替え
+
+管理作業用のユーザーを作成します：
+
+```bash
+# ユーザー作成
+sudo adduser workuser --gecos "Work User" --disabled-password
+echo "workuser:StrongPass123!" | sudo chpasswd
+
+# sudo権限付与
+sudo usermod -aG sudo workuser
+sudo usermod -aG docker workuser
+echo "workuser ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/workuser
+```
+
+作業ユーザーに切り替え：
+
+```bash
+su - workuser
+# パスワード: StrongPass123!
+```
+
+> **Tip**: 以降の作業はworkuserで実行することを推奨します。
+
+### 2.4 スワップ領域の作成
 
 e2-microはメモリが少ないため、スワップ領域を作成します：
 
@@ -110,7 +134,7 @@ sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
-### 2.4 ログアウトして再接続
+### 2.5 ログアウトして再接続
 
 Docker権限を反映するため、一度ログアウトして再接続してください：
 
