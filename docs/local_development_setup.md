@@ -83,10 +83,15 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/generate_te
 docker-compose -f docker-compose.dev.yml exec backend python scripts/reset_db_clean.py
 
 # 2. 初期セットアップ (テーブル作成 + 初期ユーザー/データ投入)
-# 86: ダミーデータ(セッション・コメント)も含めて投入する場合 (Legacy):
-# docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --with-dummy-data
+# パターンA: 初期ユーザーのみ作成 (データは空)
+# ログイン確認や、手動でデータを入れたい場合に使用します。
+docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --init-users
 
-# コマンドが細分化されました:
+# パターンB: デモ用フルセット投入 (ユーザー + セッション + コメント一括)
+# すぐにデモを行いたい場合に使用します（Legacy: --with-dummy-data）
+docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --with-dummy-data
+
+# パターンC: 個別にデータ投入 (ステップ実行)
 # 1. ダミーセッション(分析データ枠)のみ作成
 docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --seed-sessions
 
