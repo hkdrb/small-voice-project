@@ -23,8 +23,6 @@ services:
   frontend:
     image: ghcr.io/hkdrb/small-voice-project-frontend:latest
     restart: always
-    ports:
-      - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=/api
     depends_on:
