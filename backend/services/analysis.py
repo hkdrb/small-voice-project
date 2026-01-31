@@ -37,7 +37,7 @@ def get_vectors_semantic(texts):
             
         return np.array(vectors)
     except Exception as e:
-        logger.error(f"Semantic vectorization with Gemini failed: {e}")
+        logger.exception(f"Semantic vectorization with Gemini failed: {e}")
         # Fallback to TF-IDF
         return get_vectors_tfidf(texts)
 
@@ -46,9 +46,10 @@ def get_vectors_tfidf(texts):
     try:
         vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(1, 3), min_df=1)
         vectors = vectorizer.fit_transform(texts).toarray()
+        logger.info(f"Generated TF-IDF vectors shape: {vectors.shape}")
         return vectors
     except Exception as e:
-        logger.error(f"Vectorization failed: {e}")
+        logger.exception(f"Vectorization failed: {e}")
         return np.array([])
 
 def detect_outliers(vectors):
