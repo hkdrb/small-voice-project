@@ -38,6 +38,7 @@ class AnalysisResultItem(BaseModel):
     original_text: str
     x: float
     y: float
+    small_voice_score: Optional[float] = 0.0 # NEW: Outlier score
 
 class CommentItem(BaseModel):
     id: int
@@ -147,7 +148,8 @@ def get_session_detail(
                 summary=r.summary,
                 original_text=r.original_text,
                 x=float(r.x_coordinate) if r.x_coordinate is not None else 0.0,
-                y=float(r.y_coordinate) if r.y_coordinate is not None else 0.0
+                y=float(r.y_coordinate) if r.y_coordinate is not None else 0.0,
+                small_voice_score=float(r.small_voice_score) if r.small_voice_score is not None else 0.0
             ) for r in results
         ],
         comments=comment_items,
@@ -262,7 +264,8 @@ def run_analysis_endpoint(
                 summary=r['summary'],
                 x_coordinate=r.get('x_coordinate'),
                 y_coordinate=r.get('y_coordinate'),
-                cluster_id=r.get('cluster_id')
+                cluster_id=r.get('cluster_id'),
+                small_voice_score=r.get('small_voice_score')
             ))
         
         db.add(IssueDefinition(session_id=sess.id, content=issue_content))

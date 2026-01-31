@@ -11,18 +11,19 @@
 ## 💡 背景とコンセプト
 多くの組織分析ツールは、意見を「平均化」し、多数派の声を優先します。しかし、**組織のリスク予兆やイノベーションのヒントは、往々にして「外れ値（小さな声）」に潜んでいます。**
 
-Small Voice は、**統計的手法 (K-Means/PCA)** と **生成的AI (Gemini 2.0)** を組み合わせたハイブリッドAI分析により、「サイレントマジョリティ」だけでなく「ノイジーマイノリティ」でもない、**「真に価値ある小さな声」** を救い上げます。
+Small Voice は、**埋め込みモデル (Sentence Transformers)** と **生成的AI (Gemini 2.0 Flash Thinking)** を組み合わせたハイブリッドAI分析により、「サイレントマジョリティ」だけでなく「ノイジーマイノリティ」でもない、**「真に価値ある小さな声」** を救い上げます。
 
 ## 🚀 主な機能
 
 ### 1. AI分析 & 外れ値検出 ("Small Voice" Detection)
 多数決では切り捨てられる意見を、以下のロジックで確実にピックアップします。
-- **ハイブリッド分析**: `TF-IDF` + `K-Means` で意見の分布を構造化し、`Google Gemini 2.0` がその意味を解釈します。
+- **ハイブリッド分析**: `Sentence Transformers` による意味ベクトル化と `K-Means/UMAP` で意見の分布を構造化し、`Google Gemini 2.0 Flash Thinking` が深層分析を行います。
 - **リスク情報の強制昇格**: バグやエラーなど、システム品質に関わる報告は、たとえ1件でも「重要課題」として優先的に抽出します。
 - **ユニーク提案の発掘**: 数は少なくても、質的に優れた独自の改善案を「Notable Ideas」として別枠でレポーティングします。
 
 ### 2. 課題の可視化 (Visualization)
-- **2次元セマンティックマップ**: 意見の類似性を2次元マップ上にプロット。集団から離れた位置にある「ポツンとある点」こそが、注目すべき外れ値です。
+- **2次元セマンティックマップ**: `UMAP` による意味空間の2次元投影で、意見の類似性をマップ上にプロット。集団から離れた位置にある「ポツンとある点」こそが、注目すべき外れ値です。
+- **Small Voiceスコア**: 各意見に外れ値度を示すスコアを付与し、視覚的に識別可能にします。
 - **直感的な操作**: マップをズーム・パンして、気になった意見をその場で詳細確認できます。
 
 ### 3. アンケート作成・収集
@@ -47,7 +48,8 @@ Small Voice は、**統計的手法 (K-Means/PCA)** と **生成的AI (Gemini 2.
 | --- | --- |
 | **Frontend** | Next.js (App Router), Tailwind CSS, Lucide React, Plotly.js |
 | **Backend** | FastAPI (Python), SQLAlchemy, Pydantic |
-| **AI / LLM** | **Google Gemini 2.0 Flash Exp**, scikit-learn (TF-IDF, K-Means, PCA) |
+| **AI / LLM** | **Google Gemini 2.0 Flash Thinking Exp** (深層分析), **Gemini 2.0 Flash Exp** (軽量タスク) |
+| **Machine Learning** | Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2), scikit-learn (K-Means, Isolation Forest, LOF), UMAP, PyTorch |
 | **Database** | PostgreSQL (Production) / SQLite (Dev) |
 | **Infra** | Vercel/Render ready |
 
@@ -66,10 +68,13 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-`.env` ファイルを作成し、Gemini APIキーを設定してください。
+`.env` ファイルを作成し、Gemini APIキーとモデル設定を行ってください。
 ```ini
 GEMINI_API_KEY=your_api_key_here
+# AIモデル設定 (タスク別に最適なモデルを使い分け)
 GEMINI_MODEL_NAME=gemini-2.0-flash-exp
+GEMINI_MODEL_NAME_THINKING=gemini-2.0-flash-thinking-exp
+GEMINI_MODEL_NAME_LIGHT=gemini-2.0-flash-exp
 # 開発用デフォルトDB設定
 DATABASE_URL=sqlite:///voice_insight.db
 ```

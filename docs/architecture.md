@@ -43,12 +43,14 @@
 - **Backend / API**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.10+)
 - **Database**: PostgreSQL
 - **ORM**: SQLAlchemy
-- **AI/LLM**: Google Generative AI (Gemini 2.0 Flash Exp)
-    - テキストの要約、クラスタカテゴリの命名、アクションプラン生成に使用。
-- **分析・解析**:
-    - **TF-IDF**: テキストのベクトル化（特徴語抽出）。
+- **AI/LLM**: 
+    - **Google Gemini 2.0 Flash Thinking Exp**: 複雑な分析タスク（課題抽出、深層分析）に使用。推論特化モデル。
+    - **Google Gemini 2.0 Flash Exp**: 軽量タスク（クラスター命名、要約）に使用。高速処理。
+- **機械学習・分析**:
+    - **Sentence Transformers**: 多言語対応BERTモデル（paraphrase-multilingual-MiniLM-L12-v2）による意味ベクトル化。
     - **K-Means**: 非階層クラスタリングによるグルーピング。
-    - **PCA**: 次元圧縮による2次元マップ座標の算出。
+    - **Isolation Forest + LOF**: 外れ値検出アルゴリズムによる「Small Voice」スコアリング。
+    - **UMAP**: 非線形次元削減による高精度な2次元マップ座標の算出。
 - **認証**: Cookieベースのセッション管理 (Database-backed), Bcryptハッシュ化
 
 ## AI分析・アルゴリズム詳細
@@ -72,12 +74,13 @@
     *   「〜してほしいのですが」「〜だと助かります」といった表現は、ポジティブではなく**ネガティブ（スコア -0.3 〜 -0.7）**として判定するよう定義しています。これにより、表面上の丁寧さに隠れた現場のSOSを検知します。
 
 ### 3. 分析プロセスフロー
-1.  **ベクトル化 (TF-IDF)**: テキストを特徴量ベクトルに変換（あえて日本語Tokenizerを使わず、Character N-gramを採用することで、専門用語やスラングへの対応力を高めています）。
+1.  **意味ベクトル化 (Sentence Transformers)**: 多言語BERTモデルにより、テキストを384次元の意味ベクトルに変換。文脈や意味的類似性を高精度で捉えます。
 2.  **クラスタリング (K-Means)**: 意味の近い意見をグループ化。
-3.  **次元圧縮 (PCA)**: 2次元座標を算出し、散布図にプロット。
-4.  **LLMによる解釈 (Gemini 2.0)**:
-    *   各クラスタの内容を要約し、適切なタグ（カテゴリ名）を付与。
-    *   クラスタ間の関係性や、全体から見た「重要課題」の言語化。
+3.  **外れ値検出 (Isolation Forest + LOF)**: 2つの異常検知アルゴリズムを組み合わせ、各意見に「Small Voice スコア」を付与。少数だが重要な意見を定量的に特定します。
+4.  **次元削減 (UMAP)**: 高次元の意味空間を2次元に投影し、散布図にプロット。PCAより意味的な配置精度が高く、類似した意見が近くに配置されます。
+5.  **LLMによる深層解釈**:
+    *   **軽量タスク (Gemini 2.0 Flash)**: 各クラスタの内容を要約し、適切なタグ（カテゴリ名）を付与。
+    *   **深層分析 (Gemini 2.0 Flash Thinking)**: Chain of Thought推論により、クラスタ間の関係性や重要課題を言語化。Small Voiceスコアの高い意見を優先的に分析。
 
 ## ディレクトリ構造
 ```
@@ -109,7 +112,7 @@ small-voice-project/
 ### Backend (`backend/`)
 - **`main.py`**: アプリケーションのエントリーポイント。CORS設定やルーターの登録を行います。
 - **`api/`**: RESTful APIのエンドポイントを定義します。Frontendからのリクエストを受け付け、Service層やDatabase層を呼び出します。
-- **`services/`**: AI分析ロジック (TF-IDF, K-Means, Gemini API) やメール機能等のビジネスロジックを集約しています。
+- **`services/`**: AI分析ロジック (Sentence Transformers, K-Means, UMAP, Isolation Forest/LOF, Gemini API) やメール機能等のビジネスロジックを集約しています。
 
 ### Frontend (`frontend/`)
 - **`src/app/`**: ページルーティングを担当します。

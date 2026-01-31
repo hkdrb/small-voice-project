@@ -5,6 +5,7 @@ export interface AnalysisResultItem {
   original_text: string;
   x: number;
   y: number;
+  small_voice_score?: number; // NEW
 }
 
 export interface CommentItem {
