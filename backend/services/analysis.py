@@ -105,8 +105,10 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     logger.info("Clustering with HDBSCAN...")
     try:
         clusterer = hdbscan.HDBSCAN(
-            min_cluster_size=min(5, max(2, int(n_samples * 0.05))), # Minimum size to be a cluster
-            min_samples=min(3, max(1, int(n_samples * 0.03))),      # Measure of how conservative the clustering is
+            # データ数の約10%を最小サイズとする（ただし3〜15の範囲）
+            min_cluster_size=max(3, min(15, int(n_samples * 0.10))),
+            # クラスタの「核」となるデータの最小数
+            min_samples=max(2, min(10, int(n_samples * 0.05))),
             metric='euclidean', 
             cluster_selection_method='eom' # Excess of Mass
         )
@@ -118,7 +120,8 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         
     except Exception as e:
         logger.warning(f"HDBSCAN failed, falling back to KMeans: {e}")
-        n_clusters = min(max(3, int(n_samples / 5)), 8)
+        # クラスタ数を少し減らし、大きく分類するように変更 (データ数 / 7, 最大8)
+        n_clusters = min(max(3, int(n_samples / 7)), 8)
         if n_samples < n_clusters: n_clusters = max(1, n_samples)
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
         cluster_ids = kmeans.fit_predict(vectors)
@@ -182,9 +185,11 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 ### 指示
 1. 声の内容を要約し、共通するトピックを特定してください。
 2. **重要**: 「Category 1」「Group A」のような機械的な名前は**絶対に使用しないでください**。
-3. 内容が具体的にわかる、**15文字以内の日本語のカテゴリ名**を作成してください。
-   悪い例: "Group 1", "カテゴリー1", "業務について", "ポジティブな意見", "その他"
-   良い例: "PCスペックへの不満", "リモートワークの要望", "評価制度への疑問", "会議の効率化", "福利厚生の拡充"
+3. 内容を**10文字以内のシンプルな名詞句**で要約してください。
+   - 「〜についての意見」「〜に関する要望」などの冗長な表現は削除してください。
+   - 基本的に体言止め（名詞終わり）にしてください。
+   悪い例: "PCスペックが低いことへの不満", "給与制度を見直してほしい", "業務効率化についての意見"
+   良い例: "PCスペック不足", "給与制度の課題", "会議の効率化", "リモートワーク", "福利厚生"
 4. 全体の感情傾向を -1.0(ネガティブ) 〜 1.0(ポジティブ) で数値化してください。
 
 ### 出力フォーマット(JSON):
