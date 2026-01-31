@@ -37,6 +37,8 @@ services:
       - POSTGRES_DB=small_voice_db
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
 
   nginx:
     image: nginx:alpine
