@@ -41,6 +41,19 @@ const COLOR_PALETTE = [
   '#E57373', // Red Light
 ];
 
+// Helper to wrap text for Plotly tooltips
+const wrapText = (text: string, maxLen: number = 30) => {
+  if (!text) return '';
+  // Split by existing newlines first
+  const paragraphs = text.split('\n');
+
+  return paragraphs.map(p => {
+    if (p.length <= maxLen) return p;
+    const regex = new RegExp(`.{1,${maxLen}}`, 'g');
+    return p.match(regex)?.join('<br>') || p;
+  }).join('<br>');
+};
+
 export default function SessionDetailPage() {
   const params = useParams();
   const id = params?.id;
@@ -298,13 +311,13 @@ export default function SessionDetailPage() {
                     x: data.results.map(r => r.x),
                     y: data.results.map(r => r.y),
                     text: data.results.map(r => {
-                      return `<b>${r.sub_topic}</b><br>${r.original_text}`;
+                      return `<b>${r.sub_topic}</b><br>${wrapText(r.original_text, 30)}`;
                     }),
                     mode: 'markers',
                     type: 'scatter',
                     marker: viewMode === 'topic' ? {
                       // Topic Mode (Categorical)
-                      size: 12,
+                      size: 14,
                       color: data.results.map(r => categoryColorMap.get(r.sub_topic) || '#ccc'),
                       line: {
                         width: 1.5,
@@ -314,7 +327,7 @@ export default function SessionDetailPage() {
                       symbol: 'circle'
                     } : {
                       // Sentiment Mode (Heatmap)
-                      size: 12,
+                      size: 14,
                       color: data.results.map(r => r.sentiment),
                       colorscale: 'RdBu', // Red (Negative) to Blue (Positive)
                       cmin: -1.0,
@@ -404,10 +417,15 @@ export default function SessionDetailPage() {
           <div className="bg-white/40 rounded-xl p-6">
             {(() => {
               if (!data.report_content) {
-                return <p className="text-slate-400 text-center py-10">レポートはまだ作成されていません。</p>;
+                return (
+                  <p className="text-slate-400 text-center py-10">
+                    レポートはまだ作成されていません。
+                  </p>
+                );
               }
 
               let issues = [];
+              let parseFailed = false;
               try {
                 // Try parsing JSON
                 const parsed = JSON.parse(data.report_content);
@@ -415,7 +433,7 @@ export default function SessionDetailPage() {
                   issues = parsed;
                 }
               } catch (e) {
-                // Not JSON, fall back to Markdown
+                parseFailed = true;
               }
 
               if (issues.length > 0) {
@@ -431,8 +449,19 @@ export default function SessionDetailPage() {
                         <p className="text-xs text-slate-600 leading-relaxed">
                           {issue.description}
                         </p>
+                        <div className="mt-3 flex gap-2">
+                          {issue.urgency === 'high' && <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded font-bold">緊急: 高</span>}
+                          {issue.category && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded">{issue.category}</span>}
+                        </div>
                       </div>
                     ))}
+                  </div>
+                );
+              } else if (!parseFailed && issues.length === 0) {
+                // Parsed to empty array
+                return (
+                  <div className="text-center py-10 text-slate-500">
+                    <p>顕著な課題は検出されませんでした。</p>
                   </div>
                 );
               } else {
