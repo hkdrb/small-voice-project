@@ -13,6 +13,8 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer
 import umap
 
+import hdbscan
+
 # Global model cache for performance
 _semantic_model = None
 
@@ -22,8 +24,8 @@ def get_semantic_model():
     if _semantic_model is None:
         logger.info("Loading Sentence Transformer model...")
         # Use multilingual model optimized for semantic similarity
-        # 'paraphrase-multilingual-MiniLM-L12-v2' is lightweight and effective for Japanese
-        _semantic_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+        # 'intfloat/multilingual-e5-large' is SOTA for multilingual embeddings
+        _semantic_model = SentenceTransformer('intfloat/multilingual-e5-large')
         logger.info("Model loaded successfully.")
     return _semantic_model
 
@@ -31,7 +33,12 @@ def get_vectors_semantic(texts):
     """Generate semantic embeddings using Sentence Transformers."""
     try:
         model = get_semantic_model()
-        vectors = model.encode(texts, show_progress_bar=False)
+        # e5-large requires "query: " prefix for asymmetric tasks, but for clustering we can use "passage: " or just raw text depending on usage.
+        # For clustering similar items, raw text or "passage: " is often used.
+        # However, e5 models are trained with "query: " / "passage: " prefixes.
+        # We will use "passage: " as these are the items being analyzed.
+        formatted_texts = [f"passage: {t}" for t in texts]
+        vectors = model.encode(formatted_texts, show_progress_bar=False, normalize_embeddings=True)
         return vectors
     except Exception as e:
         logger.error(f"Semantic vectorization failed: {e}")
@@ -97,11 +104,28 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 
     # 2. Clustering
     n_samples = len(texts)
-    n_clusters = min(max(3, int(n_samples / 5)), 8)
-    if n_samples < n_clusters: n_clusters = max(1, n_samples)
     
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    cluster_ids = kmeans.fit_predict(vectors)
+    # Use HDBSCAN for density-based clustering (automatically determines number of clusters)
+    logger.info("Clustering with HDBSCAN...")
+    try:
+        clusterer = hdbscan.HDBSCAN(
+            min_cluster_size=min(5, max(2, int(n_samples * 0.05))), # Minimum size to be a cluster
+            min_samples=min(3, max(1, int(n_samples * 0.03))),      # Measure of how conservative the clustering is
+            metric='euclidean', 
+            cluster_selection_method='eom' # Excess of Mass
+        )
+        cluster_ids = clusterer.fit_predict(vectors)
+        
+        # HDBSCAN labels noise as -1. We can treat them as a separate cluster or "Outliers"
+        n_clusters = len(set(cluster_ids)) - (1 if -1 in cluster_ids else 0)
+        logger.info(f"HDBSCAN found {n_clusters} clusters")
+        
+    except Exception as e:
+        logger.warning(f"HDBSCAN failed, falling back to KMeans: {e}")
+        n_clusters = min(max(3, int(n_samples / 5)), 8)
+        if n_samples < n_clusters: n_clusters = max(1, n_samples)
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        cluster_ids = kmeans.fit_predict(vectors)
     
     # 3. UMAP for 2D coords (NEW: UMAP instead of PCA)
     logger.info("Reducing dimensions with UMAP...")
@@ -142,13 +166,17 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     
     cluster_info = {}
     
-    for cid in range(n_clusters):
+    unique_labels = set(cluster_ids)
+    
+    for cid in unique_labels:
         indices = [i for i, x in enumerate(cluster_ids) if x == cid]
-        if not indices:
-            cluster_info[cid] = {"name": "その他", "sentiment": 0.0}
+        if not indices: continue
+
+        if cid == -1:
+            cluster_info[cid] = {"name": "特異点・外れ値", "sentiment": 0.0}
             continue
-            
-        sample_texts = [texts[i] for i in indices[:5]]
+
+        sample_texts = [texts[i] for i in indices[:min(5, len(indices))]]
         
         # Enhanced Prompt with Chain of Thought + Few-Shot
         prompt = f"""あなたはデータアナリストです。以下の社員の声を段階的に分析してください。
@@ -212,7 +240,8 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
             "x_coordinate": float(coords[i, 0]),
             "y_coordinate": float(coords[i, 1]),
             "cluster_id": int(cid),
-            "small_voice_score": float(small_voice_scores[i])  # NEW: Outlier score
+            "small_voice_score": float(small_voice_scores[i]),  # Outlier score
+            "is_noise": bool(cid == -1) # Flag for HDBSCAN noise
         })
         
     return results
@@ -319,6 +348,8 @@ def generate_issue_logic_from_clusters(df, theme_name):
     except Exception as e:
         logger.error(f"Report generation failed: {e}")
         return "[]"
+
+
 
 def analyze_comments_logic(texts):
     """

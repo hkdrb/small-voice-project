@@ -49,7 +49,7 @@ Small Voice は、**埋め込みモデル (Sentence Transformers)** と **生成
 | **Frontend** | Next.js (App Router), Tailwind CSS, Lucide React, Plotly.js |
 | **Backend** | FastAPI (Python), SQLAlchemy, Pydantic |
 | **AI / LLM** | **Google Gemini 2.0 Flash Thinking Exp** (深層分析), **Gemini 2.0 Flash Exp** (軽量タスク) |
-| **Machine Learning** | Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2), scikit-learn (K-Means, Isolation Forest, LOF), UMAP, PyTorch |
+| **Machine Learning** | **Sentence Transformers** (intfloat/multilingual-e5-large), **HDBSCAN** (Density-based Clustering), Isolation Forest, LOF, UMAP, PyTorch |
 | **Database** | PostgreSQL (Production) / SQLite (Dev) |
 | **Infra** | Vercel/Render ready |
 
