@@ -280,6 +280,75 @@ Q3_SUFFIXES = [
     "でなければ生き残れません。", "が成功の鍵です。", "に立ち返るべきです。"
 ]
 
+# --- Small Voice & Dense Cluster Definitions ---
+
+SMALL_VOICES = {
+    "project": [
+        "部門間の対立が深刻で、情報の隠蔽が起きています。",
+        "今の売上目標達成のために、コンプライアンスギリギリの営業手法が罷り通っています。",
+        "主要な取引先からのクレームが隠蔽されているように感じます。",
+        "プロジェクトの赤字が見込まれていますが、誰も報告しようとしません。"
+    ],
+    "product": [
+        "この機能は特定のユーザー層に対して差別的な挙動をする可能性があります。",
+        "競合他社の特許を侵害している恐れがあります。",
+        "ユーザーの誤操作を誘発するUIになっており、返金トラブルのリスクが高いです。",
+        "アクセシビリティへの配慮が欠けており、法的な問題になるかもしれません。"
+    ],
+    "welfare": [
+        "上司からのハラスメントで休職を考えています。",
+        "オフィスの空調のカビが原因で体調不良者が続出しています。",
+        "育児休暇を取得しようとしたら、評価を下げると暗に脅されました。",
+        "サービス残業が常態化しており、労基署への相談を検討しています。"
+    ],
+    "tech": [
+        "顧客の個人情報がログに平文で出力されています。",
+        "メインDBのバックアップが半年間失敗し続けています。",
+        "使用しているライブラリに深刻な脆弱性が見つかりましたが、放置されています。",
+        "本番環境へのアクセス権限管理がずさんで、誰でもデータを削除できてしまいます。"
+    ],
+    "values": [
+        "会社の掲げる『顧客第一』は建前で、実際は利益至上主義になっています。",
+        "失敗を許容する文化と言いつつ、失敗したメンバーが左遷されました。",
+        "多様性を謳っていますが、実際は同質的な意見しか採用されません。",
+        "経営層の言動と行動が一致しておらず、現場の不信感が高まっています。"
+    ]
+}
+
+DENSE_CLUSTERS = {
+    "project": [
+        {"topic": "会議過多", "templates": ["会議が多すぎて作業時間がありません。", "無駄な定例を減らすべきです。", "1日中Zoomに繋ぎっぱなしで疲弊しています。", "会議のための資料作成に時間を取られすぎています。"]},
+        {"topic": "情報共有不足", "templates": ["決定事項が現場に降りてきません。", "他部署が何をしているのか全くわかりません。", "ドキュメントが更新されておらず、口頭伝承になっています。", "情報の透明性が低く、噂レベルの話しか聞こえてきません。"]}
+    ],
+    "product": [
+        {"topic": "ドキュメント不備", "templates": ["仕様書が存在せず、実装が勘頼みになっています。", "要件定義がコロコロ変わり、手戻りが多いです。", "最新の仕様がどこにあるのか誰も知りません。", "ドキュメント管理を徹底してください。"]},
+        {"topic": "UX改善", "templates": ["画面遷移が複雑でユーザーが迷っています。", "もっと直感的なUIにする必要があります。", "モバイルでの操作性が著しく悪いです。", "デザインの一貫性がなく、使いにくいです。"]}
+    ],
+    "welfare": [
+        {"topic": "CI/CD遅延", "templates": ["CIが遅すぎて開発フローが詰まっています。", "デプロイ待ちで1時間無駄にしました。", "ビルド時間の短縮に投資してください。", "GitHub Actionsの待ち時間がストレスです。"]},
+        {"topic": "PCスペック不足", "templates": ["メモリ8GBではDockerが重くて動きません。", "開発マシンのスペックを上げてください。", "古いPCを使わされており、生産性が低いです。", "M3 Macへのリプレイスを希望します。"]}
+    ],
+    "tech": [
+        {"topic": "技術的負債", "templates": ["レガシーコードが複雑すぎて修正できません。", "テストコードがなく、変更が怖いです。", "継ぎ接ぎの改修でアーキテクチャが破綻しています。", "リファクタリングの時間を確保させてください。"]},
+        {"topic": "エラー頻発", "templates": ["本番環境で謎のエラーが頻発しています。", "エラーハンドリングが統一されていません。", "ログ監視が不十分で原因特定に時間がかかります。", "システムが不安定で、夜間対応が増えています。"]}
+    ],
+    "values": [
+        {"topic": "称賛文化", "templates": ["お互いを褒め合う文化をもっと作りたいです。", "感謝を伝える仕組み（Thanksカードなど）が欲しいです。", "成果だけでなくプロセスも評価してほしいです。", "ポジティブなフィードバックを増やしましょう。"]},
+        {"topic": "挑戦", "templates": ["新しい技術への挑戦をもっと推奨すべきです。", "失敗を恐れずにチャレンジできる環境が必要です。", "守りに入らず、攻めの姿勢でいきましょう。", "イノベーションを起こすための余白が欲しいです。"]}
+    ]
+}
+
+def get_small_voice_comment(category="project"):
+    """Returns a specific outlier comment."""
+    cat = category if category in SMALL_VOICES else "project"
+    return random.choice(SMALL_VOICES[cat])
+
+def get_dense_cluster_comment(category="project"):
+    """Returns a comment from a specific topic cluster."""
+    cat = category if category in DENSE_CLUSTERS else "project"
+    cluster = random.choice(DENSE_CLUSTERS[cat])
+    return random.choice(cluster["templates"])
+
 # --- Data Generation Logic ---
 
 def get_project_comment():
@@ -329,11 +398,48 @@ def get_value_comment_q3():
 
 DEPARTMENTS = ["SREチーム", "フロントエンド", "バックエンド", "モバイルアプリ", "QAチーム", "デザイン", "PdM", "データ分析"]
 
+def generate_mixed_comments_list(count, category):
+    """
+    Generates a list of comments with weighted distribution:
+    - 5% Small Voice (Outliers)
+    - 25% Dense Clusters
+    - 70% General Noise
+    """
+    n_small_voices = max(int(count * 0.05), 1)
+    n_dense_clusters = int(count * 0.25)
+    n_general = count - n_small_voices - n_dense_clusters
+    
+    comments = []
+    
+    # Get generator function based on category
+    gen_func = get_project_comment
+    if category == "product": gen_func = get_tech_quality_comment 
+    elif category == "welfare" or category == "dev_env": gen_func = get_dev_env_comment
+    elif category == "tech": gen_func = get_tech_quality_comment
+    elif category == "values": gen_func = get_value_comment_q3
+    
+    # 1. ADD SMALL VOICES
+    for _ in range(n_small_voices):
+        comments.append(get_small_voice_comment(category))
+        
+    # 2. ADD DENSE CLUSTERS
+    for _ in range(n_dense_clusters):
+        comments.append(get_dense_cluster_comment(category))
+        
+    # 3. ADD GENERAL NOISE
+    # Use existing unique list generator for the general part to maintain variety
+    general_comments = generate_unique_sentence_list(gen_func, n_general)
+    comments.extend(general_comments)
+    
+    random.shuffle(comments)
+    return comments
+
 def generate_csv_files():
     # 1. Project Management
     print("Generating Project Management data...")
-    project_comments_1 = generate_unique_sentence_list(get_project_comment, NUM_ROWS_OTHERS)
-    project_comments_2 = generate_unique_sentence_list(get_project_comment, NUM_ROWS_OTHERS)
+    # Apply "project" category logic to both columns roughly
+    project_comments_1 = generate_mixed_comments_list(NUM_ROWS_OTHERS, "project")
+    project_comments_2 = generate_mixed_comments_list(NUM_ROWS_OTHERS, "project")
     
     project_data = []
     for i in range(NUM_ROWS_OTHERS):
@@ -347,8 +453,8 @@ def generate_csv_files():
 
     # 2. Dev Environment
     print("Generating Dev Environment data...")
-    dev_comments_1 = generate_unique_sentence_list(get_dev_env_comment, NUM_ROWS_OTHERS)
-    dev_comments_2 = generate_unique_sentence_list(get_dev_env_comment, NUM_ROWS_OTHERS)
+    dev_comments_1 = generate_mixed_comments_list(NUM_ROWS_OTHERS, "welfare") # Use welfare/dev_env category
+    dev_comments_2 = generate_mixed_comments_list(NUM_ROWS_OTHERS, "welfare")
 
     dev_data = []
     for i in range(NUM_ROWS_OTHERS):
@@ -362,8 +468,8 @@ def generate_csv_files():
 
     # 3. Tech Quality
     print("Generating Tech Quality data...")
-    tech_comments_1 = generate_unique_sentence_list(get_tech_quality_comment, NUM_ROWS_OTHERS)
-    tech_comments_2 = generate_unique_sentence_list(get_tech_quality_comment, NUM_ROWS_OTHERS)
+    tech_comments_1 = generate_mixed_comments_list(NUM_ROWS_OTHERS, "tech")
+    tech_comments_2 = generate_mixed_comments_list(NUM_ROWS_OTHERS, "tech")
 
     tech_data = []
     for i in range(NUM_ROWS_OTHERS):
@@ -377,12 +483,12 @@ def generate_csv_files():
 
     # 4. Values (Large dataset)
     print("Generating Values data...")
-    # For Q1, strict uniqueness is impossible (only ~20 themes), so we allow duplicates but Q2/Q3 must be unique
-    # Actually Q1 is just a keyword, duplicates are expected there.
-    # Q2 and Q3 should be unique.
+    # For Values, we keep Q3 as the main target for Small Voice/Cluster logic? 
+    # Q3 is "Proposal", which fits best. Q2 is Episode.
     
     q2_list = generate_unique_sentence_list(get_value_comment_q2, NUM_ROWS_VALUES)
-    q3_list = generate_unique_sentence_list(get_value_comment_q3, NUM_ROWS_VALUES)
+    # Apply mixed logic to Q3
+    q3_list = generate_mixed_comments_list(NUM_ROWS_VALUES, "values")
     
     values_data = []
     for i in range(NUM_ROWS_VALUES):
