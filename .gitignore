@@ -48,3 +48,5 @@ Thumbs.db
 
 # Environment variables
 .env
+google-cloud-sdk/
+google-cloud-cli-*.tar.gz
