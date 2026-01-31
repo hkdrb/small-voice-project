@@ -233,25 +233,47 @@ def create_dummy_comments(db, users, num_comments=200):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Seed the database with initial users and optional dummy data.")
-    parser.add_argument("--with-dummy-data", action="store_true", help="Also generate dummy sessions and comments.")
+    parser.add_argument("--init-users", action="store_true", help="Create or verify initial dummy users.")
+    parser.add_argument("--seed-sessions", action="store_true", help="Create dummy analysis sessions.")
+    parser.add_argument("--seed-comments", action="store_true", help="Add dummy comments to EXISTING sessions.")
+    parser.add_argument("--with-dummy-data", action="store_true", help="(Legacy) Run all seeds (users, sessions, comments).")
+    
     args = parser.parse_args()
 
     init_db() # Ensure tables exist
     db = SessionLocal()
+    
     try:
-        # Always ensure users/orgs exist (Base Infrastructure)
-        users = create_dummy_users(db, num_users=10)
+        # 1. Users
+        users = []
+        if args.init_users or args.with_dummy_data:
+            users = create_dummy_users(db, num_users=10)
         
-        # Only create heavy dummy data if requested
-        if args.with_dummy_data:
-            all_dummy_users = db.query(User).filter(User.email.like("user%@example.com")).all()
-            if not all_dummy_users:
-                print("❌ No dummy users found (unexpected).")
+        # If we need to seed comments but didn't init users, fetch them
+        if (args.seed_comments) and not users:
+            users = db.query(User).filter(User.email.like("user%@example.com")).all()
+            if not users:
+                print("⚠️ No dummy users found. Generating them automatically to proceed with comments...")
+                users = create_dummy_users(db, num_users=10)
+
+        # 2. Sessions
+        if args.seed_sessions or args.with_dummy_data:
+            create_dummy_sessions(db)
+            
+        # 3. Comments (Existing sessions only)
+        if args.seed_comments or args.with_dummy_data:
+            if not users:
+                 # Should be covered above, but safety check
+                 print("❌ No users available to author comments.")
             else:
-                create_dummy_sessions(db)
-                create_dummy_comments(db, all_dummy_users, num_comments=200)
-        else:
-            print("\nℹ️  Skipping dummy data (sessions/comments). Use '--with-dummy-data' to generate them.")
+                 create_dummy_comments(db, users, num_comments=200)
+
+        if not (args.init_users or args.seed_sessions or args.seed_comments or args.with_dummy_data):
+            print("\nℹ️  No actions selected. Use flags:")
+            print("  --init-users     : Create users")
+            print("  --seed-sessions  : Create session containers")
+            print("  --seed-comments  : Add comments to sessions")
+            print("  --with-dummy-data: Run all")
             
     except Exception as e:
         print(f"❌ Error: {e}")

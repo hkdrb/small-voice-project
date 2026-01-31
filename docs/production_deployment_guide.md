@@ -385,9 +385,11 @@ GCPのスナップショット機能を使用：
 # 全データ削除
 docker compose -f docker-compose.prod.yml exec backend python scripts/reset_db_clean.py
 
-# デモ用ダミーデータ投入
+# デモ用ダミーデータ投入 (一括)
 docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --with-dummy-data
-# 生成されるデータ量: チャットコメント 200件/セッション, CSV分析データ 1000件
+# 個別に実行する場合:
+# docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --seed-sessions  (セッション作成)
+# docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --seed-comments  (コメント追加)
 ```
 
 ---

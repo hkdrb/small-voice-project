@@ -83,12 +83,16 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/generate_te
 docker-compose -f docker-compose.dev.yml exec backend python scripts/reset_db_clean.py
 
 # 2. 初期セットアップ (テーブル作成 + 初期ユーザー/データ投入)
-# ダミーデータ(セッション・コメント)も含めて投入する場合:
-docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --with-dummy-data
-# 注: 各セッションへのコメント生成（200件/つ）やCSVデータの生成（1000件）が行われるため、完了まで数秒かかります。
+# 86: ダミーデータ(セッション・コメント)も含めて投入する場合 (Legacy):
+# docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --with-dummy-data
 
-# 初期ユーザーのみ作成する場合 (データは空):
-# docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py
+# コマンドが細分化されました:
+# 1. ダミーセッション(分析データ枠)のみ作成
+docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --seed-sessions
+
+# 2. 既存セッションにコメントを追加 (200件/回)
+# (既にセッションが存在する場合のみ実行可能。何度でも実行してコメントを増やせます)
+docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --seed-comments
 ```
 ```
 
