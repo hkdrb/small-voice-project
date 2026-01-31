@@ -167,7 +167,11 @@ nano .env
 ```ini
 # Gemini API（Google AI Studioで取得）
 GEMINI_API_KEY=your_actual_gemini_api_key
+
+# AIモデル設定（タスク別に最適なモデルを使い分け）
 GEMINI_MODEL_NAME=gemini-2.0-flash-exp
+GEMINI_MODEL_NAME_THINKING=gemini-2.0-flash-thinking-exp
+GEMINI_MODEL_NAME_LIGHT=gemini-2.0-flash-exp
 
 # 初期ユーザーのパスワード（安全なパスワードに変更してください）
 INITIAL_SYSTEM_PASSWORD=change_this_system_password

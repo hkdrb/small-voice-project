@@ -25,7 +25,11 @@ cd small-voice-project
 ```ini
 # (必須) AI / Google Gemini
 GEMINI_API_KEY=your_api_key_here
+
+# AIモデル設定（タスク別に最適なモデルを使い分け）
 GEMINI_MODEL_NAME=gemini-2.0-flash-exp
+GEMINI_MODEL_NAME_THINKING=gemini-2.0-flash-thinking-exp
+GEMINI_MODEL_NAME_LIGHT=gemini-2.0-flash-exp
 
 # 開発用はコンテナ内のPostgreSQLを使用するため、DATABASE_URLの設定は不要です (docker-compose.yml内で自動設定されます)。
 # 初期パスワードの固定設定 (任意)
