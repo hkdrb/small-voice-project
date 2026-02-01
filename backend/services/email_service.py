@@ -20,7 +20,9 @@ SENDER_NAME = os.getenv("SENDER_NAME", "Small Voice")
 
 def send_invitation_email(email, token):
     """招待メール送信（環境に応じて分岐）"""
-    invitation_link = f"{FRONTEND_URL}/invite?token={token}"
+    # Remove trailing slash if present to avoid double slashes
+    frontend_base = FRONTEND_URL.rstrip('/')
+    invitation_link = f"{frontend_base}/invite?token={token}"
     subject = "【Small Voice】アカウント招待のお知らせ"
     
     html_body = f"""
@@ -49,7 +51,7 @@ def send_invitation_email(email, token):
             <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 30px 0;">
             <p style="color: #95a5a6; font-size: 12px;">
                 このメールに心当たりがない場合は、お手数ですが破棄してください。<br>
-                Small Voice System - {FRONTEND_URL}
+                Small Voice System - {frontend_base}
             </p>
         </div>
     </body>
@@ -68,7 +70,7 @@ Small Voice システムへの招待が届きました。
 
 ---
 このメールに心当たりがない場合は、お手数ですが破棄してください。
-Small Voice System - {FRONTEND_URL}
+Small Voice System - {frontend_base}
     """
 
     return _send_email(email, subject, html_body, text_body, "MOCK INVITATION EMAIL")
@@ -78,7 +80,8 @@ def generate_reset_token():
 
 def send_reset_email(email, token):
     """パスワードリセットメール送信（環境に応じて分岐）"""
-    reset_link = f"{FRONTEND_URL}/invite?token={token}"
+    frontend_base = FRONTEND_URL.rstrip('/')
+    reset_link = f"{frontend_base}/invite?token={token}"
     subject = "パスワードリセットのご案内"
     body = f"""
     <p>以下のリンクからパスワードを再設定してください。</p>
@@ -102,6 +105,11 @@ def _send_email(to_email, subject, html_body, text_body, mock_title):
             msg["Subject"] = subject
             msg["From"] = formataddr((SENDER_NAME, SENDER_EMAIL))
             msg["To"] = to_email
+            
+            # Add Date and Message-ID for spam score improvement
+            from email.utils import formatdate, make_msgid
+            msg["Date"] = formatdate(localtime=True)
+            msg["Message-ID"] = make_msgid(domain=SENDER_EMAIL.split('@')[-1] if '@' in SENDER_EMAIL else None)
 
             part1 = MIMEText(text_body, "plain")
             part2 = MIMEText(html_body, "html")

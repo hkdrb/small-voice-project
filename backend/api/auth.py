@@ -267,13 +267,24 @@ class PasswordResetRequest(BaseModel):
 def reset_password(data: PasswordResetRequest, db: Session = Depends(get_db)):
     # Note: datetime imported at top now
     from backend.database import User, UserSession
-    user = db.query(User).filter(
-        User.reset_token == data.token,
-        User.reset_token_expiry > datetime.now()
-    ).first()
+    # Debug logging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Password reset attempt with token: {data.token}")
     
-    if not user:
+    # Check if token exists at all
+    token_user = db.query(User).filter(User.reset_token == data.token).first()
+    if not token_user:
+        logger.warning(f"No user found with token: {data.token}")
         raise HTTPException(status_code=400, detail="有効期限切れか、無効なトークンです")
+
+    logger.info(f"User found: {token_user.email}, Expiry: {token_user.reset_token_expiry}, Current UTC Time: {datetime.utcnow()}")
+
+    if not token_user.reset_token_expiry or token_user.reset_token_expiry < datetime.utcnow():
+        logger.warning(f"Token expired for user {token_user.email}")
+        raise HTTPException(status_code=400, detail="有効期限切れか、無効なトークンです")
+    
+    user = token_user
 
     # Hash and save new password
     is_valid, msg = validate_password_strength(data.new_password)
@@ -301,7 +312,7 @@ def request_reset(payload: dict, db: Session = Depends(get_db)):
     if user:
         # Generate Token
         token = generate_reset_token()
-        expiry = datetime.now() + timedelta(hours=1)
+        expiry = datetime.utcnow() + timedelta(hours=1)
         
         user.reset_token = token
         user.reset_token_expiry = expiry
