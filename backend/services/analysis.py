@@ -173,7 +173,7 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         sample_texts = [texts[i] for i in indices[:min(8, len(indices))]]
         
         # Enhanced Prompt with Chain of Thought + Few-Shot
-        prompt = f"""あなたはデータアナリストです。以下の社員の声を分析し、内容を端的に表す日本語のカテゴリ名を付けてください。
+        prompt = f"""あなたはデータアナリストです。以下の社員の声を分析し、内容を端的に表す日本語のカテゴリ名（グループ名）を付けてください。
 
 ### 分析対象のテーマ
 {theme_name}
@@ -184,33 +184,26 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 ### 指示
 1. 声の内容を要約し、共通するトピックを特定してください。
 2. **重要**: 「Category 1」「Group A」のような機械的な名前は**絶対に使用しないでください**。
-3. 内容を**簡潔な単語（体言止め）**で要約してください。
-   - 文章形式は禁止です。必ず単語で表現してください。
-   - 「〜についての意見」「〜に関する要望」「〜の課題」などの冗長な表現は禁止です。
-   - 核心を突く単語を選んでください。文字数は問いませんが、できるだけ簡潔にしてください。
+3. **重要**: 「あえて個人的な意見ですが」「正直に言うと」などの導入句や、「〜と感じます」「〜と願っています」などの末尾表現は完全に無視してください。
+4. 内容を**10文字以内の簡潔な単語（体言止め）**で表現してください。
+   - 文章形式（「〜が課題です」など）は厳禁です。
+   - 「〜についての意見」「〜に関する要望」「〜の課題」などの冗長な付帯語は禁止です。
+   - 具体的かつ短い単語を選んでください。
    
-   悪い例（文章形式・冗長）: 
-   - "PCスペックが低いことへの不満"
-   - "給与制度を見直してほしい"
-   - "リモートワークの課題"
-   - "会議が多すぎる問題"
+   改善の例:
+   - "JIRAのチケット管理が複雑なことへの不満" → "JIRA運用"
+   - "PCのスペックが低くて困っている" → "PCスペック"
+   - "会議が多すぎて作業ができない" → "会議過多"
+   - "給与制度を見直してほしい" → "給与制度"
    
-   良い例（単語形式・簡潔）: 
-   - "PC性能"
-   - "給与制度"
-   - "リモートワーク"
-   - "会議過多"
-   - "福利厚生"
-   - "残業時間"
-   - "評価制度"
-   - "通勤環境"
-   - "情報共有"
+   良い例（単語形式・10文字以内）: 
+   - "PC性能", "給与制度", "リモートワーク", "会議過多", "福利厚生", "残業時間", "評価制度", "通勤環境", "情報共有"
    
-4. 全体の感情傾向を -1.0(ネガティブ) 〜 1.0(ポジティブ) で数値化してください。
+5. 全体の感情傾向を -1.0(ネガティブ) 〜 1.0(ポジティブ) で数値化してください。
 
 ### 出力フォーマット(JSON):
 {{
-    "name": "カテゴリ名",
+    "name": "カテゴリ名(10文字以内)",
     "sentiment": 0.0
 }}
 """
@@ -233,16 +226,15 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
                 else:
                     data = {}
 
-            name = data.get("name", "")
+            name = data.get("name", "").strip()
             
-            # Post-processing: If LLM still returns generic name, force fallback or clean up
-            if not name or name.lower().startswith("category") or name.lower().startswith("group") or "カテゴリー" in name:
-                # Fallback to a summary of the first item if name is bad
+            # Post-processing: If LLM still returns generic name or too long name, clean up
+            if not name or name.lower().startswith("category") or name.lower().startswith("group") or "カテゴリー" in name or len(name) > 20:
                 if sample_texts:
-                    # Summarize first item simply by taking first 15 chars
-                    name = sample_texts[0][:15] + "..."
+                    # Try to generate a very short summary as fallback
+                    name = "トピック分析中" 
                 else:
-                    name = "その他のトピック"
+                    name = "その他"
 
             cluster_info[cid] = {
                 "name": name,
