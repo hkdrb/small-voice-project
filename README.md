@@ -71,9 +71,9 @@ pip install -r requirements.txt
 ```ini
 GEMINI_API_KEY=your_api_key_here
 # AIモデル設定 (タスク別に最適なモデルを使い分け)
-GEMINI_MODEL_NAME=gemini-2.0-flash-exp
-GEMINI_MODEL_NAME_THINKING=gemini-1.5-pro
-GEMINI_MODEL_NAME_LIGHT=gemini-2.0-flash-exp
+GEMINI_MODEL_NAME=gemini-2.5-flash
+GEMINI_MODEL_NAME_THINKING=gemini-2.5-flash
+GEMINI_MODEL_NAME_LIGHT=gemini-2.5-flash
 # 開発用デフォルトDB設定
 DATABASE_URL=sqlite:///voice_insight.db
 ```
