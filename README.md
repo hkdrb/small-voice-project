@@ -11,7 +11,7 @@
 ## 💡 背景とコンセプト
 多くの組織分析ツールは、意見を「平均化」し、多数派の声を優先します。しかし、**組織のリスク予兆やイノベーションのヒントは、往々にして「外れ値（小さな声）」に潜んでいます。**
 
-Small Voice は、**埋め込みモデル (Sentence Transformers)** と **生成的AI (Gemini 2.0 Flash Thinking)** を組み合わせたハイブリッドAI分析により、「サイレントマジョリティ」だけでなく「ノイジーマイノリティ」でもない、**「真に価値ある小さな声」** を救い上げます。
+Small Voice は、**埋め込みモデル (Sentence Transformers)** と **生成的AI (Gemini 1.5 Pro)** を組み合わせたハイブリッドAI分析により、「サイレントマジョリティ」だけでなく「ノイジーマイノリティ」でもない、**「真に価値ある小さな声」** を救い上げます。
 
 ## 🚀 主な機能
 
@@ -47,7 +47,7 @@ Small Voice は、**埋め込みモデル (Sentence Transformers)** と **生成
 | --- | --- |
 | **Frontend** | Next.js (App Router), Tailwind CSS, Lucide React, Plotly.js |
 | **Backend** | FastAPI (Python), SQLAlchemy, Pydantic |
-| **AI / LLM** | **Google Gemini 2.0 Flash Thinking Exp** (深層分析), **Gemini 2.0 Flash Exp** (軽量タスク) |
+| **AI / LLM** | **Google Gemini 1.5 Pro** (深層分析), **Gemini 2.0 Flash Exp** (軽量タスク) |
 | **Machine Learning** | **Sentence Transformers** (intfloat/multilingual-e5-large), **HDBSCAN** (Density-based Clustering), UMAP, PyTorch |
 | **Database** | PostgreSQL (Production) / SQLite (Dev) |
 | **Infra** | Vercel/Render ready |
@@ -72,7 +72,7 @@ pip install -r requirements.txt
 GEMINI_API_KEY=your_api_key_here
 # AIモデル設定 (タスク別に最適なモデルを使い分け)
 GEMINI_MODEL_NAME=gemini-2.0-flash-exp
-GEMINI_MODEL_NAME_THINKING=gemini-2.0-flash-thinking-exp
+GEMINI_MODEL_NAME_THINKING=gemini-1.5-pro
 GEMINI_MODEL_NAME_LIGHT=gemini-2.0-flash-exp
 # 開発用デフォルトDB設定
 DATABASE_URL=sqlite:///voice_insight.db
