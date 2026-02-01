@@ -154,9 +154,20 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     
     # Force at least some inliers if too many outliers
     if np.sum(outlier_mask) > n_samples * 0.3:
-        # Too many outliers, raise threshold
-        outlier_mask = small_voice_scores > 0.8
+        # Too many outliers, raise threshold significantly
+        outlier_mask = small_voice_scores > 0.9
         
+    # Failsafe: if STILL too many outliers (or all), force top 50% to be inliers based on score
+    if np.sum(outlier_mask) == n_samples or np.sum(~outlier_mask) < 2:
+        logger.info("Outlier detection marked almost all points as outliers. Forcing top 50% as inliers.")
+        # Sort by score ascending (lower is more inlier)
+        sorted_indices = np.argsort(small_voice_scores)
+        # Keep half as inliers
+        n_keep = max(2, int(n_samples * 0.5))
+        threshold_idx = sorted_indices[n_keep]
+        threshold_val = small_voice_scores[threshold_idx]
+        outlier_mask = small_voice_scores > threshold_val
+
     inlier_indices = np.where(~outlier_mask)[0]
     outlier_indices = np.where(outlier_mask)[0]
     
