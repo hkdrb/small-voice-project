@@ -305,39 +305,27 @@ docker compose -f docker-compose.prod.yml logs -f
 
 コードを更新した場合の反映手順です。
 
-### 推奨手順: デプロイ用スクリプトを使用
-`scripts/deploy_prod.sh` を実行することで、Gitの更新、不要イメージの削除、コンテナの再起動（GHCRからのプル）を一括で行います。
+### 更新手順
 
-**サーバー**:
+コードを更新した際は、以下の手順で本番環境に反映します。
+この手順では、GitHub Actionsでのビルド完了（通常3〜5分）を待ってから、安全に最新版を適用します。
+
+1. サーバーにSSH接続します。
+2. 以下のコマンドを実行します。
+
 ```bash
 cd small-voice-project
 ./scripts/deploy_prod.sh
 ```
 
-このスクリプトは以下の処理を自動で行います：
-1. `git pull` で最新コードを取得
-2. `docker system prune` でディスク容量確保
-3. `docker compose pull` で最新イメージを取得
-4. バージョン情報を環境変数にセット
-5. `docker compose up -d` でサービス再起動
+このスクリプトは自動で以下の処理を行い、本番環境を最新の状態に更新します：
+- ✅ 最新のコードを取得 (`git pull`)
+- ✅ ディスク容量の確保 (`docker system prune`)
+- ✅ 最新のDockerイメージを取得 (`docker compose pull`)
+- ✅ デプロイバージョン情報の記録
+- ✅ サービスの再起動 (`docker compose up -d`)
 
-### 手動手順（参考）
-スクリプトを使用せず、個別に実行する場合の手順です。
-
-**GHCRを使用する場合 (CI完了後)**:
-```bash
-cd small-voice-project
-git pull origin main
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
-```
-
-**サーバー上でビルドする場合 (即時反映)**:
-```bash
-cd small-voice-project
-git pull origin main
-docker compose -f docker-compose.prod.yml up -d --build
-```
+更新が完了したら、[デプロイ反映の確認方法](#デプロイ反映の確認方法)の手順で確認してください。
 
 ---
 
