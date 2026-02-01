@@ -53,6 +53,8 @@ app.include_router(organization.router, prefix="/api/organizations", tags=["orga
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 
 @app.get("/")
+@app.get("/api")
+@app.get("/api/")
 def read_root():
     return {
         "message": "SmallVoice API is running",
