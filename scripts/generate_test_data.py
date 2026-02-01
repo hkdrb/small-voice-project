@@ -325,28 +325,53 @@ SMALL_VOICES = {
 DENSE_CLUSTERS = {
     "project": [
         {"topic": "会議過多", "templates": [
+            # Negative
             "会議が多すぎて作業時間がありません。", "無駄な定例を減らすべきです。", "1日中Zoomに繋ぎっぱなしで疲弊しています。", 
             "会議のための資料作成に時間を取られすぎています。", "定例会議のアジェンダが事前に共有されないため、時間が無駄になっています。", 
-            "意思決定のための会議なのか、報告のための会議なのか曖昧です。"
+            "意思決定のための会議なのか、報告のための会議なのか曖昧です。",
+            # Positive
+            "会議が効率化されて時間が有効活用できています。", "定例会議のおかげで情報共有がスムーズです。",
+            # Neutral
+            "会議の数は標準的だと思います。"
         ]},
         {"topic": "リーダーシップ不足", "templates": [
+            # Negative
             "リーダーが方針を示してくれません。", "責任の所在が不明確で誰も決めません。", 
             "トラブル時のエスカレーションフローが機能していません。", "マネージャーが現場の状況を把握していません。",
-            "ビジョンの共有がなく、目の前のタスクをこなすだけになっています。"
+            "ビジョンの共有がなく、目の前のタスクをこなすだけになっています。",
+            # Positive
+            "リーダーの方針が明確で動きやすいです。", "マネージャーのサポートが手厚くて助かっています。",
+            # Neutral
+            "リーダーシップは標準的なレベルだと思います。"
         ]},
         {"topic": "工数見積もり", "templates": [
+            # Negative
             "見積もりが甘すぎて残業続きです。", "営業がエンジニアに確認せず勝手に納期を決めてきます。", 
             "バッファのないスケジュールで品質が犠牲になっています。", "仕様変更が考慮されていない見積もりを押し付けられます。",
-            "実績ベースでの見積もり見直しが行われていません。"
+            "実績ベースでの見積もり見直しが行われていません。",
+            # Positive
+            "見積もりが適切で余裕を持って開発できています。", "スケジュールに余裕があり品質を保てています。",
+            # Neutral
+            "見積もりの精度は平均的です。"
         ]},
         {"topic": "情報共有不足", "templates": [
+            # Negative
             "決定事項が現場に降りてきません。", "他部署が何をしているのか全くわかりません。", 
             "ドキュメントが更新されておらず、口頭伝承になっています。", "情報の透明性が低く、噂レベルの話しか聞こえてきません。",
-            "Slackでの議論が流れてしまい、後から経緯を追うのが不可能です。", "Wikiの検索性が悪く、必要な情報が見つかりません。"
+            "Slackでの議論が流れてしまい、後から経緯を追うのが不可能です。", "Wikiの検索性が悪く、必要な情報が見つかりません。",
+            # Positive
+            "情報共有がスムーズで助かっています。", "ドキュメントが整備されていて分かりやすいです。",
+            # Neutral
+            "情報共有は標準的なレベルです。"
         ]},
         {"topic": "評価制度への不満", "templates": [
+            # Negative
             "定性的な評価基準が曖昧で、納得感がありません。", "成果を出しても給与に反映されにくいと感じます。",
-            "360度評価の結果がフィードバックされず、改善点がわかりません。", "マネージャーによって評価の厳しさにばらつきがあります。"
+            "360度評価の結果がフィードバックされず、改善点がわかりません。", "マネージャーによって評価の厳しさにばらつきがあります。",
+            # Positive
+            "評価基準が明確で納得感があります。", "成果がしっかり給与に反映されています。",
+            # Neutral
+            "評価制度は一般的なレベルです。"
         ]}
     ],
     "product": [
@@ -467,32 +492,32 @@ def get_dense_cluster_comment(category="project"):
 
 def get_project_comment():
     rand = random.random()
-    if rand < 0.33:
+    if rand < 0.60:  # 60% negative
         parts = [INTROS, PROJ_SUBJECTS, PROJ_ACTIONS, PROJ_REASONS, CLOSINGS]
-    elif rand < 0.66:
-        parts = [INTROS, PROJ_SUBJECTS, PROJ_ACTIONS_POS, PROJ_REASONS_POS, CLOSINGS]
-    else:
+    elif rand < 0.85:  # 25% neutral (0.60 + 0.25 = 0.85)
         parts = [INTROS, PROJ_SUBJECTS, PROJ_ACTIONS_NEUTRAL, PROJ_REASONS_NEUTRAL, CLOSINGS]
+    else:  # 15% positive
+        parts = [INTROS, PROJ_SUBJECTS, PROJ_ACTIONS_POS, PROJ_REASONS_POS, CLOSINGS]
     return generate_combinatorial_sentence(parts)
 
 def get_dev_env_comment():
     rand = random.random()
-    if rand < 0.33:
+    if rand < 0.60:  # 60% negative
         parts = [INTROS, DEV_SUBJECTS, DEV_ACTIONS, DEV_REASONS, CLOSINGS]
-    elif rand < 0.66:
-        parts = [INTROS, DEV_SUBJECTS, DEV_ACTIONS_POS, DEV_REASONS_POS, CLOSINGS]
-    else:
+    elif rand < 0.85:  # 25% neutral
         parts = [INTROS, DEV_SUBJECTS, DEV_ACTIONS_NEUTRAL, DEV_REASONS_NEUTRAL, CLOSINGS]
+    else:  # 15% positive
+        parts = [INTROS, DEV_SUBJECTS, DEV_ACTIONS_POS, DEV_REASONS_POS, CLOSINGS]
     return generate_combinatorial_sentence(parts)
 
 def get_tech_quality_comment():
     rand = random.random()
-    if rand < 0.33:
+    if rand < 0.60:  # 60% negative
         parts = [INTROS, TECH_SUBJECTS, TECH_ACTIONS, TECH_REASONS, CLOSINGS]
-    elif rand < 0.66:
-        parts = [INTROS, TECH_SUBJECTS, TECH_ACTIONS_POS, TECH_REASONS_POS, CLOSINGS]
-    else:
+    elif rand < 0.85:  # 25% neutral
         parts = [INTROS, TECH_SUBJECTS, TECH_ACTIONS_NEUTRAL, TECH_REASONS_NEUTRAL, CLOSINGS]
+    else:  # 15% positive
+        parts = [INTROS, TECH_SUBJECTS, TECH_ACTIONS_POS, TECH_REASONS_POS, CLOSINGS]
     return generate_combinatorial_sentence(parts)
 
 def get_value_comment_q1():
@@ -514,16 +539,19 @@ DEPARTMENTS = ["SREチーム", "フロントエンド", "バックエンド", "�
 
 def generate_mixed_comments_list(count, category):
     """
-    Generates a list of comments with weighted distribution:
-    - 5% Small Voice (Outliers)
-    - 85% Dense Clusters - Increased to reduce random noise and show clear categories
-    - 10% General Noise
+    Generates a list of UNIQUE comments with balanced cluster distribution:
+    - 5% Small Voice (Outliers) - Clear outliers that stand out
+    - 80% Dense Clusters - BALANCED (each cluster gets roughly equal comments)
+    - 15% General Noise - For diversity
+    
+    IMPORTANT: All comments are unique, creating distinct opinions within each cluster
     """
     n_small_voices = max(int(count * 0.05), 1)
-    n_dense_clusters = int(count * 0.85)
+    n_dense_clusters = int(count * 0.80)
     n_general = count - n_small_voices - n_dense_clusters
     
     comments = []
+    seen = set()
     
     # Get generator function based on category
     gen_func = get_project_comment
@@ -532,21 +560,100 @@ def generate_mixed_comments_list(count, category):
     elif category == "tech": gen_func = get_tech_quality_comment
     elif category == "values": gen_func = get_value_comment_q3
     
-    # 1. ADD SMALL VOICES
-    for _ in range(n_small_voices):
-        comments.append(get_small_voice_comment(category))
+    # 1. ADD SMALL VOICES (Rare outliers) - ensure uniqueness
+    cat = category if category in SMALL_VOICES else "project"
+    available_small_voices = SMALL_VOICES[cat].copy()
+    random.shuffle(available_small_voices)
+    
+    for i in range(min(n_small_voices, len(available_small_voices))):
+        comment = available_small_voices[i]
+        if comment not in seen:
+            comments.append(comment)
+            seen.add(comment)
         
-    # 2. ADD DENSE CLUSTERS
-    for _ in range(n_dense_clusters):
-        comments.append(get_dense_cluster_comment(category))
+    # 2. ADD DENSE CLUSTERS - WITH BALANCED DISTRIBUTION
+    cat = category if category in DENSE_CLUSTERS else "project"
+    available_clusters = DENSE_CLUSTERS[cat]
+    
+    if available_clusters:
+        # Create BALANCED distribution: each cluster gets roughly equal comments
+        num_clusters = len(available_clusters)
+        comments_per_cluster = n_dense_clusters // num_clusters
+        remainder = n_dense_clusters % num_clusters
         
-    # 3. ADD GENERAL NOISE
-    # Use existing unique list generator for the general part to maintain variety
-    general_comments = generate_unique_sentence_list(gen_func, n_general)
-    comments.extend(general_comments)
+        # Assign comments to clusters evenly
+        cluster_assignments = []
+        for i, cluster in enumerate(available_clusters):
+            # Give each cluster equal share, plus 1 extra for first 'remainder' clusters
+            cluster_count = comments_per_cluster + (1 if i < remainder else 0)
+            cluster_assignments.extend([cluster] * cluster_count)
+        
+        random.shuffle(cluster_assignments)
+        
+        # Generate UNIQUE comments from assigned clusters
+        # Track which templates we've used from each cluster
+        cluster_template_indices = {i: list(range(len(cluster["templates"]))) for i, cluster in enumerate(available_clusters)}
+        for cluster_idx, cluster in enumerate(available_clusters):
+            random.shuffle(cluster_template_indices[cluster_idx])
+        
+        for cluster in cluster_assignments[:n_dense_clusters]:
+            cluster_idx = available_clusters.index(cluster)
+            templates = cluster["templates"]
+            
+            # Try to get an unused template from this cluster
+            max_attempts = 50
+            for attempt in range(max_attempts):
+                if cluster_template_indices[cluster_idx]:
+                    # Use next template in shuffled order
+                    template_idx = cluster_template_indices[cluster_idx].pop(0)
+                    comment = templates[template_idx]
+                    
+                    # If we've exhausted templates, reshuffle and reuse with variation
+                    if not cluster_template_indices[cluster_idx]:
+                        cluster_template_indices[cluster_idx] = list(range(len(templates)))
+                        random.shuffle(cluster_template_indices[cluster_idx])
+                else:
+                    # Fallback: pick random template
+                    comment = random.choice(templates)
+                
+                # Add variation if duplicate
+                if comment in seen:
+                    # Add subtle variation
+                    variations = ["", "。", "です。", "ます。", "と思います。", "と感じます。"]
+                    comment = comment.rstrip("。") + random.choice(variations)
+                
+                if comment not in seen:
+                    comments.append(comment)
+                    seen.add(comment)
+                    break
+            else:
+                # If still can't find unique, generate from general function
+                for _ in range(20):
+                    comment = gen_func()
+                    if comment not in seen:
+                        comments.append(comment)
+                        seen.add(comment)
+                        break
+    
+    # 3. ADD GENERAL NOISE - ensure uniqueness
+    attempts = 0
+    max_attempts = n_general * 10
+    while len(comments) < count and attempts < max_attempts:
+        comment = gen_func()
+        if comment not in seen:
+            comments.append(comment)
+            seen.add(comment)
+        attempts += 1
+    
+    # Fill any remaining slots if we couldn't generate enough unique comments
+    while len(comments) < count:
+        comment = gen_func() + f" (バリエーション{len(comments)})"
+        if comment not in seen:
+            comments.append(comment)
+            seen.add(comment)
     
     random.shuffle(comments)
-    return comments
+    return comments[:count]
 
 def generate_csv_files():
     # 1. Project Management
