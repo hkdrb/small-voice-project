@@ -211,10 +211,11 @@ def run_analysis_endpoint(
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Payload: { survey_id: int, question_id: int, title: str }
+    # Payload: { survey_id: int, question_id: int, title: str, mock: bool }
     survey_id = payload.get("survey_id")
     question_id = payload.get("question_id")
     title = payload.get("title", "New Analysis")
+    is_mock = payload.get("mock", False)
     
     if not survey_id or not question_id:
         raise HTTPException(status_code=400, detail="Missing survey_id or question_id")
@@ -229,6 +230,7 @@ def run_analysis_endpoint(
         
     try:
         from backend.services.analysis import analyze_clusters_logic, generate_issue_logic_from_clusters
+        from backend.services.mock_generator import generate_mock_analysis_data
         import pandas as pd
         
         # 2. Analyze
@@ -236,12 +238,22 @@ def run_analysis_endpoint(
         survey = db.query(Survey).filter(Survey.id == survey_id).first()
         theme = survey.title if survey else "General"
         
-        results = analyze_clusters_logic(texts, theme, timestamps=timestamps)
-        if not results:
-             raise HTTPException(status_code=500, detail="Analysis failed to produce results")
-             
-        df = pd.DataFrame(results)
-        issue_content = generate_issue_logic_from_clusters(df, theme)
+        if is_mock:
+            # Mock Analysis
+            print(f"Running MOCK analysis for theme: {theme}")
+            results, issue_content = generate_mock_analysis_data(theme, num_points=len(texts))
+            # Adjust generated mock results to map to actual original texts if possible, 
+            # OR just use the generated ones (which implies ignoring actual user input)
+            # User request: "Insert test data report". implying we use the test data content.
+            # So we will use the results from generator which contain "original_text" from the generator.
+        else:
+            # Real Analysis
+            results = analyze_clusters_logic(texts, theme, timestamps=timestamps)
+            if not results:
+                 raise HTTPException(status_code=500, detail="Analysis failed to produce results")
+                 
+            df = pd.DataFrame(results)
+            issue_content = generate_issue_logic_from_clusters(df, theme)
         
         # 3. Save
         sess = AnalysisSession(
