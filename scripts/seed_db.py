@@ -110,31 +110,18 @@ def create_dummy_sessions(db):
             db.commit()
             db.refresh(new_session) # Get ID
             
-            # --- Generate Mock Analysis Results for this session ---
+            # --- Generate Mock Analysis Data ---
+            # Note: We only use the report (IssueDefinition) part now.
+            # AnalysisResults (points) are skipped to avoid mismatch with comments.
             print(f"  Generating mock report for {new_session.title}...")
-            results, issue_content = generate_mock_analysis_data(new_session.theme, num_points=80)
+            _, issue_content = generate_mock_analysis_data(new_session.theme, num_points=80)
             
-            # Add Results
-            res_objects = []
-            for r in results:
-                res_objects.append(AnalysisResult(
-                    session_id=new_session.id,
-                    original_text=r['original_text'],
-                    sub_topic=r['sub_topic'],
-                    sentiment=r['sentiment'],
-                    summary=r['summary'],
-                    x_coordinate=r.get('x_coordinate'),
-                    y_coordinate=r.get('y_coordinate'),
-                    cluster_id=r.get('cluster_id')
-                ))
-            db.add_all(res_objects)
-            
-            # Add Report
+            # Add Report Only
             db.add(IssueDefinition(session_id=new_session.id, content=issue_content))
             db.commit()
             
             created_sessions.append(new_session)
-            print(f"Created Session & Report: {new_session.title} ({new_session.theme})")
+            print(f"Created Session & Report (No mock points): {new_session.title} ({new_session.theme})")
         else:
             created_sessions.append(existing)
             
