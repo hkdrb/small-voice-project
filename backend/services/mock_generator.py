@@ -238,6 +238,7 @@ def generate_mock_analysis_data(theme: str, num_points: int = 50):
     if any(w in theme for w in ["製品", "product", "プロダクト"]): category = "product"
     elif any(w in theme for w in ["福利厚生", "welfare", "dev_env", "開発環境"]): category = "welfare"
     elif any(w in theme for w in ["技術", "tech", "quality", "tech_quality"]): category = "tech"
+    elif any(w in theme for w in ["価値観", "value", "culture"]): category = "values"
     
     # 1. Generate Results (Points)
     results = []
