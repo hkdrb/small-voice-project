@@ -515,12 +515,12 @@ DEPARTMENTS = ["SREチーム", "フロントエンド", "バックエンド", "�
 def generate_mixed_comments_list(count, category):
     """
     Generates a list of comments with weighted distribution:
-    - 5% Small Voice (Outliers) - keeping small for realism
-    - 60% Dense Clusters - Increased for better visualization in demo
-    - 35% General Noise
+    - 5% Small Voice (Outliers)
+    - 85% Dense Clusters - Increased to reduce random noise and show clear categories
+    - 10% General Noise
     """
     n_small_voices = max(int(count * 0.05), 1)
-    n_dense_clusters = int(count * 0.60)
+    n_dense_clusters = int(count * 0.85)
     n_general = count - n_small_voices - n_dense_clusters
     
     comments = []

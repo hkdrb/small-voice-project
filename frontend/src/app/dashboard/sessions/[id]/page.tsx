@@ -433,7 +433,13 @@ export default function SessionDetailPage() {
                   issues = parsed;
                 }
               } catch (e) {
-                parseFailed = true;
+                console.error("JSON parse error:", e);
+                // Fallback: If content looks like empty array, treat as such
+                if (data.report_content.trim() === '[]') {
+                  issues = [];
+                } else {
+                  parseFailed = true;
+                }
               }
 
               if (issues.length > 0) {
