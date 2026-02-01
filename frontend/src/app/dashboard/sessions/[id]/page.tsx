@@ -293,7 +293,13 @@ export default function SessionDetailPage() {
                     marker: {
                       // Topic Mode (Categorical)
                       size: 14,
-                      color: data.results.map(r => categoryColorMap.get(r.sub_topic) || '#ccc'),
+                      color: data.results.map(r => {
+                        // 特異点（Small Voices）を赤色で強調
+                        if (r.is_noise || r.cluster_id === -1 || r.sub_topic.includes("特異点")) {
+                          return '#EF4444';
+                        }
+                        return categoryColorMap.get(r.sub_topic) || '#ccc';
+                      }),
                       line: {
                         width: 1.5,
                         color: 'white'
@@ -345,7 +351,7 @@ export default function SessionDetailPage() {
           </div>
           {/* Legend */}
           <div className="mt-4 flex flex-wrap gap-3 px-4 justify-center">
-            {Array.from(categoryColorMap.entries()).map(([category, color]) => (
+            {Array.from(categoryColorMap.entries()).filter(([cat]) => !cat.includes("特異点")).map(([category, color]) => (
               <div key={category} className="flex items-center gap-1.5 bg-white/60 px-2 py-1 rounded-md text-xs border border-white/40 shadow-sm max-w-[150px]">
                 <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
                 <span className="text-slate-600 font-medium truncate" title={category}>
@@ -353,6 +359,13 @@ export default function SessionDetailPage() {
                 </span>
               </div>
             ))}
+            {/* 特異点の凡例を常に追加（データが存在する場合） */}
+            {data.results.some(r => r.is_noise || r.cluster_id === -1 || r.sub_topic.includes("特異点")) && (
+              <div className="flex items-center gap-1.5 bg-white/60 px-2 py-1 rounded-md text-xs border border-white/40 shadow-sm max-w-[150px]">
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#EF4444' }}></span>
+                <span className="text-slate-600 font-medium truncate">特異点 (Small Voices)</span>
+              </div>
+            )}
           </div>
         </section>
 

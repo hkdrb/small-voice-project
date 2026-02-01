@@ -38,6 +38,8 @@ class AnalysisResultItem(BaseModel):
     x: float
     y: float
     small_voice_score: Optional[float] = 0.0
+    cluster_id: Optional[int] = None
+    is_noise: Optional[bool] = False
 
 class CommentItem(BaseModel):
     id: int
@@ -147,7 +149,9 @@ def get_session_detail(
                 original_text=r.original_text,
                 x=float(r.x_coordinate) if r.x_coordinate is not None else 0.0,
                 y=float(r.y_coordinate) if r.y_coordinate is not None else 0.0,
-                small_voice_score=float(r.small_voice_score) if hasattr(r, 'small_voice_score') and r.small_voice_score is not None else 0.0
+                small_voice_score=float(r.small_voice_score) if hasattr(r, 'small_voice_score') and r.small_voice_score is not None else 0.0,
+                cluster_id=r.cluster_id,
+                is_noise=r.cluster_id == -1 if r.cluster_id is not None else False
             ) for r in results
         ],
         comments=comment_items,
