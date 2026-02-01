@@ -103,7 +103,7 @@ function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, default
   // Handlers (Real Logic)
   const handleLike = async () => {
     try {
-      await axios.post(`http://localhost:8000/api/dashboard/comments/${node.id}/like`, {}, { withCredentials: true });
+      await axios.post(`/api/dashboard/comments/${node.id}/like`, {}, { withCredentials: true });
       if (onRefresh) onRefresh();
     } catch (e) {
       console.error("Failed to like", e);
@@ -113,7 +113,7 @@ function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, default
   const handleEditSubmit = async () => {
     if (!editContent.trim()) return;
     try {
-      await axios.put(`http://localhost:8000/api/dashboard/comments/${node.id}`, {
+      await axios.put(`/api/dashboard/comments/${node.id}`, {
         content: editContent,
       }, { withCredentials: true });
 
@@ -135,7 +135,7 @@ function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, default
   const handleReplySubmit = async () => {
     if (!replyContent.trim()) return;
     try {
-      await axios.post(`http://localhost:8000/api/dashboard/sessions/${sessionId}/comments`, {
+      await axios.post(`/api/dashboard/sessions/${sessionId}/comments`, {
         content: replyContent,
         is_anonymous: isAnonymous,
         parent_id: node.id
