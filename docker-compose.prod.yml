@@ -20,6 +20,8 @@ services:
       - SENDER_EMAIL=${SENDER_EMAIL}
       - SENDER_NAME=${SENDER_NAME}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - GIT_COMMIT_HASH=${GIT_COMMIT_HASH}
+      - DEPLOY_TIMESTAMP=${DEPLOY_TIMESTAMP}
     depends_on:
       - db
 
