@@ -1,33 +1,24 @@
 import sys
 import os
+import random
+import hashlib
+from datetime import datetime
+import secrets
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import random
-import hashlib
-from datetime import datetime
-from backend.database import SessionLocal, User, Comment, AnalysisSession, Organization, OrganizationMember, init_db
+from backend.database import SessionLocal, User, Comment, AnalysisSession, AnalysisResult, IssueDefinition, Organization, OrganizationMember, init_db
 from backend.security_utils import hash_pass
-import sys
-import os
-import secrets
+from backend.services.mock_generator import (
+    generate_mock_analysis_data,
+    get_comment_generator,
+    get_small_voice_comment,
+    get_dense_cluster_comment,
+    get_value_comment_q3
+)
 
-# --- Dummy Data Pools (Imported to avoid duplication) ---
-try:
-    from generate_test_data import (
-        get_project_comment,
-        get_dev_env_comment,
-        get_tech_quality_comment,
-        get_value_comment_q3,
-        get_small_voice_comment,
-        get_dense_cluster_comment
-    )
-    DATA_GENERATOR_AVAILABLE = True
-except ImportError as e:
-    print(f"Import Error: {e}")
-    DATA_GENERATOR_AVAILABLE = False
-
+DATA_GENERATOR_AVAILABLE = True
 
 def create_dummy_users(db, num_users=10):
     print(f"--- Creating/Verifying {num_users} Standard Users (user1..{num_users}) ---")
@@ -97,7 +88,7 @@ def create_dummy_sessions(db):
         {"title": "新製品のフィードバック", "theme": "product"},
         {"title": "開発環境のアンケート結果", "theme": "dev_env"},
         {"title": "技術品質と負債について", "theme": "tech_quality"},
-        {"title": "企業価値観(Values)についての対話", "theme": "values"}
+        {"title": "企業価値観(Values)についての対話", "theme": "value"}
     ]
     
     created_sessions = []
@@ -117,8 +108,33 @@ def create_dummy_sessions(db):
             )
             db.add(new_session)
             db.commit()
+            db.refresh(new_session) # Get ID
+            
+            # --- Generate Mock Analysis Results for this session ---
+            print(f"  Generating mock report for {new_session.title}...")
+            results, issue_content = generate_mock_analysis_data(new_session.theme, num_points=80)
+            
+            # Add Results
+            res_objects = []
+            for r in results:
+                res_objects.append(AnalysisResult(
+                    session_id=new_session.id,
+                    original_text=r['original_text'],
+                    sub_topic=r['sub_topic'],
+                    sentiment=r['sentiment'],
+                    summary=r['summary'],
+                    x_coordinate=r.get('x_coordinate'),
+                    y_coordinate=r.get('y_coordinate'),
+                    cluster_id=r.get('cluster_id')
+                ))
+            db.add_all(res_objects)
+            
+            # Add Report
+            db.add(IssueDefinition(session_id=new_session.id, content=issue_content))
+            db.commit()
+            
             created_sessions.append(new_session)
-            print(f"Created Session: {new_session.title} ({new_session.theme})")
+            print(f"Created Session & Report: {new_session.title} ({new_session.theme})")
         else:
             created_sessions.append(existing)
             
@@ -133,10 +149,6 @@ def create_dummy_comments(db, users, num_comments=200):
         print("ℹ️ No Analysis Sessions provided. Skipping comment generation.")
         return
 
-    if not DATA_GENERATOR_AVAILABLE:
-        print("⚠️ Data generator not available. Skipping complex data generation.")
-        return
-
     total_created = 0
 
     for session in sessions:
@@ -144,23 +156,20 @@ def create_dummy_comments(db, users, num_comments=200):
         
         # Map session to generator category
         category = "project" # default
-        generator_func = get_project_comment
         
         if any(w in theme_text for w in ["営業", "sales", "project", "プロジェクト"]):
             category = "project"
-            generator_func = get_project_comment
         elif any(w in theme_text for w in ["製品", "product", "プロダクト"]):
             category = "product"
-            generator_func = get_tech_quality_comment # Use tech quality for product mixed
         elif any(w in theme_text for w in ["福利厚生", "welfare", "dev_env", "開発環境"]):
             category = "welfare" # Maps to dev_env/welfare in generator
-            generator_func = get_dev_env_comment
         elif any(w in theme_text for w in ["技術", "tech", "quality", "tech_quality"]):
             category = "tech"
-            generator_func = get_tech_quality_comment
-        elif any(w in theme_text for w in ["価値観", "values"]):
+        elif any(w in theme_text for w in ["価値観", "values", "value"]):
             category = "values"
-            generator_func = get_value_comment_q3
+
+        # Get the generator function for this category
+        generator_func = get_comment_generator(category)
 
         print(f"Processing Session: ID={session.id} '{session.title}' -> Category: {category}")
 
@@ -200,10 +209,6 @@ def create_dummy_comments(db, users, num_comments=200):
             is_anonymous = random.choice([True, False, False])
 
             # Rich text and variation logic
-            if random.random() > 0.5:
-                # Add simple ID-like suffix just to ensure unique constraint if any (though logic generates unique usually)
-                pass 
-            
             enrich_type = random.choice(['bold', 'list', 'quote', 'mixed', 'none'])
             final_content = content
             
