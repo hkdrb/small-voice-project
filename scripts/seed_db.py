@@ -177,11 +177,11 @@ def create_dummy_comments(db, users, num_comments=200):
         
         # Distribution Strategy:
         # 5% Small Voices (Outliers)
-        # 25% Dense Clusters (Clear signals)
-        # 70% General Noise (Combinatorial sentences)
+        # 85% Dense Clusters (Clear signals)
+        # 10% General Noise (Combinatorial sentences)
         
         n_small_voices = max(2, int(num_comments * 0.05))
-        n_dense_clusters = int(num_comments * 0.60) # Increased to 60% for denser clusters
+        n_dense_clusters = int(num_comments * 0.85) # Increased to 85% for clearer signals
         n_general = num_comments - n_small_voices - n_dense_clusters
         
         comments_payload = []

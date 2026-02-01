@@ -105,10 +105,10 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     logger.info("Clustering with HDBSCAN...")
     try:
         clusterer = hdbscan.HDBSCAN(
-            # データ数の約5%を最小サイズとする（下限3、上限10）- より細かいクラスタを検出
-            min_cluster_size=max(3, min(10, int(n_samples * 0.05))),
-            # クラスタの「核」となるデータの最小数（下限2、上限5）
-            min_samples=max(2, min(5, int(n_samples * 0.03))),
+            # データ数の約5%を最小サイズとする（下限3、上限10）- より細かいクラスタを検出 -> Modified to be more inclusive
+            min_cluster_size=max(3, min(5, int(n_samples * 0.02))),
+            # クラスタの「核」となるデータの最小数（下限2、上限5）-> Reduced to minimize noise
+            min_samples=2,
             metric='euclidean', 
             cluster_selection_method='eom' # Excess of Mass
         )
@@ -167,9 +167,8 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         indices = [i for i, x in enumerate(cluster_ids) if x == cid]
         if not indices: continue
 
-        if cid == -1:
-            cluster_info[cid] = {"name": "Small Voice (特異点)", "sentiment": 0.0}
-            continue
+        # cid == -1 (Noise) continues to be named by LLM just like others
+
 
         sample_texts = [texts[i] for i in indices[:min(8, len(indices))]]
         
@@ -269,6 +268,9 @@ def generate_issue_logic_from_clusters(df, theme_name):
         
         # Aggregate counts by sub_topic
         topic_counts = df['sub_topic'].value_counts().to_dict()
+        if not topic_counts:
+             return "[]"
+
         counts_str = ", ".join([f"{k}: {v}件" for k, v in topic_counts.items()])
         
         # Trend info
@@ -349,6 +351,13 @@ def generate_issue_logic_from_clusters(df, theme_name):
             text = text.split("```json")[1].split("```")[0].strip()
         elif "```" in text:
             text = text.split("```")[1].strip()
+            
+        # Verify JSON
+        try:
+            json.loads(text)
+        except json.JSONDecodeError:
+            logger.error(f"Generated JSON is invalid: {text}")
+            return "[]" # Return empty list if invalid
             
         return text
     except Exception as e:
