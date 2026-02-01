@@ -392,9 +392,11 @@ export default function SessionDetailPage() {
           {viewMode === 'topic' && (
             <div className="mt-4 flex flex-wrap gap-3 px-4 justify-center">
               {Array.from(categoryColorMap.entries()).map(([category, color]) => (
-                <div key={category} className="flex items-center gap-1.5 bg-white/60 px-2 py-1 rounded-md text-xs border border-white/40 shadow-sm">
-                  <span className="w-3 h-3 rounded-full block" style={{ backgroundColor: color }}></span>
-                  <span className="text-slate-600 font-medium">{category}</span>
+                <div key={category} className="flex items-center gap-1.5 bg-white/60 px-2 py-1 rounded-md text-xs border border-white/40 shadow-sm max-w-[150px]">
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
+                  <span className="text-slate-600 font-medium truncate" title={category}>
+                    {category}
+                  </span>
                 </div>
               ))}
             </div>
