@@ -15,6 +15,55 @@ import hdbscan
 
 # No global model cache needed for API-based embeddings
 
+def get_batch_sentiments(texts):
+    """
+    発言リストに対して個別に感情分析を行い、スコアのリストを返します。
+    -1.0 (極めてネガティブ) 〜 1.0 (極めてポジティブ)
+    """
+    if not texts:
+        return []
+    
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel(MODEL_NAME_LIGHT)
+    
+    batch_size = 50
+    all_scores = [0.0] * len(texts)
+    
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        prompt = f"""
+以下の社員の声（日本語）のリストを読み、各発言の感情傾向（Sentiment）を分析してください。
+-1.0（強い不満、怒り、深刻な課題）から 1.0（強い満足、感謝、ポジティブな提案）の範囲の数値で評価してください。
+0.0 は中立、または感情が含まれない客観的な事実のみの発言です。
+
+出力は、入力と同じ順番の数値のみが入ったJSON配列としてください。
+例: [-0.6, 0.1, 0.0, 0.8, -0.2]
+余計な解説、マークダウンの装飾、JSON以外の文字は一切含めないでください。
+
+対象リスト:
+{json.dumps(batch, ensure_ascii=False)}
+"""
+        try:
+            resp = model.generate_content(prompt)
+            text = resp.text.strip()
+            # Code block removal
+            if "```" in text:
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+                text = text.split("```")[0].strip()
+            
+            scores = json.loads(text)
+            if isinstance(scores, list):
+                for idx, score in enumerate(scores):
+                    if i + idx < len(all_scores):
+                        all_scores[i + idx] = float(score)
+        except Exception as e:
+            logger.error(f"Batch sentiment analysis failed (batch {i}): {e}")
+            # エラー時は0.0のまま
+            
+    return all_scores
+
 def get_vectors_semantic(texts):
     """Generate semantic embeddings using Gemini Embeddings API."""
     try:
@@ -156,6 +205,11 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 
     # 4. Naming Clusters with Enhanced Prompts (NEW: CoT + Few-Shot)
     genai.configure(api_key=GEMINI_API_KEY)
+    
+    # 5. NEW: Batch Sentiment Analysis for all texts
+    logger.info("Analyzing sentiments for each text...")
+    individual_sentiments = get_batch_sentiments(texts)
+
     # Use LIGHT model for quick cluster naming
     model = genai.GenerativeModel(MODEL_NAME_LIGHT, generation_config={"response_mime_type": "application/json"})
     
@@ -199,12 +253,11 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
    良い例（単語形式・10文字以内）: 
    - "PC性能", "給与制度", "リモートワーク", "会議過多", "福利厚生", "残業時間", "評価制度", "通勤環境", "情報共有"
    
-5. 全体の感情傾向を -1.0(ネガティブ) 〜 1.0(ポジティブ) で数値化してください。
+5. このトピックから読み取れる、組織としての全体的な解決意向や緊急度について考慮してください（名前には含めない）。
 
 ### 出力フォーマット(JSON):
 {{
-    "name": "カテゴリ名(10文字以内)",
-    "sentiment": 0.0
+    "name": "カテゴリ名(10文字以内)"
 }}
 """
         try:
@@ -237,25 +290,24 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
                     name = "その他"
 
             cluster_info[cid] = {
-                "name": name,
-                "sentiment": float(data.get("sentiment", 0.0))
+                "name": name
             }
         except Exception as e:
             logger.error(f"Generate cluster info failed: {e}")
             # Fallback for errors
             fallback_name = sample_texts[0][:15] + "..." if sample_texts else "未分類"
-            cluster_info[cid] = {"name": fallback_name, "sentiment": 0.0}
+            cluster_info[cid] = {"name": fallback_name}
     
     # Construct Result without Small Voice Score
     results = []
     for i, text in enumerate(texts):
         cid = cluster_ids[i]
-        info = cluster_info.get(cid, {"name": "Uncategorized", "sentiment": 0.0})
+        info = cluster_info.get(cid, {"name": "Uncategorized"})
         results.append({
             "original_text": text,
             "created_at": timestamps[i].isoformat() if timestamps and i < len(timestamps) and timestamps[i] else None,
             "sub_topic": info["name"],
-            "sentiment": info["sentiment"],
+            "sentiment": individual_sentiments[i], # Use individual sentiment
             "summary": text[:50] + "..." if len(text)>50 else text,
             "x_coordinate": float(coords[i, 0]),
             "y_coordinate": float(coords[i, 1]),
