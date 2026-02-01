@@ -33,25 +33,27 @@ def get_batch_sentiments(texts):
         batch = texts[i:i + batch_size]
         prompt = f"""
 あなたは心理言語学者、および組織診断の専門家です。
-以下の社員の声（日本語）のリストを読み、各発言の感情スコアを付けてください。
+以下の社員の声（日本語）のリストを読み、各発言の感情スコアを **-1.0 から 1.0 の範囲** で付けてください。
 
-### 評価の指針:
-1. **日本的表現の読解**: 「〜かもしれない」「個人的には〜」といった控えめな表現の裏にある、強い不満や期待を読み取ってください。
-2. **組織への影響**: 単なる個人の好みではなく、業務効率、心理的安全、企業の誠実さに関わる不満は、より強くスコアリングしてください。
-3. **中立バイアスの回避**: 多くの意見が「まあまあ」であっても、僅かな言葉の端々に表れる「諦め」や「喜び」を逃さず、0.0に逃げずに±0.1〜0.3の範囲で評価してください。
+### 評価のルール:
+1. **中立バイアスの打破**: 日本人の「〜かもしれない」「特にはないが〜」といった表現は、背後に強い不満や不安、あるいは期待が隠れていることが多いです。**安易に 0.0 を使わず、心理的な揺らぎを ±0.1〜0.4 などの範囲で積極的にスコアリングしてください。**
+2. **文脈の重視**: 
+   - 「改善してほしい」＝ 現状への不満（ネガティブ）
+   - 「素晴らしい」＝ 満足（ポジティブ）
+   - 「特にありません」＝ 諦めや関心の低さ（ややネガティブ寄り -0.1 〜 -0.2 と判定することも検討）
+3. **極端なスコア**: 離職、ハラスメント、不正、絶望などを感じさせるものは -0.8 以下。強い感謝や意欲は 0.8 以上。
 
-### スコア指標:
-- **-1.0 〜 -0.7**: 強い憤り、メンタル不調の兆候、離職の意志、不正への警鐘。
+### スコアの目安:
+- **-1.0 〜 -0.7**: 強い憤り、メンタル不調、離職の意志、不正への警鐘、絶望。
 - **-0.6 〜 -0.4**: 明確な不満、非効率への苛立ち、環境への失望。
-- **-0.3 〜 -0.1**: 違和感、改善の余地を求めている、慎重な懸念。
-- **0.0**: 事実の羅列のみ、または感情が全く読み取れない場合。
+- **-0.3 〜 -0.1**: 違和感、改善を求めている、慎重な懸念、諦め。
+- **0.0**: 客観的な事実の報告のみ（例：「昨日10時に会議があった」）。
 - **0.1 〜 0.3**: 前向きな提案、改善への意欲、控えめな称賛。
 - **0.4 〜 0.6**: 感謝、手応え、環境への満足。
 - **0.7 〜 1.0**: 高いモチベーション、組織への強い信頼、卓越した成果への喜び。
 
 ### 出力形式:
-入力と同じ順番の数値のみが入ったJSON配列としてください。
-例: [-0.85, 0.4, -0.15, 0.0, 0.72]
+JSON配列のみを出力してください。例: [-0.45, 0.12, -0.2, 0.0, 0.85]
 余計な解説やマークダウンは一切含めないでください。
 
 対象リスト:
@@ -60,20 +62,15 @@ def get_batch_sentiments(texts):
         try:
             resp = model.generate_content(prompt)
             text = resp.text.strip()
-            # Code block removal
-            if "```" in text:
-                text = text.split("```")[1]
-                if text.startswith("json"):
-                    text = text[4:]
-                text = text.split("```")[0].strip()
             
-            # Remove any trailing commas or potential non-numeric junk
+            # Remove markdown logic
+            text = text.replace("```json", "").replace("```", "").strip()
+            
+            # Robust extraction of anything that looks like a list
             import re
-            text = re.sub(r'[^0-9\.\-\,\[\]\ ]', '', text)
-            
-            # Parse only if looks like a valid list
-            if not text.startswith('['):
-                text = '[' + text + ']'
+            match = re.search(r'\[.*\]', text, re.DOTALL)
+            if match:
+                text = match.group(0)
             
             scores = json.loads(text)
             if isinstance(scores, list):
@@ -169,32 +166,31 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     
     logger.info("Clustering with HDBSCAN...")
     try:
-        # 安定性を高めるため、データの量に応じて最小クラスタサイズを調整
-        # 小・中規模データでも「主要な話題」が適切に固まるように
-        min_cluster_size = max(2, int(n_samples * 0.05)) if n_samples > 20 else 2
+        # min_cluster_sizeを小さめに設定して、細かい差異も拾えるようにする
+        min_cluster_size = 2 if n_samples < 20 else max(3, int(n_samples * 0.03))
         
         clusterer = hdbscan.HDBSCAN(
             min_cluster_size=min_cluster_size,
-            min_samples=1, # 境界の発言も極力どこかに入れる
+            min_samples=1, 
             metric='euclidean', 
-            cluster_selection_method='leaf', # より具体的な（小さな）塊を拾う
-            allow_single_cluster=True,
-            prediction_data=True
+            cluster_selection_method='leaf', 
+            allow_single_cluster=False # 強制的に分ける
         )
         cluster_ids = clusterer.fit_predict(vectors)
         
-        # ノイズ（-1）が多すぎる場合の救済措置：最も近いクラスタに割り当てるか、
-        # あるいは「独自の視点」としてそのまま扱う
-        # ※ ユーザーは「特異点としての点数付け」は不要としているが、
-        # 「議論の土台として表示する」ことは希望しているため、
-        # 少人数のグループも一つのカテゴリとして適切に命名する。
+        # もしHDBSCANが全ノイズ（-1）または1クラスタしか返さない場合、KMeansで強制分割
+        n_unique_clusters = len(set(cluster_ids[cluster_ids != -1]))
+        if n_unique_clusters <= 1:
+            logger.info("HDBSCAN produced too few clusters, falling back to KMeans for variety")
+            n_clusters = min(max(3, int(n_samples / 4)), 8)
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+            cluster_ids = kmeans.fit_predict(vectors)
         
-        n_clusters = len(set(cluster_ids)) - (1 if -1 in cluster_ids else 0)
-        logger.info(f"HDBSCAN found {n_clusters} themes")
+        logger.info(f"Clustering found {len(set(cluster_ids))} themes (including noise)")
         
     except Exception as e:
-        logger.warning(f"HDBSCAN failed, falling back to KMeans: {e}")
-        n_clusters = min(max(3, int(n_samples / 5)), 10) 
+        logger.warning(f"Clustering algorithm failed: {e}")
+        n_clusters = min(max(3, int(n_samples / 5)), 8) 
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
         cluster_ids = kmeans.fit_predict(vectors)
     
@@ -202,16 +198,17 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     logger.info("Reducing dimensions with UMAP...")
     if n_samples >= 2:
         try:
+            # パラメータを調整して、意味の近いものが集まりやすくする
             reducer = umap.UMAP(
                 n_components=2, 
-                n_neighbors=min(15, n_samples - 1),
-                min_dist=0.1,
+                n_neighbors=min(10, n_samples - 1), # 小さめに設定してローカルな構造を保持
+                min_dist=0.05,
                 metric='cosine',
                 random_state=42
             )
             coords = reducer.fit_transform(vectors)
             # Subtle jitter
-            coords += np.random.uniform(-0.02, 0.02, coords.shape)
+            coords += np.random.uniform(-0.01, 0.01, coords.shape)
         except Exception as e:
             logger.warning(f"UMAP failed, using PCA: {e}")
             pca = PCA(n_components=min(n_samples, 2))
@@ -293,12 +290,13 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 
 def generate_issue_logic_from_clusters(df, theme_name):
     """
-    Generate discussion agendas from clustered data with enhanced LLM analysis.
-    Uses THINKING model for deeper reasoning.
+    Generate discussion agendas from clustered data.
+    Ensures that at least a few points are always extracted for debate.
     """
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel(MODEL_NAME_THINKING, generation_config={"response_mime_type": "application/json"})
+        # Use a reliable model for this task
+        model = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
         
         unique_topics = df['sub_topic'].unique()
         if len(unique_topics) == 0:
@@ -309,54 +307,55 @@ def generate_issue_logic_from_clusters(df, theme_name):
             topic_df = df[df['sub_topic'] == topic]
             count = len(topic_df)
             all_texts = topic_df['original_text'].tolist()
-            # 議論の材料として、代表的な声をいくつかピックアップ
-            texts_str = "\n".join([f"    - {t}" for t in all_texts[:min(10, len(all_texts))]])
+            # ピックアップするサンプルを増加
+            samples = "\n".join([f"  - {t}" for t in all_texts[:min(15, len(all_texts))]])
             
-            # 少数意見かどうかのフラグ
-            marker = "【少数・独自意見】" if count <= 2 else f"({count}件)"
-            topic_summaries.append(f"### カテゴリ: {topic} {marker}\n{texts_str}")
+            marker = "【少数意見】" if count <= 2 else f"({count}件)"
+            topic_summaries.append(f"### カテゴリ: {topic} {marker}\n{samples}")
 
         all_comments_str = "\n\n".join(topic_summaries)
         total_comments = len(df)
         
-        prompt = f"""あなたは組織開発のシニア・コンサルタントです。
-分析テーマ「{theme_name}」について、社員から寄せられた計{total_comments}件の声を元に、
-**次の議論や対話の土台（アジェンダ）となる項目**を抽出してください。
+        prompt = f"""あなたは組織開発のシニア・コンサルタントとして、社員の声を元に「議論のアジェンダ（議題）」を作成します。
+分析テーマ: {theme_name}
+データ数: {total_comments}件
 
-### 分析・抽出のルール:
-1. **多様性の保持**: 多数派の意見に偏らず、少数であっても本質を突いた指摘、あるいは組織に新しい気づきを与える声は必ず一つの項目として取り上げてください。
-2. **対話への接続**: 単に「◯◯が悪い」と定義するのではなく、「◯◯の現状をどう捉え、今後どうあるべきか」といった、建設的な議論を促す構成にしてください。
-3. **客観性**: 主観的な断定を避け、社員の言葉の背後にある「願い」や「期待」にも焦点を当ててください。
+### 指示:
+1. **必ず3〜5個の議論項目を抽出してください。** 「顕著な課題がない」という結論は禁止です。
+2. **対立ではなく対話を促す**: 「◯◯が悪い」と決めつけるのではなく、「◯◯について、現場はこう感じているようです。今後どう向き合うべきでしょうか？」という問いかけに変換してください。
+3. **少数派の救い出し**: たった一人の意見であっても、視点が鋭いもの、あるいはリスクを示唆するものは必ず1つのアジェンダとして独立させてください。
+4. **全カテゴリの網羅**: 提示された複数のカテゴリを満遍なく検討材料に含めてください。
 
 ### 分析対象データ:
 {all_comments_str}
 
-### 出力指示:
-- **必ず3〜5個の項目を抽出してください。**
-- 各項目には具体的で中立的なタイトル（15文字以内）を付けてください。
-- 説明文には、なぜその項目が議論に必要なのか、どのような視点が寄せられているかを記述してください。
-
-### 出力形式(JSON):
+### 出力フォーマット (JSON):
 [
     {{
-        "title": "項目タイトル",
-        "description": "議論のポイント。どのような声があり、何について対話すべきか。",
+        "title": "議題タイトル（15文字以内）",
+        "description": "議題の詳細。何が起きているか、なぜ話し合う必要があるか。社員の声の引用を含めても良い。",
         "urgency": "high" | "medium" | "low",
         "category": "organizational" | "technical" | "culture" | "future_opportunity"
     }}
 ]
 """
         resp = model.generate_content(prompt)
-        text = resp.text
+        text = resp.text.strip()
         
+        # JSON extraction logic
+        if "```" in text:
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.split("```")[0].strip()
+        
+        # Validate if it's a list
         import re
-        json_match = re.search(r'\[\s*\{.*\}\s*\]', text, re.DOTALL)
-        if json_match:
-            return json_match.group(0)
-        
-        if "```json" in text:
-            return text.split("```json")[1].split("```")[0].strip()
-        return text.strip()
+        match = re.search(r'\[.*\]', text, re.DOTALL)
+        if match:
+            return match.group(0)
+            
+        return text
     except Exception as e:
         logger.exception(f"Report generation failed: {e}")
         return "[]"
