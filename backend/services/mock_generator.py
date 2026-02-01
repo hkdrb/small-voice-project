@@ -194,8 +194,31 @@ def get_comment_generator(category):
     elif category == 'tech' or category == 'tech_quality':
         return lambda: generate_sentence([INTROS, TECH_SUBJECTS, TECH_ACTIONS, TECH_REASONS, CLOSINGS])
     elif category == 'values':
-         # Fallback for values as it was complex
-        return lambda: generate_sentence([INTROS, PROJ_SUBJECTS, PROJ_ACTIONS, PROJ_REASONS, CLOSINGS])
+        # Valuesカテゴリの多様性を確保するため、トピックごとの生成器をランダムで切り替えるロジックに変更
+        topics = [
+            # 称賛文化
+            lambda: generate_sentence([
+                ["互いの成果を", "日々の感謝を", "チームメンバーの頑張りを", "些細な貢献でも"], 
+                ["もっと積極的に", "言葉にして", "カードで", "朝会で"], 
+                ["称賛し合うべき", "伝え合うべき", "評価すべき"], 
+                ["だと思います。", "といいですね。", "文化を作りましょう。"]
+            ]),
+            # 挑戦
+            lambda: generate_sentence([
+                ["失敗を恐れずに", "新しい技術に", "未経験の分野に", "リスクを取って"],
+                ["どんどん挑戦できる", "チャレンジする", "トライ＆エラーが許される"],
+                ["環境が必要です", "雰囲気が大事です", "評価制度にすべきです"],
+                ["と強く感じます。", "べきだと思います。", "と信じています。"]
+            ]),
+            # 心理的安全性/オープンさ
+            lambda: generate_sentence([
+                ["悪い報告こそ", "困ったときこそ", "反対意見も"],
+                ["すぐに言える", "隠さずに共有できる", "歓迎される"],
+                ["心理的安全性が", "オープンな場が", "信頼関係が"],
+                ["組織には不可欠です。", "あるべき姿です。", "生産性を高めます。"]
+            ])
+        ]
+        return lambda: random.choice(topics)()
     else:
         # Default
         return lambda: generate_sentence([INTROS, PROJ_SUBJECTS, PROJ_ACTIONS, PROJ_REASONS, CLOSINGS])
