@@ -152,7 +152,9 @@ def detect_outliers(vectors):
 
 def analyze_clusters_logic(texts, theme_name, timestamps=None):
     """
-    Enhanced clustering analysis for stable categorization and discussion-ready themes.
+    Enhanced clustering analysis that ensures visual consistency on the map.
+    Clusters are calculated based on coordinates to prevent points 
+    of the same category from being scattered.
     """
     if not texts: return []
     
@@ -161,62 +163,58 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     vectors = get_vectors_semantic(texts)
     if len(vectors) == 0: return []
 
-    # 2. Clustering
     n_samples = len(texts)
     
-    logger.info("Clustering with HDBSCAN...")
-    try:
-        # min_cluster_sizeを小さめに設定して、細かい差異も拾えるようにする
-        min_cluster_size = 2 if n_samples < 20 else max(3, int(n_samples * 0.03))
-        
-        clusterer = hdbscan.HDBSCAN(
-            min_cluster_size=min_cluster_size,
-            min_samples=1, 
-            metric='euclidean', 
-            cluster_selection_method='leaf', 
-            allow_single_cluster=False # 強制的に分ける
-        )
-        cluster_ids = clusterer.fit_predict(vectors)
-        
-        # もしHDBSCANが全ノイズ（-1）または1クラスタしか返さない場合、KMeansで強制分割
-        n_unique_clusters = len(set(cluster_ids[cluster_ids != -1]))
-        if n_unique_clusters <= 1:
-            logger.info("HDBSCAN produced too few clusters, falling back to KMeans for variety")
-            n_clusters = min(max(3, int(n_samples / 4)), 8)
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-            cluster_ids = kmeans.fit_predict(vectors)
-        
-        logger.info(f"Clustering found {len(set(cluster_ids))} themes (including noise)")
-        
-    except Exception as e:
-        logger.warning(f"Clustering algorithm failed: {e}")
-        n_clusters = min(max(3, int(n_samples / 5)), 8) 
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-        cluster_ids = kmeans.fit_predict(vectors)
-    
-    # 3. UMAP for 2D coords
+    # 2. UMAP for 2D coords (Dimensionality Reduction First)
     logger.info("Reducing dimensions with UMAP...")
     if n_samples >= 2:
         try:
-            # パラメータを調整して、意味の近いものが集まりやすくする
+            # 視覚的なまとまりを最優先するため、UMAPを先に実行
             reducer = umap.UMAP(
                 n_components=2, 
-                n_neighbors=min(10, n_samples - 1), # 小さめに設定してローカルな構造を保持
-                min_dist=0.05,
+                n_neighbors=min(15, n_samples - 1),
+                min_dist=0.08,
                 metric='cosine',
                 random_state=42
             )
             coords = reducer.fit_transform(vectors)
-            # Subtle jitter
+            # Subtle jitter for overlapping points
             coords += np.random.uniform(-0.01, 0.01, coords.shape)
         except Exception as e:
             logger.warning(f"UMAP failed, using PCA: {e}")
-            pca = PCA(n_components=min(n_samples, 2))
+            pca = PCA(n_components=2)
             coords = pca.fit_transform(vectors)
-            if coords.shape[1] < 2:
-                coords = np.column_stack([coords, np.zeros(n_samples)])
     else:
         coords = np.zeros((n_samples, 2))
+
+    # 3. Clustering based on COORDINATES (Ensures Visual Consistency)
+    logger.info("Clustering based on map coordinates...")
+    try:
+        # マップ上の位置(coords)に基づいてクラスタリングを行うことで、
+        # 「色は同じなのに場所が遠い」という矛盾を完全に解消します。
+        min_cluster_size = 2 if n_samples < 20 else max(3, int(n_samples * 0.05))
+        
+        clusterer = hdbscan.HDBSCAN(
+            min_cluster_size=min_cluster_size,
+            min_samples=1,
+            metric='euclidean', # 既に2次元なのでユークリッド距離でOK
+            cluster_selection_method='leaf',
+            allow_single_cluster=False
+        )
+        cluster_ids = clusterer.fit_predict(coords)
+        
+        # クラスタが少なすぎる場合の救済（KMeans）
+        n_unique_clusters = len(set(cluster_ids[cluster_ids != -1]))
+        if n_unique_clusters <= 1:
+            n_clusters = min(max(3, int(n_samples / 5)), 8)
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+            cluster_ids = kmeans.fit_predict(coords)
+            
+    except Exception as e:
+        logger.warning(f"Clustering failed: {e}")
+        n_clusters = min(max(3, int(n_samples / 5)), 8)
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        cluster_ids = kmeans.fit_predict(coords)
 
     # 4. Sentiment Analysis
     logger.info("Analyzing sentiments...")
@@ -230,14 +228,14 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     unique_labels = sorted(list(set(cluster_ids)))
     
     prompt = f"""あなたは組織開発のシニア・コンサルタントです。
-社員から寄せられた「{theme_name}」に関する声を分析し、対話や議論の土台となるようなカテゴリ名を付けてください。
+社員から寄せられた「{theme_name}」に関する声を分析し、対話の土台となるカテゴリ名を付けてください。
 
 ### 指示:
-1. **議論を引き出す命名**: 単なる「不満」といった言葉を避け、「[対象]の現状と今後のあり方」「[課題]を解決するための障壁」のように、問いかけや議論を想起させる名前にしてください。
-2. **少数意見の尊重**: 人数が少ないグループ（IDが-1や、サンプルが1-2件のもの）は、たとえ一人であっても「独自の着眼点：〜〜」のように、その鋭さを尊重して命名してください。
-3. **文字数**: **15文字以内**（多少前後しても、伝わりやすさを優先）。
+1. **議論のきっかけ**: 「[対象]への向き合い方」「[課題]を巡る対話」のように、問いかけを想起させる名前にしてください。
+2. **少数意見の尊重**: 人数が少ないグループ（ID-1など）は、「独自の視点：〜〜」のようにその個性を強調してください。
+3. **正確な要約**: そのグループに属する発言の共通点を15文字以内で抽出してください。
 
-### 対象データ（IDと発言サンプル）:
+### 対象データ（IDとサンプル）:
 """
     input_data = []
     for cid in unique_labels:
@@ -250,7 +248,7 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 ### 出力形式(JSON):
 {
     "results": [
-        { "id": ID数値, "name": "議論の土台となるカテゴリ名" }
+        { "id": ID数値, "name": "カテゴリ名" }
     ]
 }
 """
@@ -259,6 +257,8 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         clean_text = resp.text.strip()
         if "```json" in clean_text:
             clean_text = clean_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean_text:
+            clean_text = clean_text.split("```")[1].split("```")[0].strip()
         
         data = json.loads(clean_text)
         for res in data.get("results", []):
@@ -266,7 +266,7 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     except Exception as e:
         logger.error(f"Generate thematic names failed: {e}")
         for cid in unique_labels: 
-            tag = "【独自の視点】" if cid == -1 else f"テーマ {cid}"
+            tag = "【独自視点】" if cid == -1 else f"カテゴリ {cid}"
             cluster_info[cid] = {"name": tag}
 
     # Construct Final Result
