@@ -109,7 +109,7 @@ def create_user_endpoint(
     # Generate Password & Token
     pw = generate_strong_password()
     token = generate_reset_token()
-    expiry = datetime.now() + timedelta(hours=24)
+    expiry = datetime.utcnow() + timedelta(hours=24)
     fake_hash = hash_pass(pw)
     
     new_user = User(
