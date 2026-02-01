@@ -179,8 +179,13 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     
     if n_inliers >= 3:
         logger.info("Calculating optimal K for inliers...")
-        best_k = get_optimal_k(vectors[inlier_indices])
-        logger.info(f"Optimal K determined: {best_k}")
+        # Dynamic max_k: sqrt(N) is a common heuristic. Allow more clusters for larger datasets.
+        max_k_dynamic = max(12, int(np.sqrt(n_inliers)))
+        # Cap at 50 to prevent too many clusters for very large datasets
+        max_k_dynamic = min(max_k_dynamic, 50)
+        
+        best_k = get_optimal_k(vectors[inlier_indices], max_k=max_k_dynamic)
+        logger.info(f"Optimal K determined: {best_k} (Max K: {max_k_dynamic})")
         
         try:
             kmeans = KMeans(n_clusters=best_k, random_state=42, n_init=10)
@@ -234,15 +239,43 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 社員から寄せられた「{theme_name}」に関する声を分析し、グループごとのカテゴリ名を付けてください。
 
 ### 指示:
-1. **正確な要約**: そのグループに属する発言の共通点を見抜き、最も適切なラベル（15文字以内）を付けてください。
-2. **体言止め**: 「〜について」「〜の問題」のような曖昧な表現ではなく、「現場の疲弊」「情報共有の不足」のように核心を突く名詞形にしてください。
+1. **簡潔なラベル**: ダッシュボードの表示用に、**10文字以内の「体言止め」**（名詞）で出力してください。
+2. **本質の抽出**: 多くを語らず、ズバリ何についての意見かを単語で表現してください。
+3. **禁止事項**: 
+   - 「〜について」「〜に関する意見」という表現は禁止。
+   - 文章（「〜が遅い」）ではなく、名詞句（「処理速度の遅延」）にする。
+
+### 出力例:
+- OK: 「会議の効率化」「評価制度への不満」「情報共有ミス」
+- NG: 「会議時間が長いことについて」「評価制度が納得できない」「情報が共有されていない件」
 
 ### 対象データ（IDとサンプル）:
 """
     input_data = []
     for cid in unique_labels:
+        # Get indices of all points in this cluster
         indices = [i for i, x in enumerate(final_cluster_ids) if x == cid]
-        samples = [texts[i] for i in indices[:min(10, len(indices))]]
+        
+        if not indices:
+            continue
+            
+        # Get vectors for these points to find the centroid
+        cluster_vectors = vectors[indices]
+        
+        # Calculate Centroid
+        centroid = np.mean(cluster_vectors, axis=0)
+        
+        # Calculate distances to centroid
+        distances = np.linalg.norm(cluster_vectors - centroid, axis=1)
+        
+        # Sort indices by distance (closest first)
+        sorted_local_indices = np.argsort(distances)
+        
+        # Select top 10 closest samples (most representative of the cluster center)
+        top_n = min(10, len(indices))
+        selected_indices = [indices[i] for i in sorted_local_indices[:top_n]]
+        
+        samples = [texts[i] for i in selected_indices]
         input_data.append({"id": int(cid), "samples": samples})
     
     if unique_labels:
