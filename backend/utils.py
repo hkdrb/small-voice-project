@@ -12,9 +12,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 # Constants
-MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash-exp")
-MODEL_NAME_THINKING = os.getenv("GEMINI_MODEL_NAME_THINKING", "gemini-1.5-pro")
-MODEL_NAME_LIGHT = os.getenv("GEMINI_MODEL_NAME_LIGHT", "gemini-2.0-flash-exp")
+MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
+MODEL_NAME_THINKING = os.getenv("GEMINI_MODEL_NAME_THINKING", "gemini-2.5-flash")
+MODEL_NAME_LIGHT = os.getenv("GEMINI_MODEL_NAME_LIGHT", "gemini-2.5-flash")
 EMBEDDING_MODEL_NAME = os.getenv("GEMINI_EMBEDDING_MODEL_NAME", "models/text-embedding-004")
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", 20))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", 10))
