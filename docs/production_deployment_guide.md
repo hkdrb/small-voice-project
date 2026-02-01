@@ -399,7 +399,7 @@ docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py
 APIのルートエンドポイントにアクセスすることで、現在デプロイされているバージョンを確認できます。
 
 ```bash
-curl https://your-domain.com/api/
+curl https://small-voice.xyz/api/
 ```
 
 レスポンス例:
