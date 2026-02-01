@@ -33,21 +33,26 @@ def get_batch_sentiments(texts):
         batch = texts[i:i + batch_size]
         prompt = f"""
 あなたは心理言語学者、および組織診断の専門家です。
-以下の社員の声（日本語）のリストを読み、各発言の「感情の絶対温度」と「組織への影響度」を考慮して感情スコアを付けてください。
+以下の社員の声（日本語）のリストを読み、各発言の感情スコアを付けてください。
 
-### 評価基準:
-- **-1.0 〜 -0.7**: 強い怒り、絶望、不正の告発、離職の兆候、メンタル不調の訴えなど、極めて深刻な不満。
-- **-0.6 〜 -0.4**: 業務への支障、無駄なプロセスへの苛立ち、環境への明確な不満。
-- **-0.3 〜 -0.1**: 軽い疑問、違和感、改善の余地があると感じている状態。
-- **0.0**: 完全に中立、または単なる事実。**安易に0.0を付けず、文脈から感情を読み取ってください。**
-- **0.1 〜 0.3**: 肯定的な受け止め、改善への意欲。
-- **0.4 〜 0.7**: 感謝、やりがい、前向きな提案、充実感。
-- **0.8 〜 1.0**: 極めて高いモチベーション、会社への強い愛着、卓越した成果への喜び。
+### 評価の指針:
+1. **日本的表現の読解**: 「〜かもしれない」「個人的には〜」といった控えめな表現の裏にある、強い不満や期待を読み取ってください。
+2. **組織への影響**: 単なる個人の好みではなく、業務効率、心理的安全、企業の誠実さに関わる不満は、より強くスコアリングしてください。
+3. **中立バイアスの回避**: 多くの意見が「まあまあ」であっても、僅かな言葉の端々に表れる「諦め」や「喜び」を逃さず、0.0に逃げずに±0.1〜0.3の範囲で評価してください。
 
-### 出力フォーマット:
+### スコア指標:
+- **-1.0 〜 -0.7**: 強い憤り、メンタル不調の兆候、離職の意志、不正への警鐘。
+- **-0.6 〜 -0.4**: 明確な不満、非効率への苛立ち、環境への失望。
+- **-0.3 〜 -0.1**: 違和感、改善の余地を求めている、慎重な懸念。
+- **0.0**: 事実の羅列のみ、または感情が全く読み取れない場合。
+- **0.1 〜 0.3**: 前向きな提案、改善への意欲、控えめな称賛。
+- **0.4 〜 0.6**: 感謝、手応え、環境への満足。
+- **0.7 〜 1.0**: 高いモチベーション、組織への強い信頼、卓越した成果への喜び。
+
+### 出力形式:
 入力と同じ順番の数値のみが入ったJSON配列としてください。
-例: [-0.85, 0.4, -0.1, 0.0, 0.9]
-余計な解説やマークダウン、JSON以外の文字は一切含めないでください。
+例: [-0.85, 0.4, -0.15, 0.0, 0.72]
+余計な解説やマークダウンは一切含めないでください。
 
 対象リスト:
 {json.dumps(batch, ensure_ascii=False)}
@@ -66,6 +71,10 @@ def get_batch_sentiments(texts):
             import re
             text = re.sub(r'[^0-9\.\-\,\[\]\ ]', '', text)
             
+            # Parse only if looks like a valid list
+            if not text.startswith('['):
+                text = '[' + text + ']'
+            
             scores = json.loads(text)
             if isinstance(scores, list):
                 for idx, score in enumerate(scores):
@@ -73,7 +82,6 @@ def get_batch_sentiments(texts):
                         all_scores[i + idx] = float(score)
         except Exception as e:
             logger.error(f"Batch sentiment analysis failed (batch {i}): {e}")
-            # エラー時は0.0のまま
             
     return all_scores
 
@@ -147,15 +155,11 @@ def detect_outliers(vectors):
 
 def analyze_clusters_logic(texts, theme_name, timestamps=None):
     """
-    Enhanced clustering analysis with:
-    1. Semantic Vectors (Sentence Transformers)
-    2. KMeans Clustering
-    3. UMAP for 2D coords
-    4. Enhanced LLM-based cluster naming with CoT + Few-Shot
+    Enhanced clustering analysis for stable categorization and discussion-ready themes.
     """
     if not texts: return []
     
-    # 1. Semantic Vectors (NEW: Sentence Transformers)
+    # 1. Semantic Vectors
     logger.info("Generating semantic embeddings...")
     vectors = get_vectors_semantic(texts)
     if len(vectors) == 0: return []
@@ -163,27 +167,34 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     # 2. Clustering
     n_samples = len(texts)
     
-    # Use HDBSCAN with stable settings for "Thematic Grouping"
     logger.info("Clustering with HDBSCAN...")
     try:
+        # 安定性を高めるため、データの量に応じて最小クラスタサイズを調整
+        # 小・中規模データでも「主要な話題」が適切に固まるように
+        min_cluster_size = max(2, int(n_samples * 0.05)) if n_samples > 20 else 2
+        
         clusterer = hdbscan.HDBSCAN(
-            # 議論の土台として適切な粒度（少なくともデータ数の3〜5%は集まるように）
-            min_cluster_size=max(3, int(n_samples * 0.04)),
-            min_samples=2,
+            min_cluster_size=min_cluster_size,
+            min_samples=1, # 境界の発言も極力どこかに入れる
             metric='euclidean', 
-            cluster_selection_method='eom', # Use 'eom' for more stable, broad clusters
-            allow_single_cluster=True
+            cluster_selection_method='leaf', # より具体的な（小さな）塊を拾う
+            allow_single_cluster=True,
+            prediction_data=True
         )
         cluster_ids = clusterer.fit_predict(vectors)
         
-        # Noise points (-1) are grouped as "Special Insights" rather than individual IDs
-        # This keeps the map clean but identifies them as unique
+        # ノイズ（-1）が多すぎる場合の救済措置：最も近いクラスタに割り当てるか、
+        # あるいは「独自の視点」としてそのまま扱う
+        # ※ ユーザーは「特異点としての点数付け」は不要としているが、
+        # 「議論の土台として表示する」ことは希望しているため、
+        # 少人数のグループも一つのカテゴリとして適切に命名する。
+        
         n_clusters = len(set(cluster_ids)) - (1 if -1 in cluster_ids else 0)
-        logger.info(f"HDBSCAN found {n_clusters} main themes")
+        logger.info(f"HDBSCAN found {n_clusters} themes")
         
     except Exception as e:
         logger.warning(f"HDBSCAN failed, falling back to KMeans: {e}")
-        n_clusters = min(max(3, int(n_samples / 10)), 8) 
+        n_clusters = min(max(3, int(n_samples / 5)), 10) 
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
         cluster_ids = kmeans.fit_predict(vectors)
     
@@ -193,14 +204,14 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         try:
             reducer = umap.UMAP(
                 n_components=2, 
-                n_neighbors=min(20, n_samples - 1),
-                min_dist=0.15,
+                n_neighbors=min(15, n_samples - 1),
+                min_dist=0.1,
                 metric='cosine',
                 random_state=42
             )
             coords = reducer.fit_transform(vectors)
             # Subtle jitter
-            coords += np.random.uniform(-0.03, 0.03, coords.shape)
+            coords += np.random.uniform(-0.02, 0.02, coords.shape)
         except Exception as e:
             logger.warning(f"UMAP failed, using PCA: {e}")
             pca = PCA(n_components=min(n_samples, 2))
@@ -210,50 +221,44 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     else:
         coords = np.zeros((n_samples, 2))
 
-    # 4. Naming Themes with "Discussion" in mind
-    genai.configure(api_key=GEMINI_API_KEY)
-    
-    # 5. Batch Sentiment Analysis
+    # 4. Sentiment Analysis
     logger.info("Analyzing sentiments...")
     individual_sentiments = get_batch_sentiments(texts)
 
+    # 5. Naming Themes
+    genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
     
     cluster_info = {}
     unique_labels = sorted(list(set(cluster_ids)))
     
-    # Thematic Analysis Prompt
     prompt = f"""あなたは組織開発のシニア・コンサルタントです。
-社員から寄せられた「{theme_name}」に関する声を分析し、経営会議やチームビルディングで**議論の土台（アジェンダ）となるようなテーマ名**を付けてください。
+社員から寄せられた「{theme_name}」に関する声を分析し、対話や議論の土台となるようなカテゴリ名を付けてください。
 
 ### 指示:
-1. **抽象度と具体性のバランス**: 単なる「PC不満」ではなく「開発環境の投資対効果」、単なる「会議」ではなく「意思決定の透明性と速度」のように、背景にある課題の本質を突いてください。
-2. **文字数**: **15文字以内**を目安に（「〜の課題」「〜への懸念」など、文脈がわかる言葉も含めてOK）。
-3. **ノイズ(-1)の扱い**: クラスタIDが -1 のものは、他のグループに属さない「独自の視点やリスク」です。これらを統合して『独自の指摘・潜在的リスク』といった興味を引く名前を付けてください。
-4. **アウトプット**: 各IDの内容を統合し、議論を活性化させる言葉を選んでください。
+1. **議論を引き出す命名**: 単なる「不満」といった言葉を避け、「[対象]の現状と今後のあり方」「[課題]を解決するための障壁」のように、問いかけや議論を想起させる名前にしてください。
+2. **少数意見の尊重**: 人数が少ないグループ（IDが-1や、サンプルが1-2件のもの）は、たとえ一人であっても「独自の着眼点：〜〜」のように、その鋭さを尊重して命名してください。
+3. **文字数**: **15文字以内**（多少前後しても、伝わりやすさを優先）。
 
 ### 対象データ（IDと発言サンプル）:
 """
-    # Build data for prompt
     input_data = []
     for cid in unique_labels:
         indices = [i for i, x in enumerate(cluster_ids) if x == cid]
-        samples = [texts[i] for i in indices[:min(8, len(indices))]]
-        input_data.append({"id": int(cid), "samples": samples})
+        samples = [texts[i] for i in indices[:min(10, len(indices))]]
+        input_data.append({"id": int(cid), "samples": samples, "count": len(indices)})
     
     prompt += json.dumps(input_data, ensure_ascii=False)
-    
     prompt += """
-### 出力フォーマット(JSON):
+### 出力形式(JSON):
 {
     "results": [
-        { "id": ID数値, "name": "アジェンダとなるテーマ名" }
+        { "id": ID数値, "name": "議論の土台となるカテゴリ名" }
     ]
 }
 """
     try:
         resp = model.generate_content(prompt)
-        # Handle cases where Thinking models might add text before JSON
         clean_text = resp.text.strip()
         if "```json" in clean_text:
             clean_text = clean_text.split("```json")[1].split("```")[0].strip()
@@ -263,7 +268,9 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
             cluster_info[res["id"]] = {"name": res["name"]}
     except Exception as e:
         logger.error(f"Generate thematic names failed: {e}")
-        for cid in unique_labels: cluster_info[cid] = {"name": f"テーマ {cid}" if cid != -1 else "独自の指摘"}
+        for cid in unique_labels: 
+            tag = "【独自の視点】" if cid == -1 else f"テーマ {cid}"
+            cluster_info[cid] = {"name": tag}
 
     # Construct Final Result
     results = []
@@ -275,7 +282,7 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
             "created_at": timestamps[i].isoformat() if timestamps and i < len(timestamps) and timestamps[i] else None,
             "sub_topic": info["name"],
             "sentiment": individual_sentiments[i],
-            "summary": text[:50] + "..." if len(text)>50 else text,
+            "summary": text[:60] + "..." if len(text)>60 else text,
             "x_coordinate": float(coords[i, 0]),
             "y_coordinate": float(coords[i, 1]),
             "cluster_id": cid,
@@ -286,15 +293,13 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 
 def generate_issue_logic_from_clusters(df, theme_name):
     """
-    Generate issues from clustered data with enhanced LLM analysis.
+    Generate discussion agendas from clustered data with enhanced LLM analysis.
     Uses THINKING model for deeper reasoning.
     """
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        # Use THINKING model for complex analysis
         model = genai.GenerativeModel(MODEL_NAME_THINKING, generation_config={"response_mime_type": "application/json"})
         
-        # Aggregate ALL comments by sub_topic
         unique_topics = df['sub_topic'].unique()
         if len(unique_topics) == 0:
              return "[]"
@@ -303,58 +308,48 @@ def generate_issue_logic_from_clusters(df, theme_name):
         for topic in unique_topics:
             topic_df = df[df['sub_topic'] == topic]
             count = len(topic_df)
-            
-            # Use all comments for each topic
             all_texts = topic_df['original_text'].tolist()
-            texts_str = "\n".join([f"    - {t}" for t in all_texts])
+            # 議論の材料として、代表的な声をいくつかピックアップ
+            texts_str = "\n".join([f"    - {t}" for t in all_texts[:min(10, len(all_texts))]])
             
-            # Identify if this is a "Small Voice" (cluster with only 1 person or flagged as noise)
-            is_noise_point = (count == 1)
-            cluster_type = " 【重要：特異点/少数意見】" if is_noise_point else f" ({count}件)"
-            
-            topic_summaries.append(f"### トピック: {topic}{cluster_type}\n{texts_str}")
+            # 少数意見かどうかのフラグ
+            marker = "【少数・独自意見】" if count <= 2 else f"({count}件)"
+            topic_summaries.append(f"### カテゴリ: {topic} {marker}\n{texts_str}")
 
         all_comments_str = "\n\n".join(topic_summaries)
-        
-        # Determine target number of issues
         total_comments = len(df)
-        target_issues = "4〜6個" if total_comments > 50 else "3〜5個"
         
-        # Enhanced Prompt with specialized analysis for Small Voices
         prompt = f"""あなたは組織開発のシニア・コンサルタントです。
-提供された社員の声から、組織が直視すべき「重要課題」と「隠れた兆候（Small Voices）」を抽出してください。
+分析テーマ「{theme_name}」について、社員から寄せられた計{total_comments}件の声を元に、
+**次の議論や対話の土台（アジェンダ）となる項目**を抽出してください。
 
-### 分析の三原則
-1. **多数派の課題**: 多くの社員が共通して感じている構造的な課題を特定する。
-2. **鋭い少数意見(Small Voices)**: 1件しかなくても、組織の腐敗、コンプライアンスリスク、メンタルヘルス、あるいは革新的な提案を示唆するものは絶対に見逃さない。
-3. **因果関係の洞察**: 表面的な現象（例：会議が多い）の裏にある本質的な原因（例：意思決定プロセスの不在）を推察する。
+### 分析・抽出のルール:
+1. **多様性の保持**: 多数派の意見に偏らず、少数であっても本質を突いた指摘、あるいは組織に新しい気づきを与える声は必ず一つの項目として取り上げてください。
+2. **対話への接続**: 単に「◯◯が悪い」と定義するのではなく、「◯◯の現状をどう捉え、今後どうあるべきか」といった、建設的な議論を促す構成にしてください。
+3. **客観性**: 主観的な断定を避け、社員の言葉の背後にある「願い」や「期待」にも焦点を当ててください。
 
-### 分析対象データ
-分析テーマ: {theme_name}
-データ数: {total_comments}件
-トピック別内訳:
+### 分析対象データ:
 {all_comments_str}
 
-### 出力指示
-- **必ず{target_issues}の課題を抽出してください。**
-- そのうち、少なくとも1つは「少数意見（特異点）」に基づいた、潜在的リスクや新しい機会に関する課題にしてください。
-- 具体的で、アクションに繋がりやすいタイトル（15文字以内）にしてください。
+### 出力指示:
+- **必ず3〜5個の項目を抽出してください。**
+- 各項目には具体的で中立的なタイトル（15文字以内）を付けてください。
+- 説明文には、なぜその項目が議論に必要なのか、どのような視点が寄せられているかを記述してください。
 
-### 出力フォーマット(JSON):
+### 出力形式(JSON):
 [
     {{
-        "title": "課題タイトル",
-        "description": "分析結果。なぜこれが重要なのか、どのようなリスク/機会があるのかを具体的に。少数意見を引用する場合はその旨を明記。",
+        "title": "項目タイトル",
+        "description": "議論のポイント。どのような声があり、何について対話すべきか。",
         "urgency": "high" | "medium" | "low",
-        "category": "technical" | "organizational" | "opportunity"
+        "category": "organizational" | "technical" | "culture" | "future_opportunity"
     }}
 ]
 """
         resp = model.generate_content(prompt)
+        text = resp.text
         
         import re
-        text = resp.text
-        # Cleanup JSON formatting
         json_match = re.search(r'\[\s*\{.*\}\s*\]', text, re.DOTALL)
         if json_match:
             return json_match.group(0)
@@ -370,62 +365,45 @@ def generate_issue_logic_from_clusters(df, theme_name):
 
 def analyze_comments_logic(texts):
     """
-    Summarize comments/proposals using Gemini with enhanced prompts.
+    Summarize comments/proposals using Gemini with a focus on discussion and unique insights.
     Uses THINKING model for deeper analysis.
     """
     if not texts: return "分析対象のコメントがありません。"
     
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        # Use THINKING model for comment analysis
         model = genai.GenerativeModel(MODEL_NAME_THINKING, generation_config={"response_mime_type": "application/json"})
         
-        # Enhanced Prompt with CoT
         prompt = f"""あなたは組織開発コンサルタントです。
-以下の社員からの改善提案を段階的に分析してください。
+以下の社員からの改善提案を分析し、組織をより良くするための対話のヒントを抽出してください。
 
-### 分析ステップ
+### 指示:
+1. **全体像の提示**: どのような傾向の提案が多いか、簡潔にまとめてください。
+2. **「小さな声」の救い出し**: 少数意見や独自のアイデアであっても、組織の将来にプラスになる可能性や、見落とされがちなリスクを含んでいるものは積極的に取り上げてください。
+3. **建設的な示唆**: 単なる不満の集計ではなく、「次にどのようなアクションや話し合いが必要か」という示唆を含めてください。
 
-#### ステップ1: 全体傾向の把握
-提案の主なテーマやカテゴリを特定
-
-#### ステップ2: 重要トレンドの抽出
-複数の提案に共通する課題やニーズを発見
-
-#### ステップ3: ユニークアイデアの発掘
-少数だが価値のある独創的な提案を特定
-
-#### ステップ4: インサイトの統合
-組織改善のための具体的な示唆をまとめる
-
----
-
-提案リスト:
+対象の提案リスト:
 {json.dumps(texts, ensure_ascii=False)}
 
----
-
-### 出力フォーマット(JSON):
+### 出力形式(JSON):
 {{
-    "overall_summary": "全体の要約（100文字程度）",
+    "overall_summary": "全体の要約（100〜150文字程度。議論の方向性を含む）",
     "key_trends": [
         {{
             "title": "トレンドのタイトル",
-            "description": "内容の詳細と具体的な提案の傾向",
+            "description": "内容の詳細と、なぜこれが現在注目されているかの考察",
             "count_inference": "High" | "Medium" | "Low"
         }}
     ],
     "notable_ideas": [
         {{
-            "title": "アイデアのタイトル",
-            "description": "具体的でユニークな提案内容",
-            "expected_impact": "実施した場合の組織へのポジティブな効果",
+            "title": "独自の視点・アイデア",
+            "description": "具体的でユニークな提案、または鋭いリスク指摘",
+            "expected_impact": "これが対話のきっかけとなった場合の組織への好影響",
             "feasibility": "実現可能性（高/中/低）"
         }}
     ]
 }}
-
-重要: Notable Ideasには、件数は少なくても質的に優れた提案を含めること
 """
         resp = model.generate_content(prompt)
         try:
@@ -433,7 +411,7 @@ def analyze_comments_logic(texts):
         except ValueError:
              logger.warning(f"Gemini comment analysis error: {resp.prompt_feedback}")
              return json.dumps({
-                "overall_summary": "AIによる分析が生成できませんでした（コンテンツフィルタ等の理由）",
+                "overall_summary": "AIによる分析が生成できませんでした。",
                 "key_trends": [],
                 "notable_ideas": []
             }, ensure_ascii=False)
