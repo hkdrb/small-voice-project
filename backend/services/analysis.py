@@ -166,9 +166,14 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         # HDBSCAN labels noise as -1. We can treat them as a separate cluster or "Outliers"
         n_clusters = len(set(cluster_ids)) - (1 if -1 in cluster_ids else 0)
         logger.info(f"HDBSCAN found {n_clusters} clusters")
+
+        # If no clusters found (only noise or one big blob), fallback to KMeans
+        if n_clusters < 2:
+            logger.warning("HDBSCAN found too few clusters, forcing fallback to KMeans")
+            raise Exception("Insufficient clusters in HDBSCAN")
         
     except Exception as e:
-        logger.warning(f"HDBSCAN failed, falling back to KMeans: {e}")
+        logger.warning(f"HDBSCAN failed or insufficient, falling back to KMeans: {e}")
         # クラスタ数を少し減らし、大きく分類するように変更 (データ数 / 7, 最大8)
         n_clusters = min(max(3, int(n_samples / 7)), 8)
         if n_samples < n_clusters: n_clusters = max(1, n_samples)
