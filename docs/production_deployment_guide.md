@@ -313,6 +313,11 @@ docker compose -f docker-compose.prod.yml logs -f
 1. サーバーにSSH接続します。
 2. 以下のコマンドを実行します。
 
+> **トラブルシューティング**: `git pull` で権限エラー (`insufficient permission`) が出る場合、以下のコマンドで所有権を修正してください：
+> ```bash
+> sudo chown -R $USER:$USER ~/small-voice-project/.git
+> ```
+
 ```bash
 cd small-voice-project
 ./scripts/deploy_prod.sh
