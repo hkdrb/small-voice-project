@@ -240,6 +240,16 @@ SMALL_VOICES = {
         "多様性を確保するため、採用における学歴フィルターの廃止を提案します。",
         "下請け法遵守のため、発注プロセスの透明化と監査を求めます。",
         "失敗を許容する文化醸成のため、失敗事例発表会の定期開催を提案します。"
+    ],
+    "values_episode": [
+        "部長のパワハラを目撃したが、報復が怖くて誰にも言えなかった経験があります。",
+        "不正な会計処理を強要されたときの無力感が忘れられません。",
+        "育休を取ろうとしたら『キャリアが終わるぞ』と脅されたことがあります。",
+        "社内政治で優秀な同僚が不当に評価を下げられ、退職してしまったのが辛かったです。"
+    ],
+    "values_theme": [
+        "多様性の受容", "健康第一", "社会貢献", "コンプライアンス遵守", 
+        "サステナビリティ", "公平性", "ワークライフバランス"
     ]
 }
 
@@ -433,6 +443,50 @@ DENSE_CLUSTERS = {
             "まずは小さく試して、ダメならすぐ撤退できる『サンクコスト無視』の文化を作りたいです。",
             "リリースサイクルを週1回から毎日変更するための自動化投資を提案します。"
         ]}
+    ],
+    "values_episode": [
+        {"topic": "称賛不足", "templates": [
+            "深夜対応をしてリリースを成功させたのに、誰からも『ありがとう』と言われず虚しかったです。",
+            "縁の下の力持ちとして支えているメンバーが評価されず、やめてしまったのが残念です。",
+            "成果発表会で目立つ人だけが賞賛され、サポート役が無視されていたのを見てモヤモヤしました。",
+            "『やって当たり前』という空気があり、モチベーションが維持できないと感じたことがあります。",
+            "同僚の良いプロダクトへの貢献を称える機会がなく、関係が希薄になったと感じていました。"
+        ]},
+        {"topic": "挑戦への壁", "templates": [
+            "新しい技術スタックを提案したが、『実績がない』の一点張りで却下された経験があります。",
+            "『失敗したら誰が責任取るんだ』と詰められ、無難な案に落ち着いてしまったことがありました。",
+            "改善案を出したが、上司の承認フローが長すぎて、結局立ち消えになったのが悔しいです。",
+            "前例踏襲主義が強く、新しいアイデアを口に出すのが億劫になった時期がありました。",
+            "自発的に勉強会を開こうとしたら、業務時間外でやるよう言われてやる気を失いました。"
+        ]},
+        {"topic": "心理的安全性欠如", "templates": [
+            "会議で反対意見を言ったら、不機嫌な顔をされて空気が凍りついたのが怖かったです。",
+            "ミスを報告したら、原因分析ではなく犯人探しが始まり、吊し上げられた記憶があります。",
+            "『わからない』と言える雰囲気ではなく、独りで抱え込んでしまったことがあります。",
+            "上司の顔色を伺いながら発言することに疲れ果ててしまった時期がありました。",
+            "フィードバックが人格攻撃のように感じられ、萎縮してしまった経験があります。"
+        ]},
+        {"topic": "顧客軽視", "templates": [
+            "ユーザーからの要望よりも、社内の政治的な事情で機能が決まった時に違和感を感じました。",
+            "『使いにくい』という問い合わせがあったのに、仕様通りだからと無視されたのが心残りです。",
+            "売上目標のために、ユーザーを騙すようなダークパターンUIを実装させられたのが辛かったです。",
+            "リリース納期優先で、既知のバグを残したまま世に出してしまったことを後悔しています。",
+            "本当のユーザーを見ずに、机上の空論でペルソナを作っていたことに危機感を持ちました。"
+        ]},
+        {"topic": "スピード感の欠如", "templates": [
+            "たった一行の文言修正に、3人の承認と1週間の時間が必要だった時は絶望しました。",
+            "会議のための会議が頻発し、開発そのものの時間が削られたのがストレスでした。",
+            "完璧主義すぎて、MVP（Minimum Viable Product）のリリースが半年遅れたことがあります。",
+            "意思決定者が捕まらず、プロジェクトが2週間ストップした時は現場が混乱しました。",
+            "ドキュメント作成に時間をかけすぎて、市場の変化に置いていかれたと感じました。"
+        ]}
+    ],
+    "values_theme": [
+        {"topic": "感謝・称賛", "templates": ["感謝とリスペクト", "チームワーク", "称賛する文化", "仲間への信頼", "助け合いの精神"]},
+        {"topic": "挑戦", "templates": ["挑戦する姿勢", "失敗を恐れない心", "イノベーション", "変化への適応", "野心的な目標"]},
+        {"topic": "心理的安全性", "templates": ["心理的安全性", "透明性", "情報のオープン化", "率直な対話", "風通しの良さ"]},
+        {"topic": "顧客・品質", "templates": ["顧客第一主義", "品質へのこだわり", "プロフェッショナルとしての責任", "ユーザー視点", "誠実な行動"]},
+        {"topic": "スピード", "templates": ["圧倒的なスピード", "効率の追求", "自律的な行動", "即断即決", "無駄の排除"]}
     ]
 }
 
@@ -502,6 +556,8 @@ def generate_mixed_comments_list(count, category):
     elif category == "welfare" or category == "dev_env": gen_func = get_dev_env_comment
     elif category == "tech": gen_func = get_tech_quality_comment
     elif category == "values": gen_func = get_value_comment_q3
+    elif category == "values_episode": gen_func = get_value_comment_q2
+    elif category == "values_theme": gen_func = get_value_comment_q1
     
     # 1. ADD SMALL VOICES (Rare outliers) - ensure uniqueness
     cat = category if category in SMALL_VOICES else "project"
@@ -648,7 +704,8 @@ def generate_csv_files():
     # 4. Values (Large dataset)
     print("Generating Values data...")
     
-    q2_list = generate_unique_sentence_list(get_value_comment_q2, NUM_ROWS_VALUES)
+    q1_list = generate_mixed_comments_list(NUM_ROWS_VALUES, "values_theme")
+    q2_list = generate_mixed_comments_list(NUM_ROWS_VALUES, "values_episode")
     q3_list = generate_mixed_comments_list(NUM_ROWS_VALUES, "values")
     
     values_data = []
@@ -656,7 +713,7 @@ def generate_csv_files():
         values_data.append({
             "日時": generate_random_date(),
             "部署": random.choice(DEPARTMENTS),
-            "価値観のテーマ": get_value_comment_q1(), 
+            "価値観のテーマ": q1_list[i], 
             "きっかけのエピソード": q2_list[i],
             "提案する価値観": q3_list[i]
         })
