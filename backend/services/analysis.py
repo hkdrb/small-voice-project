@@ -311,6 +311,20 @@ def generate_issue_logic_from_clusters(df, theme_name):
             except Exception as e:
                 logger.warning(f"Trend analysis failed: {e}")
 
+        # Calculate appropriate number of issues based on data volume
+        total_comments = len(df)
+        unique_topics = len(topic_counts)
+        
+        # Determine target number of issues (3-8 based on data volume)
+        if total_comments < 10:
+            target_issues = "2〜3個"
+        elif total_comments < 30:
+            target_issues = "3〜5個"
+        elif total_comments < 100:
+            target_issues = "5〜7個"
+        else:
+            target_issues = "6〜8個"
+        
         # Enhanced Prompt with Chain of Thought
         prompt = f"""あなたは組織開発とデータ分析の専門家である「シニア・コンサルタント」です。
 以下のデータを段階的に分析し、組織の重要課題を抽出してください。
@@ -319,17 +333,24 @@ def generate_issue_logic_from_clusters(df, theme_name):
 
 #### ステップ1: データの理解
 トピック分布とトレンドを総合的に把握する。
+- 総コメント数: {total_comments}件
+- 検出されたトピック数: {unique_topics}個
 
 #### ステップ2: 深刻度の評価
-- 技術的リスク（システム障害の予兆）
-- 組織的リスク（離職、モチベーション低下）
-- 機会（改善提案、イノベーションの種）
+各トピックについて以下の観点で評価：
+- 技術的リスク（システム障害の予兆、業務効率の低下）
+- 組織的リスク（離職、モチベーション低下、コミュニケーション不全）
+- 機会（改善提案、イノベーションの種、ポジティブな変化の兆し）
 
 #### ステップ3: 優先順位付け
-件数だけでなく、影響度、緊急性、実現可能性を考慮。
+件数だけでなく、以下を総合的に考慮：
+- 影響度（どれだけの人や業務に影響するか）
+- 緊急性（すぐに対処すべきか）
+- 実現可能性（改善の余地があるか）
 
 #### ステップ4: 課題の抽出
-3〜5個の重要課題を選定。
+**必ず{target_issues}の課題を抽出してください。**
+データが少ない場合でも、観察された傾向や潜在的な課題を含めてください。
 
 ---
 
@@ -345,16 +366,24 @@ def generate_issue_logic_from_clusters(df, theme_name):
 ### 出力フォーマット(JSON):
 [
     {{
-        "title": "課題のタイトル（簡潔に）",
-        "description": "課題の内容（背景、現状、予想される影響を含む）",
+        "title": "課題のタイトル（簡潔に、15文字以内）",
+        "description": "課題の内容（背景、現状、予想される影響を含む。具体的に記述すること）",
         "urgency": "high" | "medium" | "low",
         "category": "technical" | "organizational" | "opportunity"
     }}
 ]
 
-重要な分析ポイント:
-1. 技術的問題は組織全体への影響が大きいため優先度を上げること
-2. 「〜してほしい」という要望は「現場のニーズ未充足」として課題化すること
+### 重要な分析ポイント:
+1. **必ず指定された数の課題を抽出すること**（空の配列は絶対に返さないこと）
+2. データが少ない場合でも、観察された傾向や潜在的な課題を記述すること
+3. 技術的問題は組織全体への影響が大きいため優先度を上げること
+4. 「〜してほしい」という要望は「現場のニーズ未充足」として課題化すること
+5. ポジティブな意見も「強みとして活かす機会」として課題化すること
+6. 少数意見でも重要性が高い場合は「見逃されがちな重要課題」として抽出すること
+
+### 出力例:
+- データが豊富な場合: 明確な課題を優先度順に抽出
+- データが少ない場合: 「初期段階の観察」「潜在的な課題の兆候」として記述
 """
         resp = model.generate_content(prompt)
         
