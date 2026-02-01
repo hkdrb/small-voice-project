@@ -305,33 +305,38 @@ docker compose -f docker-compose.prod.yml logs -f
 
 コードを更新した場合の反映手順です。
 
-### 方法1: サーバー上で直接ビルド（即時反映）
-GitHub Actionsの完了を待たずに、今すぐ反映したい場合に推奨されます。
-`docker-compose.prod.yml` にビルド設定を追加したため、以下のコマンドでサーバー上のコードを使ってイメージを再構築できます。
-
-```bash
-cd small-voice-project
-git pull origin main
-docker compose -f docker-compose.prod.yml up -d --build
-```
-※ `--build` オプションが重要です。これがないと古いイメージが使い続けられてしまいます。
-
-### 方法2: GitHub Container Registry (GHCR) を使用
-GitHub Actionsでの自動ビルド完了（約3〜5分）を待ってから反映する方法です。
-ビルド済みイメージをダウンロードするだけなので高速ですが、CIの完了を待つ必要があります。
-
-#### 初回準備（省略可能）
-※前述の手順でログイン済みであれば不要
-
-#### 更新手順
-必ず **GitHub Actionsの「Build and Push」ジョブが成功したこと** を確認してから実行してください。
+### 推奨手順: デプロイ用スクリプトを使用
+`scripts/deploy_prod.sh` を実行することで、Gitの更新、不要イメージの削除、コンテナの再起動（GHCRからのプル）を一括で行います。
 
 **サーバー**:
+```bash
+cd small-voice-project
+./scripts/deploy_prod.sh
+```
+
+このスクリプトは以下の処理を自動で行います：
+1. `git pull` で最新コードを取得
+2. `docker system prune` でディスク容量確保
+3. `docker compose pull` で最新イメージを取得
+4. バージョン情報を環境変数にセット
+5. `docker compose up -d` でサービス再起動
+
+### 手動手順（参考）
+スクリプトを使用せず、個別に実行する場合の手順です。
+
+**GHCRを使用する場合 (CI完了後)**:
 ```bash
 cd small-voice-project
 git pull origin main
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
+```
+
+**サーバー上でビルドする場合 (即時反映)**:
+```bash
+cd small-voice-project
+git pull origin main
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ---
