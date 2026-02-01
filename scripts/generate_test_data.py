@@ -769,7 +769,6 @@ def generate_csv_files():
     for i in range(NUM_ROWS_OTHERS):
         project_data.append({
             "日時": generate_random_date(),
-            "部署": random.choice(DEPARTMENTS),
             "プロセスへのコメント": project_comments_1[i],
             "会議へのコメント": project_comments_2[i]
         })
@@ -784,7 +783,6 @@ def generate_csv_files():
     for i in range(NUM_ROWS_OTHERS):
         dev_data.append({
             "日時": generate_random_date(),
-            "部署": random.choice(DEPARTMENTS),
             "ハードウェアへのコメント": dev_comments_1[i],
             "ソフトウェアへのコメント": dev_comments_2[i]
         })
@@ -799,7 +797,6 @@ def generate_csv_files():
     for i in range(NUM_ROWS_OTHERS):
         tech_data.append({
             "日時": generate_random_date(),
-            "部署": random.choice(DEPARTMENTS),
             "コードベースへのコメント": tech_comments_1[i],
             "テストへのコメント": tech_comments_2[i]
         })
