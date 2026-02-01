@@ -6,6 +6,8 @@ export interface AnalysisResultItem {
   x: number;
   y: number;
   small_voice_score?: number; // NEW
+  cluster_id?: number;
+  is_noise?: boolean;
 }
 
 export interface CommentItem {
