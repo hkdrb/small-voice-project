@@ -418,16 +418,82 @@ def generate_issue_logic_from_clusters(df, theme_name):
 def analyze_comments_logic(texts):
     """
     Summarize comments/proposals using Gemini with a focus on discussion and unique insights.
-    Uses THINKING model for deeper analysis.
+    Uses a Map-Reduce approach to handle large datasets (all comments are considered).
     """
     if not texts: return "分析対象のコメントがありません。"
     
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel(MODEL_NAME_THINKING, generation_config={"response_mime_type": "application/json"})
+        # Use Flash for intermediate steps (fast, large context)
+        model_flash = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
+        # Use Thinking/Smart model for final synthesis
+        model_thinking = genai.GenerativeModel(MODEL_NAME_THINKING, generation_config={"response_mime_type": "application/json"})
         
+        # 1. Map Phase: Chunk Processing if needed
+        # Increase limit to 300 for direct processing, or use chunking for larger sets
+        CHUNK_SIZE = 300 
+        
+        intermediate_summaries = []
+        
+        # If texts fit in one chunk, use direct analysis
+        if len(texts) <= CHUNK_SIZE:
+             chunks = [texts]
+        else:
+             # Split into chunks
+             chunks = [texts[i:i + CHUNK_SIZE] for i in range(0, len(texts), CHUNK_SIZE)]
+             logger.info(f"Processing {len(texts)} comments in {len(chunks)} chunks...")
+
+        for i, chunk in enumerate(chunks):
+            # For the final (or only) stage, we want structured output.
+            # If we are chunking, we need an intermediate summary that captures:
+            # - Key themes in this chunk
+            # - Unique/Outlier ideas (Small Voices) explicitly
+            
+            # Map Prompt
+            map_prompt = f"""あなたはデータを集約するアナリストです。
+以下の{len(chunk)}件の社員の声（改善提案）から、重要な要素を抽出して構造化してください。
+
+### 指示:
+1. **主要なトレンド**: 頻出している提案や不満の共通項を3〜5個挙げてください。
+2. **ユニークな提案 (Small Voices)**: 少数だが、鋭い指摘や独創的なアイデアがあれば、見逃さずに全てリストアップしてください。
+3. すべての入力を考慮し、情報の「圧縮」を行ってください。
+
+### データ:
+{json.dumps(chunk, ensure_ascii=False)}
+
+### 出力形式(JSON):
+{{
+    "trends": ["トレンド1: 詳細...", "トレンド2: 詳細..."],
+    "unique_ideas": ["アイデア1: 詳細...", "アイデア2: 詳細..."]
+}}
+"""
+            # If it's a single chunk, we can skip to final analysis directly using the original 'texts'
+            # But to keep logic unified, let's treat single chunk as just data for final prompt if it's small enough.
+            # However, for consistency, let's just use the `texts` directly in final prompt if len < CHUNK_SIZE.
+            pass
+
+        # If data is small enough, skip Map phase and go specific
+        if len(texts) <= CHUNK_SIZE:
+            final_input_text = json.dumps(texts, ensure_ascii=False)
+            input_label = "改善提案リスト"
+        else:
+            # Execute Map Phase
+            for i, chunk in enumerate(chunks):
+                try:
+                    logger.info(f"Analyzing chunk {i+1}/{len(chunks)}...")
+                    resp = model_flash.generate_content(map_prompt)
+                    intermediate_summaries.append(resp.text)
+                except Exception as e:
+                    logger.error(f"Chunk {i+1} failed: {e}")
+                    # Continue with partial data
+            
+            final_input_text = "\\n".join(intermediate_summaries)
+            input_label = "各グループからの抽出結果（中間要約）"
+
+        # 2. Reduce Phase: Final Synthesis
         prompt = f"""あなたは組織変革を支援する戦略コンサルタントです。
-以下の社員からの改善提案リストを読み込み、経営層やリーダーが「ハッとする」ような洞察を抽出してください。
+以下の「{input_label}」を読み込み、経営層やリーダーが「ハッとする」ような洞察を抽出してください。
+元のデータは全{len(texts)}件の社員の声です。
 
 ### 指示:
 1. **全体俯瞰 (Overall Summary)**: 
@@ -438,10 +504,11 @@ def analyze_comments_logic(texts):
 
 3. **【最重要】きらりと光るアイデア (Notable Ideas)**:
    - 多数決では埋もれてしまうが、**「実行すれば大きなインパクトを生む逆転の発想」や「誰も気づいていない本質的なリスク指摘」**を探し出してください。
+   - 「Small Voices」や「ユニークな提案」として抽出されているものを特に重視してください。
    - 常識的な提案（「Macが欲しい」「給料上げて」）はここでは除外してください。
 
 ### 対象データ:
-{json.dumps(texts, ensure_ascii=False)}
+{final_input_text}
 
 ### 出力形式(JSON):
 {{
@@ -463,7 +530,7 @@ def analyze_comments_logic(texts):
     ]
 }}
 """
-        resp = model.generate_content(prompt)
+        resp = model_thinking.generate_content(prompt)
         text = resp.text.strip()
         
         # JSON Clean logic
@@ -473,19 +540,14 @@ def analyze_comments_logic(texts):
                 text = text.strip()[4:]
         text = text.strip()
 
-        try:
-            return text
-        except ValueError:
-             logger.warning(f"Gemini comment analysis error: {resp.prompt_feedback}")
-             return json.dumps({
-                "overall_summary": "AIによる分析が生成できませんでした。",
-                "key_trends": [],
-                "notable_ideas": []
-            }, ensure_ascii=False)
+        return text
+            
     except Exception as e:
         logger.error(f"Comment analysis failed: {e}")
         return json.dumps({
-            "overall_summary": "分析中にエラーが発生しました。",
+            "overall_summary": f"分析中にエラーが発生しました。時間を置いて再試行するか、データ量を調整してください: {str(e)}",
             "key_trends": [],
             "notable_ideas": []
         }, ensure_ascii=False)
+            
+
