@@ -275,12 +275,29 @@ def generate_issue_logic_from_clusters(df, theme_name):
         # Use THINKING model for complex analysis
         model = genai.GenerativeModel(MODEL_NAME_THINKING, generation_config={"response_mime_type": "application/json"})
         
-        # Aggregate counts by sub_topic
-        topic_counts = df['sub_topic'].value_counts().to_dict()
-        if not topic_counts:
+        # Aggregate ALL comments by sub_topic
+        unique_topics = df['sub_topic'].unique()
+        if len(unique_topics) == 0:
              return "[]"
 
-        counts_str = ", ".join([f"{k}: {v}件" for k, v in topic_counts.items()])
+        topic_summaries = []
+        for topic in unique_topics:
+            topic_df = df[df['sub_topic'] == topic]
+            count = len(topic_df)
+            
+            # Use all comments for each topic to ensure no info is lost
+            all_texts = topic_df['original_text'].tolist()
+            texts_str = "\n".join([f"    - {t}" for t in all_texts])
+            
+            # Mark if this is likely a "Small Voice" (outliers often fall into a specific cluster or 'is_noise' is true)
+            # In analyze_clusters_logic, noise is bool(cid == -1).
+            # We can check if any items in this topic are noise.
+            is_noise_cluster = topic_df['is_noise'].any() if 'is_noise' in topic_df.columns else False
+            cluster_type = " (少数意見・特異点)" if is_noise_cluster else ""
+            
+            topic_summaries.append(f"### トピック: 【{topic}】 ({count}件){cluster_type}\n{texts_str}")
+
+        all_comments_str = "\n\n".join(topic_summaries)
         
         # Trend info
         trend_info = ""
@@ -305,7 +322,7 @@ def generate_issue_logic_from_clusters(df, theme_name):
 
         # Calculate appropriate number of issues based on data volume
         total_comments = len(df)
-        unique_topics = len(topic_counts)
+        num_topics = len(unique_topics)
         
         # Determine target number of issues (3-8 based on data volume)
         if total_comments < 10:
@@ -324,18 +341,18 @@ def generate_issue_logic_from_clusters(df, theme_name):
 ### 分析ステップ
 
 #### ステップ1: データの理解
-トピック分布とトレンドを総合的に把握する。
+トピック分布、実際の発言内容、およびトレンドを総合的に把握する。
 - 総コメント数: {total_comments}件
-- 検出されたトピック数: {unique_topics}個
+- 検出されたトピック数: {num_topics}個
 
 #### ステップ2: 深刻度の評価
-各トピックについて以下の観点で評価：
+各トピックについて実際の発言内容を確認し、以下の観点で評価する：
 - 技術的リスク（システム障害の予兆、業務効率の低下）
 - 組織的リスク（離職、モチベーション低下、コミュニケーション不全）
 - 機会（改善提案、イノベーションの種、ポジティブな変化の兆し）
 
 #### ステップ3: 優先順位付け
-件数だけでなく、以下を総合的に考慮：
+件数だけでなく、発言の具体性や深刻度を考慮し、以下を総合的に判断する：
 - 影響度（どれだけの人や業務に影響するか）
 - 緊急性（すぐに対処すべきか）
 - 実現可能性（改善の余地があるか）
@@ -348,8 +365,8 @@ def generate_issue_logic_from_clusters(df, theme_name):
 
 分析テーマ: {theme_name}
 
-【クラスタリング結果】
-{counts_str}
+【全データ：トピック別コメント一覧】
+{all_comments_str}
 
 {trend_info}
 
@@ -359,47 +376,53 @@ def generate_issue_logic_from_clusters(df, theme_name):
 [
     {{
         "title": "課題のタイトル（簡潔に、15文字以内）",
-        "description": "課題の内容（背景、現状、予想される影響を含む。具体的に記述すること）",
+        "description": "課題の内容（背景、現状、予想される影響を含む。提示された全てのコメントを考慮し、網羅的かつ具体的に記述すること）",
         "urgency": "high" | "medium" | "low",
         "category": "technical" | "organizational" | "opportunity"
     }}
 ]
 
 ### 重要な分析ポイント:
-1. **必ず指定された数の課題を抽出すること**（空の配列は絶対に返さないこと）
-2. データが少ない場合でも、観察された傾向や潜在的な課題を記述すること
-3. 技術的問題は組織全体への影響が大きいため優先度を上げること
-4. 「〜してほしい」という要望は「現場のニーズ未充足」として課題化すること
-5. ポジティブな意見も「強みとして活かす機会」として課題化すること
-6. 少数意見でも重要性が高い場合は「見逃されがちな重要課題」として抽出すること
+1. **全データの網羅**: 提示された全てのコメントに目を通し、それらを統合した課題を抽出してください。
+2. **少数意見（Small Voice）の重視**: 件数が少なくても（1件でも）、深刻な内容や組織のリスクを示唆するものは必ず課題として抽出、または他の課題に深刻な背景として含めてください。
+3. **必ず指定された数の課題を抽出すること**: データが少ない場合でも、観察された傾向から考えられる潜在的リスクを「兆候」として記述してください。
+4. 具体的なエピソードや単語を反映させ、説得力のある説明にしてください。
 
 ### 出力例:
-- データが豊富な場合: 明確な課題を優先度順に抽出
-- データが少ない場合: 「初期段階の観察」「潜在的な課題の兆候」として記述
+- 多数派の意見: 「〜が多数寄せられており、生産性に大きな支障が出ている」
+- 少数派の重要意見: 「少数ながら〜という深刻な指摘があり、潜在的なリスクが懸念される」
 """
         resp = model.generate_content(prompt)
         
         try:
             text = resp.text
         except ValueError:
-            logger.warning(f"Gemini report generation error: {resp.prompt_feedback}")
+            logger.warning(f"Gemini report generation error (likely blocked): {resp.prompt_feedback}")
             return "[]"
-        # Ensure pure JSON
-        if "```json" in text:
-            text = text.split("```json")[1].split("```")[0].strip()
-        elif "```" in text:
-            text = text.split("```")[1].strip()
+
+        # Robust JSON Extraction
+        import re
+        json_match = re.search(r'\[\s*\{.*\}\s*\]', text, re.DOTALL)
+        if json_match:
+            text = json_match.group(0)
+        else:
+            # Fallback to markdown blocks if regex fails
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].strip()
             
         # Verify JSON
         try:
             json.loads(text)
         except json.JSONDecodeError:
             logger.error(f"Generated JSON is invalid: {text}")
-            return "[]" # Return empty list if invalid
+            # If still invalid, try to wrap it if it's almost there
+            return "[]" 
             
         return text
     except Exception as e:
-        logger.error(f"Report generation failed: {e}")
+        logger.exception(f"Report generation failed: {e}")
         return "[]"
 
 
