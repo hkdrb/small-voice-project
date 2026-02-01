@@ -37,7 +37,7 @@ class AnalysisResultItem(BaseModel):
     original_text: str
     x: float
     y: float
-    # sentiment removed
+    small_voice_score: Optional[float] = 0.0
 
 class CommentItem(BaseModel):
     id: int
@@ -143,11 +143,11 @@ def get_session_detail(
         results=[
             AnalysisResultItem(
                 sub_topic=r.sub_topic,
-                sentiment=r.sentiment,
                 summary=r.summary,
                 original_text=r.original_text,
                 x=float(r.x_coordinate) if r.x_coordinate is not None else 0.0,
-                y=float(r.y_coordinate) if r.y_coordinate is not None else 0.0
+                y=float(r.y_coordinate) if r.y_coordinate is not None else 0.0,
+                small_voice_score=float(r.small_voice_score) if hasattr(r, 'small_voice_score') and r.small_voice_score is not None else 0.0
             ) for r in results
         ],
         comments=comment_items,
@@ -270,11 +270,11 @@ def run_analysis_endpoint(
                 session_id=sess.id, 
                 original_text=r['original_text'], 
                 sub_topic=r['sub_topic'], 
-                # sentiment removed
                 summary=r['summary'],
                 x_coordinate=r.get('x_coordinate'),
                 y_coordinate=r.get('y_coordinate'),
-                cluster_id=r.get('cluster_id')
+                cluster_id=r.get('cluster_id'),
+                small_voice_score=r.get('small_voice_score')
             ))
         
         db.add(IssueDefinition(session_id=sess.id, content=issue_content))
@@ -391,6 +391,8 @@ def like_comment(
     
     # Return new count
     count = db.query(CommentLike).filter(CommentLike.comment_id == comment_id).count()
+    return {"message": "Like updated", "count": count, "liked": liked}
+
 @router.put("/comments/{comment_id}")
 def update_comment(
     comment_id: int,
