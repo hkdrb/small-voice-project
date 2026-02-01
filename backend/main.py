@@ -54,4 +54,8 @@ app.include_router(users.router, prefix="/api/users", tags=["users"])
 
 @app.get("/")
 def read_root():
-    return {"message": "SmallVoice API is running"}
+    return {
+        "message": "SmallVoice API is running",
+        "version": os.getenv("GIT_COMMIT_HASH", "unknown"),
+        "deployed_at": os.getenv("DEPLOY_TIMESTAMP", "unknown")
+    }
