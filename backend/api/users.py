@@ -43,15 +43,15 @@ class UserOrgInfo(BaseModel):
 
 class UserListResponse(BaseModel):
     id: int
-    email: str
-    username: str
-    role: str
+    email: Optional[str] = ""
+    username: Optional[str] = ""
+    role: Optional[str] = "system_user"
     organizations: List[UserOrgInfo] = []
     
     class Config:
         from_attributes = True
 
-@router.get("/", response_model=List[UserListResponse])
+@router.get("", response_model=List[UserListResponse])
 def get_users(
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -85,7 +85,7 @@ def get_users(
 
 # ...
 
-@router.post("/", response_model=UserListResponse)
+@router.post("", response_model=UserListResponse)
 def create_user_endpoint(
     user: UserCreate,
     current_user: UserResponse = Depends(get_current_user),

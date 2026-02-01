@@ -44,12 +44,13 @@ export default function UserManager() {
         axios.get('/api/users', { withCredentials: true }),
         axios.get('/api/organizations', { withCredentials: true })
       ]);
+      console.log("Fetched users:", usersRes.data);
+      console.log("Fetched organizations:", orgsRes.data);
       setUsers(usersRes.data);
       setOrgs(orgsRes.data);
-
       initAssignments(orgsRes.data);
     } catch (error: any) {
-      console.error("Failed to fetch data", error);
+      console.error("Failed to fetch users data:", error.response?.data || error.message);
       if (error.response && error.response.status === 401) {
         router.push('/login');
       }
@@ -97,7 +98,7 @@ export default function UserManager() {
     if (!isSystemAdmin && assignments.length === 0) {
       return alert("一般ユーザーは少なくとも1つの組織に所属させる必要があります");
     }
-    
+
     setIsSubmitting(true);
     try {
       if (editingUser) {
@@ -232,7 +233,13 @@ export default function UserManager() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {users.map(u => {
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
+                  ユーザーが登録されていません
+                </td>
+              </tr>
+            ) : users.map(u => {
               const isEditing = editingUser?.id === u.id;
 
               if (isEditing) {

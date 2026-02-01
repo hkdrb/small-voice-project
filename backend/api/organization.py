@@ -22,6 +22,7 @@ class OrganizationUpdate(OrganizationBase):
 
 class OrganizationResponse(OrganizationBase):
     id: int
+    description: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -35,7 +36,7 @@ class MemberResponse(BaseModel):
 
 # Endpoints
 
-@router.get("/", response_model=List[OrganizationResponse])
+@router.get("", response_model=List[OrganizationResponse])
 def get_organizations(
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -49,7 +50,7 @@ def get_organizations(
     orgs = db.query(Organization).order_by(Organization.id.desc()).all()
     return orgs
 
-@router.post("/", response_model=OrganizationResponse)
+@router.post("", response_model=OrganizationResponse)
 def create_organization(
     org: OrganizationCreate,
     current_user: UserResponse = Depends(get_current_user),
