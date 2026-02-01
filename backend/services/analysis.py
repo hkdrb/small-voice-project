@@ -32,13 +32,22 @@ def get_batch_sentiments(texts):
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
         prompt = f"""
-以下の社員の声（日本語）のリストを読み、各発言の感情傾向（Sentiment）を分析してください。
--1.0（強い不満、怒り、深刻な課題）から 1.0（強い満足、感謝、ポジティブな提案）の範囲の数値で評価してください。
-0.0 は中立、または感情が含まれない客観的な事実のみの発言です。
+あなたは心理言語学者、および組織診断の専門家です。
+以下の社員の声（日本語）のリストを読み、各発言の「感情の絶対温度」と「組織への影響度」を考慮して感情スコアを付けてください。
 
-出力は、入力と同じ順番の数値のみが入ったJSON配列としてください。
-例: [-0.6, 0.1, 0.0, 0.8, -0.2]
-余計な解説、マークダウンの装飾、JSON以外の文字は一切含めないでください。
+### 評価基準:
+- **-1.0 〜 -0.7**: 強い怒り、絶望、不正の告発、離職の兆候、メンタル不調の訴えなど、極めて深刻な不満。
+- **-0.6 〜 -0.4**: 業務への支障、無駄なプロセスへの苛立ち、環境への明確な不満。
+- **-0.3 〜 -0.1**: 軽い疑問、違和感、改善の余地があると感じている状態。
+- **0.0**: 完全に中立、または単なる事実。**安易に0.0を付けず、文脈から感情を読み取ってください。**
+- **0.1 〜 0.3**: 肯定的な受け止め、改善への意欲。
+- **0.4 〜 0.7**: 感謝、やりがい、前向きな提案、充実感。
+- **0.8 〜 1.0**: 極めて高いモチベーション、会社への強い愛着、卓越した成果への喜び。
+
+### 出力フォーマット:
+入力と同じ順番の数値のみが入ったJSON配列としてください。
+例: [-0.85, 0.4, -0.1, 0.0, 0.9]
+余計な解説やマークダウン、JSON以外の文字は一切含めないでください。
 
 対象リスト:
 {json.dumps(batch, ensure_ascii=False)}
@@ -52,6 +61,10 @@ def get_batch_sentiments(texts):
                 if text.startswith("json"):
                     text = text[4:]
                 text = text.split("```")[0].strip()
+            
+            # Remove any trailing commas or potential non-numeric junk
+            import re
+            text = re.sub(r'[^0-9\.\-\,\[\]\ ]', '', text)
             
             scores = json.loads(text)
             if isinstance(scores, list):
@@ -150,174 +163,123 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     # 2. Clustering
     n_samples = len(texts)
     
-    # Use HDBSCAN for density-based clustering (automatically determines number of clusters)
+    # Use HDBSCAN with stable settings for "Thematic Grouping"
     logger.info("Clustering with HDBSCAN...")
     try:
         clusterer = hdbscan.HDBSCAN(
-            # データ数の約5%を最小サイズとする（下限3、上限10）- より細かいクラスタを検出 -> Modified to be more inclusive
-            min_cluster_size=max(3, min(5, int(n_samples * 0.02))),
-            # クラスタの「核」となるデータの最小数（下限2、上限5）-> Reduced to minimize noise
+            # 議論の土台として適切な粒度（少なくともデータ数の3〜5%は集まるように）
+            min_cluster_size=max(3, int(n_samples * 0.04)),
             min_samples=2,
             metric='euclidean', 
-            cluster_selection_method='eom' # Excess of Mass
+            cluster_selection_method='eom', # Use 'eom' for more stable, broad clusters
+            allow_single_cluster=True
         )
         cluster_ids = clusterer.fit_predict(vectors)
         
-        # HDBSCAN labels noise as -1. We can treat them as a separate cluster or "Outliers"
+        # Noise points (-1) are grouped as "Special Insights" rather than individual IDs
+        # This keeps the map clean but identifies them as unique
         n_clusters = len(set(cluster_ids)) - (1 if -1 in cluster_ids else 0)
-        logger.info(f"HDBSCAN found {n_clusters} clusters")
-
-        # If no clusters found (only noise or one big blob), fallback to KMeans
-        if n_clusters < 2:
-            logger.warning("HDBSCAN found too few clusters, forcing fallback to KMeans")
-            raise Exception("Insufficient clusters in HDBSCAN")
+        logger.info(f"HDBSCAN found {n_clusters} main themes")
         
     except Exception as e:
-        logger.warning(f"HDBSCAN failed or insufficient, falling back to KMeans: {e}")
-        # クラスタ数を少し減らし、大きく分類するように変更 (データ数 / 7, 最大8)
-        n_clusters = min(max(3, int(n_samples / 7)), 8)
-        if n_samples < n_clusters: n_clusters = max(1, n_samples)
+        logger.warning(f"HDBSCAN failed, falling back to KMeans: {e}")
+        n_clusters = min(max(3, int(n_samples / 10)), 8) 
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
         cluster_ids = kmeans.fit_predict(vectors)
     
-    # 3. UMAP for 2D coords (NEW: UMAP instead of PCA)
+    # 3. UMAP for 2D coords
     logger.info("Reducing dimensions with UMAP...")
     if n_samples >= 2:
         try:
             reducer = umap.UMAP(
                 n_components=2, 
-                n_neighbors=min(15, n_samples - 1),
-                min_dist=0.1,
+                n_neighbors=min(20, n_samples - 1),
+                min_dist=0.15,
                 metric='cosine',
                 random_state=42
             )
             coords = reducer.fit_transform(vectors)
-            
-            # Add jitter for visual separation
-            noise = np.random.uniform(-0.05, 0.05, coords.shape)
-            coords += noise
+            # Subtle jitter
+            coords += np.random.uniform(-0.03, 0.03, coords.shape)
         except Exception as e:
-            logger.warning(f"UMAP failed, falling back to PCA: {e}")
-            # Fallback to PCA
+            logger.warning(f"UMAP failed, using PCA: {e}")
             pca = PCA(n_components=min(n_samples, 2))
             coords = pca.fit_transform(vectors)
             if coords.shape[1] < 2:
                 coords = np.column_stack([coords, np.zeros(n_samples)])
-            noise = np.random.uniform(-0.08, 0.08, coords.shape)
-            coords += noise
     else:
         coords = np.zeros((n_samples, 2))
 
-    # 4. Naming Clusters with Enhanced Prompts (NEW: CoT + Few-Shot)
+    # 4. Naming Themes with "Discussion" in mind
     genai.configure(api_key=GEMINI_API_KEY)
     
-    # 5. NEW: Batch Sentiment Analysis for all texts
-    logger.info("Analyzing sentiments for each text...")
+    # 5. Batch Sentiment Analysis
+    logger.info("Analyzing sentiments...")
     individual_sentiments = get_batch_sentiments(texts)
 
-    # Use LIGHT model for quick cluster naming
-    model = genai.GenerativeModel(MODEL_NAME_LIGHT, generation_config={"response_mime_type": "application/json"})
+    model = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
     
     cluster_info = {}
+    unique_labels = sorted(list(set(cluster_ids)))
     
-    unique_labels = set(cluster_ids)
-    
+    # Thematic Analysis Prompt
+    prompt = f"""あなたは組織開発のシニア・コンサルタントです。
+社員から寄せられた「{theme_name}」に関する声を分析し、経営会議やチームビルディングで**議論の土台（アジェンダ）となるようなテーマ名**を付けてください。
+
+### 指示:
+1. **抽象度と具体性のバランス**: 単なる「PC不満」ではなく「開発環境の投資対効果」、単なる「会議」ではなく「意思決定の透明性と速度」のように、背景にある課題の本質を突いてください。
+2. **文字数**: **15文字以内**を目安に（「〜の課題」「〜への懸念」など、文脈がわかる言葉も含めてOK）。
+3. **ノイズ(-1)の扱い**: クラスタIDが -1 のものは、他のグループに属さない「独自の視点やリスク」です。これらを統合して『独自の指摘・潜在的リスク』といった興味を引く名前を付けてください。
+4. **アウトプット**: 各IDの内容を統合し、議論を活性化させる言葉を選んでください。
+
+### 対象データ（IDと発言サンプル）:
+"""
+    # Build data for prompt
+    input_data = []
     for cid in unique_labels:
         indices = [i for i, x in enumerate(cluster_ids) if x == cid]
-        if not indices: continue
-
-        # cid == -1 (Noise) continues to be named by LLM just like others
-
-
-        sample_texts = [texts[i] for i in indices[:min(8, len(indices))]]
-        
-        # Enhanced Prompt with Chain of Thought + Few-Shot
-        prompt = f"""あなたはデータアナリストです。以下の社員の声を分析し、内容を端的に表す日本語のカテゴリ名（グループ名）を付けてください。
-
-### 分析対象のテーマ
-{theme_name}
-
-### 声の例
-{json.dumps(sample_texts, ensure_ascii=False)}
-
-### 指示
-1. 声の内容を要約し、共通するトピックを特定してください。
-2. **重要**: 「Category 1」「Group A」のような機械的な名前は**絶対に使用しないでください**。
-3. **重要**: 「あえて個人的な意見ですが」「正直に言うと」などの導入句や、「〜と感じます」「〜と願っています」などの末尾表現は完全に無視してください。
-4. 内容を**10文字以内の簡潔な単語（体言止め）**で表現してください。
-   - 文章形式（「〜が課題です」など）は厳禁です。
-   - 「〜についての意見」「〜に関する要望」「〜の課題」などの冗長な付帯語は禁止です。
-   - 具体的かつ短い単語を選んでください。
-   
-   改善の例:
-   - "JIRAのチケット管理が複雑なことへの不満" → "JIRA運用"
-   - "PCのスペックが低くて困っている" → "PCスペック"
-   - "会議が多すぎて作業ができない" → "会議過多"
-   - "給与制度を見直してほしい" → "給与制度"
-   
-   良い例（単語形式・10文字以内）: 
-   - "PC性能", "給与制度", "リモートワーク", "会議過多", "福利厚生", "残業時間", "評価制度", "通勤環境", "情報共有"
-   
-5. このトピックから読み取れる、組織としての全体的な解決意向や緊急度について考慮してください（名前には含めない）。
-
-### 出力フォーマット(JSON):
-{{
-    "name": "カテゴリ名(10文字以内)"
-}}
-"""
-        try:
-            resp = model.generate_content(prompt)
-            
-            # Helper to safely get text
-            try:
-                text_content = resp.text
-            except ValueError:
-                logger.warning(f"Gemini response error (likely blocked): {resp.prompt_feedback}")
-                text_content = "{}"
-
-            data = json.loads(text_content)
-            
-            # Handle potential list output
-            if isinstance(data, list):
-                if len(data) > 0:
-                    data = data[0]
-                else:
-                    data = {}
-
-            name = data.get("name", "").strip()
-            
-            # Post-processing: If LLM still returns generic name or too long name, clean up
-            if not name or name.lower().startswith("category") or name.lower().startswith("group") or "カテゴリー" in name or len(name) > 20:
-                if sample_texts:
-                    # Try to generate a very short summary as fallback
-                    name = "トピック分析中" 
-                else:
-                    name = "その他"
-
-            cluster_info[cid] = {
-                "name": name
-            }
-        except Exception as e:
-            logger.error(f"Generate cluster info failed: {e}")
-            # Fallback for errors
-            fallback_name = sample_texts[0][:15] + "..." if sample_texts else "未分類"
-            cluster_info[cid] = {"name": fallback_name}
+        samples = [texts[i] for i in indices[:min(8, len(indices))]]
+        input_data.append({"id": int(cid), "samples": samples})
     
-    # Construct Result without Small Voice Score
+    prompt += json.dumps(input_data, ensure_ascii=False)
+    
+    prompt += """
+### 出力フォーマット(JSON):
+{
+    "results": [
+        { "id": ID数値, "name": "アジェンダとなるテーマ名" }
+    ]
+}
+"""
+    try:
+        resp = model.generate_content(prompt)
+        # Handle cases where Thinking models might add text before JSON
+        clean_text = resp.text.strip()
+        if "```json" in clean_text:
+            clean_text = clean_text.split("```json")[1].split("```")[0].strip()
+        
+        data = json.loads(clean_text)
+        for res in data.get("results", []):
+            cluster_info[res["id"]] = {"name": res["name"]}
+    except Exception as e:
+        logger.error(f"Generate thematic names failed: {e}")
+        for cid in unique_labels: cluster_info[cid] = {"name": f"テーマ {cid}" if cid != -1 else "独自の指摘"}
+
+    # Construct Final Result
     results = []
     for i, text in enumerate(texts):
-        cid = cluster_ids[i]
-        info = cluster_info.get(cid, {"name": "Uncategorized"})
+        cid = int(cluster_ids[i])
+        info = cluster_info.get(cid, {"name": "未分類"})
         results.append({
             "original_text": text,
             "created_at": timestamps[i].isoformat() if timestamps and i < len(timestamps) and timestamps[i] else None,
             "sub_topic": info["name"],
-            "sentiment": individual_sentiments[i], # Use individual sentiment
+            "sentiment": individual_sentiments[i],
             "summary": text[:50] + "..." if len(text)>50 else text,
             "x_coordinate": float(coords[i, 0]),
             "y_coordinate": float(coords[i, 1]),
-            "cluster_id": int(cid),
-            "is_noise": bool(cid == -1) # Flag for HDBSCAN noise
+            "cluster_id": cid,
+            "is_noise": bool(cid == -1)
         })
         
     return results
@@ -342,142 +304,64 @@ def generate_issue_logic_from_clusters(df, theme_name):
             topic_df = df[df['sub_topic'] == topic]
             count = len(topic_df)
             
-            # Use all comments for each topic to ensure no info is lost
+            # Use all comments for each topic
             all_texts = topic_df['original_text'].tolist()
             texts_str = "\n".join([f"    - {t}" for t in all_texts])
             
-            # Mark if this is likely a "Small Voice" (outliers often fall into a specific cluster or 'is_noise' is true)
-            # In analyze_clusters_logic, noise is bool(cid == -1).
-            # We can check if any items in this topic are noise.
-            is_noise_cluster = topic_df['is_noise'].any() if 'is_noise' in topic_df.columns else False
-            cluster_type = " (少数意見・特異点)" if is_noise_cluster else ""
+            # Identify if this is a "Small Voice" (cluster with only 1 person or flagged as noise)
+            is_noise_point = (count == 1)
+            cluster_type = " 【重要：特異点/少数意見】" if is_noise_point else f" ({count}件)"
             
-            topic_summaries.append(f"### トピック: 【{topic}】 ({count}件){cluster_type}\n{texts_str}")
+            topic_summaries.append(f"### トピック: {topic}{cluster_type}\n{texts_str}")
 
         all_comments_str = "\n\n".join(topic_summaries)
         
-        # Trend info
-        trend_info = ""
-        if 'created_at' in df.columns and not df['created_at'].isnull().all():
-            try:
-                df['dt'] = pd.to_datetime(df['created_at'])
-                df = df.sort_values('dt')
-                
-                recent_cutoff = df['dt'].max() - pd.Timedelta(days=30)
-                recent_df = df[df['dt'] >= recent_cutoff]
-                
-                recent_topics = recent_df['sub_topic'].value_counts().head(3).to_dict()
-                recent_str = ", ".join([f"{k}: {v}件" for k, v in recent_topics.items()])
-                
-                trend_info = f"""
-【トレンド情報】
-直近30日間で特に多かったトピック: {recent_str}
-（これらが急増している場合は、緊急性の高い課題として扱ってください）
-"""
-            except Exception as e:
-                logger.warning(f"Trend analysis failed: {e}")
-
-        # Calculate appropriate number of issues based on data volume
+        # Determine target number of issues
         total_comments = len(df)
-        num_topics = len(unique_topics)
+        target_issues = "4〜6個" if total_comments > 50 else "3〜5個"
         
-        # Determine target number of issues (3-8 based on data volume)
-        if total_comments < 10:
-            target_issues = "2〜3個"
-        elif total_comments < 30:
-            target_issues = "3〜5個"
-        elif total_comments < 100:
-            target_issues = "5〜7個"
-        else:
-            target_issues = "6〜8個"
-        
-        # Enhanced Prompt with Chain of Thought
-        prompt = f"""あなたは組織開発とデータ分析の専門家である「シニア・コンサルタント」です。
-以下のデータを段階的に分析し、組織の重要課題を抽出してください。
+        # Enhanced Prompt with specialized analysis for Small Voices
+        prompt = f"""あなたは組織開発のシニア・コンサルタントです。
+提供された社員の声から、組織が直視すべき「重要課題」と「隠れた兆候（Small Voices）」を抽出してください。
 
-### 分析ステップ
+### 分析の三原則
+1. **多数派の課題**: 多くの社員が共通して感じている構造的な課題を特定する。
+2. **鋭い少数意見(Small Voices)**: 1件しかなくても、組織の腐敗、コンプライアンスリスク、メンタルヘルス、あるいは革新的な提案を示唆するものは絶対に見逃さない。
+3. **因果関係の洞察**: 表面的な現象（例：会議が多い）の裏にある本質的な原因（例：意思決定プロセスの不在）を推察する。
 
-#### ステップ1: データの理解
-トピック分布、実際の発言内容、およびトレンドを総合的に把握する。
-- 総コメント数: {total_comments}件
-- 検出されたトピック数: {num_topics}個
-
-#### ステップ2: 深刻度の評価
-各トピックについて実際の発言内容を確認し、以下の観点で評価する：
-- 技術的リスク（システム障害の予兆、業務効率の低下）
-- 組織的リスク（離職、モチベーション低下、コミュニケーション不全）
-- 機会（改善提案、イノベーションの種、ポジティブな変化の兆し）
-
-#### ステップ3: 優先順位付け
-件数だけでなく、発言の具体性や深刻度を考慮し、以下を総合的に判断する：
-- 影響度（どれだけの人や業務に影響するか）
-- 緊急性（すぐに対処すべきか）
-- 実現可能性（改善の余地があるか）
-
-#### ステップ4: 課題の抽出
-**必ず{target_issues}の課題を抽出してください。**
-データが少ない場合でも、観察された傾向や潜在的な課題を含めてください。
-
----
-
+### 分析対象データ
 分析テーマ: {theme_name}
-
-【全データ：トピック別コメント一覧】
+データ数: {total_comments}件
+トピック別内訳:
 {all_comments_str}
 
-{trend_info}
-
----
+### 出力指示
+- **必ず{target_issues}の課題を抽出してください。**
+- そのうち、少なくとも1つは「少数意見（特異点）」に基づいた、潜在的リスクや新しい機会に関する課題にしてください。
+- 具体的で、アクションに繋がりやすいタイトル（15文字以内）にしてください。
 
 ### 出力フォーマット(JSON):
 [
     {{
-        "title": "課題のタイトル（簡潔に、15文字以内）",
-        "description": "課題の内容（背景、現状、予想される影響を含む。提示された全てのコメントを考慮し、網羅的かつ具体的に記述すること）",
+        "title": "課題タイトル",
+        "description": "分析結果。なぜこれが重要なのか、どのようなリスク/機会があるのかを具体的に。少数意見を引用する場合はその旨を明記。",
         "urgency": "high" | "medium" | "low",
         "category": "technical" | "organizational" | "opportunity"
     }}
 ]
-
-### 重要な分析ポイント:
-1. **全データの網羅**: 提示された全てのコメントに目を通し、それらを統合した課題を抽出してください。
-2. **少数意見（Small Voice）の重視**: 件数が少なくても（1件でも）、深刻な内容や組織のリスクを示唆するものは必ず課題として抽出、または他の課題に深刻な背景として含めてください。
-3. **必ず指定された数の課題を抽出すること**: データが少ない場合でも、観察された傾向から考えられる潜在的リスクを「兆候」として記述してください。
-4. 具体的なエピソードや単語を反映させ、説得力のある説明にしてください。
-
-### 出力例:
-- 多数派の意見: 「〜が多数寄せられており、生産性に大きな支障が出ている」
-- 少数派の重要意見: 「少数ながら〜という深刻な指摘があり、潜在的なリスクが懸念される」
 """
         resp = model.generate_content(prompt)
         
-        try:
-            text = resp.text
-        except ValueError:
-            logger.warning(f"Gemini report generation error (likely blocked): {resp.prompt_feedback}")
-            return "[]"
-
-        # Robust JSON Extraction
         import re
+        text = resp.text
+        # Cleanup JSON formatting
         json_match = re.search(r'\[\s*\{.*\}\s*\]', text, re.DOTALL)
         if json_match:
-            text = json_match.group(0)
-        else:
-            # Fallback to markdown blocks if regex fails
-            if "```json" in text:
-                text = text.split("```json")[1].split("```")[0].strip()
-            elif "```" in text:
-                text = text.split("```")[1].strip()
-            
-        # Verify JSON
-        try:
-            json.loads(text)
-        except json.JSONDecodeError:
-            logger.error(f"Generated JSON is invalid: {text}")
-            # If still invalid, try to wrap it if it's almost there
-            return "[]" 
-            
-        return text
+            return json_match.group(0)
+        
+        if "```json" in text:
+            return text.split("```json")[1].split("```")[0].strip()
+        return text.strip()
     except Exception as e:
         logger.exception(f"Report generation failed: {e}")
         return "[]"
