@@ -66,9 +66,6 @@ export default function SessionDetailPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  /* Removed duplicates */
-  const [viewMode, setViewMode] = useState<'topic' | 'sentiment'>('topic');
-
   // Memoize color mapping
   const categoryColorMap = useMemo(() => {
     if (!data?.results) return new Map<string, string>();
@@ -280,28 +277,6 @@ export default function SessionDetailPage() {
         <section className="glass-card p-4 h-[600px] relative">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-sage-dark pl-2 border-l-4 border-sage-primary">1. クラスタリング</h3>
-
-            {/* View Mode Toggle */}
-            <div className="flex bg-slate-100 p-1 rounded-lg">
-              <button
-                onClick={() => setViewMode('topic')}
-                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${viewMode === 'topic'
-                  ? 'bg-white text-sage-primary shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-                  }`}
-              >
-                トピック別
-              </button>
-              <button
-                onClick={() => setViewMode('sentiment')}
-                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${viewMode === 'sentiment'
-                  ? 'bg-white text-red-500 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-                  }`}
-              >
-                感情分析
-              </button>
-            </div>
           </div>
           <div className="w-full h-full pb-8 flex flex-col">
             <div className="flex-1 min-h-0">
@@ -315,7 +290,7 @@ export default function SessionDetailPage() {
                     }),
                     mode: 'markers',
                     type: 'scatter',
-                    marker: viewMode === 'topic' ? {
+                    marker: {
                       // Topic Mode (Categorical)
                       size: 14,
                       color: data.results.map(r => categoryColorMap.get(r.sub_topic) || '#ccc'),
@@ -325,26 +300,6 @@ export default function SessionDetailPage() {
                       },
                       opacity: 0.9,
                       symbol: 'circle'
-                    } : {
-                      // Sentiment Mode (Heatmap)
-                      size: 14,
-                      color: data.results.map(r => r.sentiment),
-                      colorscale: 'RdBu', // Red (Negative) to Blue (Positive)
-                      cmin: -1.0,
-                      cmax: 1.0,
-                      line: {
-                        width: 1,
-                        color: 'white'
-                      },
-                      opacity: 0.9,
-                      symbol: 'circle',
-                      showscale: true,
-                      colorbar: {
-                        title: { text: 'Sentiment' },
-                        tickvals: [-1, 0, 1],
-                        ticktext: ['ネガティブ', '中立', 'ポジティブ'],
-                        len: 0.8,
-                      }
                     },
                     hoverinfo: 'text',
                     hovertemplate: '%{text}<extra></extra>'
@@ -388,24 +343,17 @@ export default function SessionDetailPage() {
               />
             </div>
           </div>
-          {/* Legend - Only show in Topic Mode */}
-          {viewMode === 'topic' && (
-            <div className="mt-4 flex flex-wrap gap-3 px-4 justify-center">
-              {Array.from(categoryColorMap.entries()).map(([category, color]) => (
-                <div key={category} className="flex items-center gap-1.5 bg-white/60 px-2 py-1 rounded-md text-xs border border-white/40 shadow-sm max-w-[150px]">
-                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
-                  <span className="text-slate-600 font-medium truncate" title={category}>
-                    {category}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-          {viewMode === 'sentiment' && (
-            <div className="mt-4 flex justify-center text-xs text-slate-500">
-              <p>赤色: 不満/課題 (-1.0) ↔ 青色: 満足/強み (+1.0)</p>
-            </div>
-          )}
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-3 px-4 justify-center">
+            {Array.from(categoryColorMap.entries()).map(([category, color]) => (
+              <div key={category} className="flex items-center gap-1.5 bg-white/60 px-2 py-1 rounded-md text-xs border border-white/40 shadow-sm max-w-[150px]">
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
+                <span className="text-slate-600 font-medium truncate" title={category}>
+                  {category}
+                </span>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* 2. Analysis Report -> Critical Issues Definition */}

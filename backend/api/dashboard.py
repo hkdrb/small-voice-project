@@ -33,12 +33,11 @@ class PublishRequest(BaseModel):
 
 class AnalysisResultItem(BaseModel):
     sub_topic: str
-    sentiment: float
     summary: str
     original_text: str
     x: float
     y: float
-    y: float
+    # sentiment removed
 
 class CommentItem(BaseModel):
     id: int
@@ -271,7 +270,7 @@ def run_analysis_endpoint(
                 session_id=sess.id, 
                 original_text=r['original_text'], 
                 sub_topic=r['sub_topic'], 
-                sentiment=r['sentiment'], 
+                # sentiment removed
                 summary=r['summary'],
                 x_coordinate=r.get('x_coordinate'),
                 y_coordinate=r.get('y_coordinate'),

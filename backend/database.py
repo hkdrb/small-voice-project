@@ -183,7 +183,7 @@ class AnalysisResult(Base):
     session_id = Column(Integer, ForeignKey("analysis_sessions.id"))
     original_text = Column(Text)
     sub_topic = Column(String)
-    sentiment = Column(Float)
+    # sentiment removed
     summary = Column(String)
     x_coordinate = Column(Float, nullable=True)
     y_coordinate = Column(Float, nullable=True)

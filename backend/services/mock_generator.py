@@ -274,7 +274,7 @@ def generate_mock_analysis_data(theme: str, num_points: int = 50):
                 results.append({
                     "original_text": text,
                     "sub_topic": topic,
-                    "sentiment": random.uniform(-0.8, -0.2), # Mostly complaints
+                    # sentiment removed
                     "summary": text[:30] + "...",
                     "x_coordinate": x,
                     "y_coordinate": y,
@@ -290,7 +290,7 @@ def generate_mock_analysis_data(theme: str, num_points: int = 50):
         results.append({
             "original_text": sv_text,
             "sub_topic": "個別意見",
-            "sentiment": -0.9,
+            # sentiment removed
             "summary": sv_text[:30] + "...",
             "x_coordinate": x,
             "y_coordinate": y,
@@ -307,7 +307,7 @@ def generate_mock_analysis_data(theme: str, num_points: int = 50):
         results.append({
             "original_text": text,
             "sub_topic": "その他",
-            "sentiment": random.uniform(-0.5, 0.5),
+            # sentiment removed
             "summary": text[:30] + "...",
             "x_coordinate": x,
             "y_coordinate": y,
