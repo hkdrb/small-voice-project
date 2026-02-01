@@ -33,7 +33,7 @@ Google Compute Engine (GCE) を使用した Small Voice Project の本番デプ�
 |------|--------|
 | 名前 | `small-voice-server` |
 | リージョン | `asia-northeast1`（東京）|
-| マシンタイプ | `e2-micro` |
+| マシンタイプ | `e2-small`（推奨）または `e2-micro` |
 | ブートディスク | Ubuntu 22.04 LTS、30GB |
 | ファイアウォール | ✓ HTTPトラフィックを許可<br>✓ HTTPSトラフィックを許可 |
 | 外部IP | 手順1.1で予約したIP |
@@ -393,12 +393,30 @@ docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py
 
 | 項目 | 月額コスト |
 |------|-----------|
-| e2-micro VM（通常） | 約 $8 |
-| e2-micro VM（Spot） | 約 $3-4 |
+| e2-small VM（推奨） | 約 $14 |
+| e2-micro VM（最小） | 約 $8 |
 | ディスク 30GB | 約 $4 |
-| **合計** | **$7-12** |
+| **合計** | **$12-18** |
 
-> 💡 **節約Tips**: 米国リージョン（us-central1等）のe2-microは無料枠対象です。
+> 💡 **節約Tips**:
+> - VMインスタンスを「停止」している間は、CPU/メモリのリソース料金（VM料金）は発生しません。ただし、**ディスク料金（30GB分）と固定IPアドレス料金は継続して発生**します。
+> - 米国リージョン（us-central1等）のe2-microは無料枠対象です。
+
+### デプロイ反映の確認方法
+APIのルートエンドポイントにアクセスすることで、現在デプロイされているバージョンを確認できます。
+
+```bash
+curl https://your-domain.com/api/
+```
+
+レスポンス例:
+```json
+{
+  "message": "SmallVoice API is running",
+  "version": "85f3a98",
+  "deployed_at": "2026-02-01 12:45:00"
+}
+```
 
 ### データベース接続
 
