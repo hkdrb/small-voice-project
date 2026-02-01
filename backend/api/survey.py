@@ -54,7 +54,7 @@ class SurveySubmit(BaseModel):
 
 # --- Endpoints ---
 
-@router.post("/", response_model=SurveyResponse)
+@router.post("", response_model=SurveyResponse)
 def create_survey(
     survey_data: SurveyCreate,
     current_user: UserResponse = Depends(get_current_user),

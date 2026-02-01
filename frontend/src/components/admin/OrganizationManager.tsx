@@ -35,9 +35,10 @@ export default function OrganizationManager() {
     try {
       setLoading(true);
       const res = await axios.get('/api/organizations', { withCredentials: true });
+      console.log("Fetched organizations:", res.data);
       setOrgs(res.data);
     } catch (error: any) {
-      console.error("Failed to fetch organizations", error);
+      console.error("Failed to fetch organizations:", error.response?.data || error.message);
       if (error.response && error.response.status === 401) {
         router.push('/login');
       }
@@ -149,7 +150,11 @@ export default function OrganizationManager() {
       )}
 
       <div className="grid grid-cols-1 gap-4">
-        {orgs.map(org => (
+        {orgs.length === 0 ? (
+          <div className="text-center py-12 glass-card">
+            <p className="text-gray-400">組織が登録されていません</p>
+          </div>
+        ) : orgs.map(org => (
           <div key={org.id} className="glass-card p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             {editingId === org.id ? (
               <div className="w-full flex flex-col md:flex-row gap-4 items-start md:items-center">
