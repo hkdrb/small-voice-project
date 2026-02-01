@@ -1,6 +1,6 @@
 export interface AnalysisResultItem {
   sub_topic: string;
-  sentiment: number;
+  // sentiment removed
   summary: string;
   original_text: string;
   x: number;
