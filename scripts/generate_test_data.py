@@ -786,8 +786,8 @@ def generate_csv_files():
     for i in range(NUM_ROWS_OTHERS):
         project_data.append({
             "日時": generate_random_date(),
-            "プロセスへのコメント": project_comments_1[i],
-            "会議へのコメント": project_comments_2[i]
+            "プロジェクトの進め方やプロセスについて、改善提案はありますか？": project_comments_1[i],
+            "会議の運営やコミュニケーションについて、ご意見をお聞かせください": project_comments_2[i]
         })
     pd.DataFrame(project_data).to_csv(os.path.join(OUTPUT_DIR, "project.csv"), index=False, encoding="utf-8-sig")
 
@@ -800,8 +800,8 @@ def generate_csv_files():
     for i in range(NUM_ROWS_OTHERS):
         dev_data.append({
             "日時": generate_random_date(),
-            "ハードウェアへのコメント": dev_comments_1[i],
-            "ソフトウェアへのコメント": dev_comments_2[i]
+            "ハードウェア環境について、改善してほしい点や要望などを教えてください": dev_comments_1[i],
+            "ソフトウェア開発環境やツールについて、改善してほしい点や要望などを教えてください": dev_comments_2[i]
         })
     pd.DataFrame(dev_data).to_csv(os.path.join(OUTPUT_DIR, "dev_env.csv"), index=False, encoding="utf-8-sig")
 
@@ -814,8 +814,8 @@ def generate_csv_files():
     for i in range(NUM_ROWS_OTHERS):
         tech_data.append({
             "日時": generate_random_date(),
-            "コードベースへのコメント": tech_comments_1[i],
-            "テストへのコメント": tech_comments_2[i]
+            "現在のコードベースの品質について、懸念点や改善案を教えてください": tech_comments_1[i],
+            "テストやQAプロセスについて、ご意見や改善提案を教えてください": tech_comments_2[i]
         })
     pd.DataFrame(tech_data).to_csv(os.path.join(OUTPUT_DIR, "tech_quality.csv"), index=False, encoding="utf-8-sig")
 
@@ -830,9 +830,9 @@ def generate_csv_files():
     for i in range(NUM_ROWS_VALUES):
         values_data.append({
             "日時": generate_random_date(),
-            "大切にしている価値観": q1_list[i],  # Q1: あなたが仕事をする上で、大切にしている価値観を教えてください
-            "きっかけのエピソード": q2_list[i],  # Q2: その価値観を大切にするようになったきっかけは？
-            "共有したい価値観": q3_list[i]  # Q3: 社内で共有されたら嬉しい価値観は？
+            "あなたが仕事をする上で、大切にしている価値観を教えてください": q1_list[i],  # Q1
+            "その価値観を大切にするようになったきっかけは？（実際のエピソード）": q2_list[i],  # Q2
+            "社内で共有されたら嬉しい価値観は？": q3_list[i]  # Q3
         })
 
     pd.DataFrame(values_data).to_csv(os.path.join(OUTPUT_DIR, "values.csv"), index=False, encoding="utf-8-sig")
