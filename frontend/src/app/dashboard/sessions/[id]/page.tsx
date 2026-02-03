@@ -292,7 +292,7 @@ export default function SessionDetailPage() {
                     type: 'scatter',
                     marker: {
                       // Topic Mode (Categorical)
-                      size: 14,
+                      size: 12,
                       color: data.results.map(r => {
                         // 特異点（Small Voices）を赤色で強調
                         if (r.is_noise || r.cluster_id === -1 || r.sub_topic.includes("特異点")) {
@@ -304,7 +304,7 @@ export default function SessionDetailPage() {
                         width: 1.5,
                         color: 'white'
                       },
-                      opacity: 0.9,
+                      opacity: 0.8,
                       symbol: 'circle'
                     },
                     hoverinfo: 'text',
