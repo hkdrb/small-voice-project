@@ -211,7 +211,7 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
             reducer = umap.UMAP(
                 n_components=2, 
                 n_neighbors=min(15, n_samples - 1),
-                min_dist=0.1,
+                min_dist=0.5,
                 metric='cosine',
                 random_state=42
             )
