@@ -15,29 +15,28 @@ import hdbscan
 
 # No global model cache needed for API-based embeddings
 
+from sentence_transformers import SentenceTransformer
+
+# Global model cache
+_embedding_model = None
+
+def get_embedding_model():
+    global _embedding_model
+    if _embedding_model is None:
+        logger.info("Loading local embedding model: paraphrase-multilingual-MiniLM-L12-v2")
+        # 多言語対応の軽量モデル
+        _embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    return _embedding_model
+
 def get_vectors_semantic(texts):
-    """Generate semantic embeddings using Gemini Embeddings API."""
+    """Generate semantic embeddings using local SentenceTransformer."""
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        
-        # Gemini embedding-004 supports batching (usually up to 100 or 2048 depending on version)
-        # We'll batch to be safe and efficient if user has many texts
-        batch_size = 100
-        vectors = []
-        
-        for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i:i + batch_size]
-            result = genai.embed_content(
-                model=EMBEDDING_MODEL_NAME,
-                content=batch_texts,
-                task_type="clustering"
-            )
-            # result['embedding'] is a list of lists if input is a list
-            vectors.extend(result['embedding'])
-            
-        return np.array(vectors)
+        model = get_embedding_model()
+        # encode returns numpy array by default
+        vectors = model.encode(texts, batch_size=32, show_progress_bar=False)
+        return vectors
     except Exception as e:
-        logger.exception(f"Semantic vectorization with Gemini failed: {e}")
+        logger.exception(f"Semantic vectorization with SentenceTransformer failed: {e}")
         # Fallback to TF-IDF
         return get_vectors_tfidf(texts)
 
