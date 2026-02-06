@@ -10,7 +10,7 @@ import remarkBreaks from 'remark-breaks';
 // import Tabs from '@/components/ui/Tabs';
 import CommentTree from '@/components/dashboard/CommentTree';
 import { SessionDetail } from '@/types/dashboard';
-import { Map as MapIcon, FileText, MessageCircle, ArrowLeft, Sparkles } from 'lucide-react';
+import { Map as MapIcon, FileText, MessageCircle, ArrowLeft, Sparkles, Users } from 'lucide-react';
 import Link from 'next/link';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 
@@ -65,6 +65,11 @@ export default function SessionDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // State for linking Issue List with Clustering Map
+  const [selectedIssueTopics, setSelectedIssueTopics] = useState<string[]>([]);
+  // State for Accordion Expansion (One can be open at a time)
+  const [expandedIssueIndex, setExpandedIssueIndex] = useState<number | null>(null);
 
   // Memoize color mapping
   const categoryColorMap = useMemo(() => {
@@ -211,6 +216,29 @@ export default function SessionDetailPage() {
     }
   };
 
+  const handleIssueClick = (issue: any, index: number) => {
+    // 1. Toggle Expansion
+    if (expandedIssueIndex === index) {
+      setExpandedIssueIndex(null);
+      setSelectedIssueTopics([]); // Also clear map selection
+      return;
+    } else {
+      setExpandedIssueIndex(index);
+    }
+
+    // 2. Map Selection Logic
+    // Extract related topics from issue
+    // Keep compatibility with both 'category' (string) and 'related_topics' (array)
+    let topics: string[] = [];
+    if (issue.related_topics && Array.isArray(issue.related_topics)) {
+      topics = issue.related_topics;
+    } else if (issue.category) {
+      topics = [issue.category];
+    }
+
+    setSelectedIssueTopics(topics);
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -277,6 +305,14 @@ export default function SessionDetailPage() {
         <section className="glass-card p-4 h-[600px] relative">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-sage-dark pl-2 border-l-4 border-sage-primary">1. クラスタリング</h3>
+            {selectedIssueTopics.length > 0 && (
+              <button
+                onClick={() => setSelectedIssueTopics([])}
+                className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded hover:bg-slate-300 transition-colors"
+              >
+                絞り込みを解除
+              </button>
+            )}
           </div>
           <div className="w-full h-full pb-8 flex flex-col">
             <div className="flex-1 min-h-0">
@@ -294,11 +330,25 @@ export default function SessionDetailPage() {
                       // Topic Mode (Categorical)
                       size: 12,
                       color: data.results.map(r => {
-                        // 特異点（Small Voices）を赤色で強調
+                        // 特異点（Small Voice）を赤色で強調
                         if (r.is_noise || r.cluster_id === -1 || r.sub_topic.includes("特異点")) {
+                          // If filtered and this is NOT in topics -> dim
+                          if (selectedIssueTopics.length > 0 && !selectedIssueTopics.some(t => r.sub_topic.includes(t))) {
+                            return 'rgba(239, 68, 68, 0.2)'; // Faded Red
+                          }
                           return '#EF4444';
                         }
-                        return categoryColorMap.get(r.sub_topic) || '#ccc';
+
+                        const color = categoryColorMap.get(r.sub_topic) || '#ccc';
+
+                        // Filter Logic
+                        if (selectedIssueTopics.length > 0) {
+                          if (!selectedIssueTopics.includes(r.sub_topic)) {
+                            // Return faded color or gray
+                            return 'rgba(200,200,200, 0.2)';
+                          }
+                        }
+                        return color;
                       }),
                       line: {
                         width: 1.5,
@@ -352,7 +402,9 @@ export default function SessionDetailPage() {
           {/* Legend */}
           <div className="mt-4 flex flex-wrap gap-3 px-4 justify-center">
             {Array.from(categoryColorMap.entries()).filter(([cat]) => !cat.includes("特異点")).map(([category, color]) => (
-              <div key={category} className="flex items-center gap-1.5 bg-white/60 px-2 py-1 rounded-md text-xs border border-white/40 shadow-sm max-w-[150px]">
+              <div key={category} className={`flex items-center gap-1.5 bg-white/60 px-2 py-1 rounded-md text-xs border border-white/40 shadow-sm max-w-[150px] transition-opacity duration-300
+                  ${selectedIssueTopics.length > 0 && !selectedIssueTopics.includes(category) ? 'opacity-30' : 'opacity-100'}
+              `}>
                 <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
                 <span className="text-slate-600 font-medium truncate" title={category}>
                   {category}
@@ -363,7 +415,7 @@ export default function SessionDetailPage() {
             {data.results.some(r => r.is_noise || r.cluster_id === -1 || r.sub_topic.includes("特異点")) && (
               <div className="flex items-center gap-1.5 bg-white/60 px-2 py-1 rounded-md text-xs border border-white/40 shadow-sm max-w-[150px]">
                 <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#EF4444' }}></span>
-                <span className="text-slate-600 font-medium truncate">特異点 (Small Voices)</span>
+                <span className="text-slate-600 font-medium truncate">特異点 (Small Voice)</span>
               </div>
             )}
           </div>
@@ -375,7 +427,7 @@ export default function SessionDetailPage() {
             <h3 className="text-sm font-bold text-sage-dark pl-2 border-l-4 border-sage-primary flex items-center gap-2">
               <FileText className="h-4 w-4" /> 2. 課題リスト
             </h3>
-            <span className="text-xs text-slate-400">データから特定された解決すべき課題</span>
+            <span className="text-xs text-slate-400">クリックして詳細と関連マップを表示</span>
           </div>
           <div className="bg-white/40 rounded-xl p-6">
             {(() => {
@@ -408,22 +460,69 @@ export default function SessionDetailPage() {
               if (issues.length > 0) {
                 // Render Issue Cards
                 return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {issues.map((issue: any, idx: number) => (
-                      <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                        <h4 className="font-bold text-sage-dark mb-3 text-sm flex items-start gap-2">
-                          <span className="text-amber-500 mt-0.5">⚠️</span>
-                          {issue.title}
-                        </h4>
-                        <p className="text-xs text-slate-600 leading-relaxed">
-                          {issue.description}
-                        </p>
-                        <div className="mt-3 flex gap-2">
-                          {issue.urgency === 'high' && <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded font-bold">緊急: 高</span>}
-                          {issue.category && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded">{issue.category}</span>}
+                  <div className="flex flex-col gap-4">
+                    {issues.map((issue: any, idx: number) => {
+                      // Determine if this issue is selected
+                      let topics: string[] = [];
+                      if (issue.related_topics && Array.isArray(issue.related_topics)) {
+                        topics = issue.related_topics;
+                      } else if (issue.category) {
+                        topics = [issue.category];
+                      }
+
+                      const isSelected = topics.length > 0 &&
+                        topics.length === selectedIssueTopics.length &&
+                        topics.every(t => selectedIssueTopics.includes(t));
+
+                      const isExpanded = idx === expandedIssueIndex;
+
+                      const isSmallVoice = issue.source_type === 'small_voice' ||
+                        topics.some(t => t.includes('Small Voice') || t.includes('特異点'));
+
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => handleIssueClick(issue, idx)}
+                          className={`bg-white rounded-xl border transition-all cursor-pointer overflow-hidden
+                            ${isExpanded ? 'ring-2 ring-sage-primary shadow-lg' : 'border-slate-200 shadow-sm hover:shadow-md hover:border-sage-300'}
+                        `}
+                        >
+                          <div className="p-4 flex items-center justify-between">
+                            <h4 className={`font-bold text-sm flex items-start gap-2 ${isExpanded ? 'text-sage-700' : 'text-slate-700'}`}>
+                              {isSmallVoice ? (
+                                <Sparkles className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+                              ) : (
+                                <Users className="h-5 w-5 text-sage-500 mt-0.5 shrink-0" />
+                              )}
+                              <span>{issue.title}</span>
+                            </h4>
+                            {/* Chevron or indicator */}
+                            <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="m6 9 6 6 6-6" /></svg>
+                            </div>
+                          </div>
+
+                          {/* Expandable Content */}
+                          <div className={`transition-all duration-300 ease-in-out border-t border-slate-100 bg-slate-50/50
+                            ${isExpanded ? 'max-h-[500px] opacity-100 p-4' : 'max-h-0 opacity-0 p-0 overflow-hidden'}
+                        `}>
+                            <p className="text-xs text-slate-600 leading-relaxed">
+                              {issue.description || issue.insight}
+                            </p>
+                            <div className="mt-3 flex gap-2 flex-wrap">
+                              {issue.urgency === 'high' && <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded font-bold">緊急: 高</span>}
+                              {/* Display categories/topics */}
+                              {topics.map((t, i) => (
+                                <span key={i} className="bg-sage-100 text-sage-700 text-[10px] px-2 py-0.5 rounded flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-sage-500"></span>
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               } else if (!parseFailed && issues.length === 0) {

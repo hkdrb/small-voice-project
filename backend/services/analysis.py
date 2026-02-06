@@ -2,6 +2,7 @@
 import json
 import logging
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -99,19 +100,29 @@ def get_optimal_k(vectors, max_k=12):
     # Upper limit is bounded by n_samples - 1 or max_k
     limit = min(n_samples, max_k + 1)
     
-    for k in range(2, limit):
+    # Parallel execution for K search
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    
+    # Define single K run
+    def run_k(k):
         try:
-            kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-            labels = kmeans.fit_predict(vectors)
+            # Re-instantiate KMeans for thread safety (though fit is usually safe, better to be sure)
+            km = KMeans(n_clusters=k, random_state=42, n_init=10)
+            labels = km.fit_predict(vectors)
             score = silhouette_score(vectors, labels)
-            
-            logger.info(f"K={k}, Silhouette Score={score:.4f}")
-            
-            if score > best_score:
-                best_score = score
-                best_k = k
+            return k, score
         except Exception:
-            continue
+            return k, -1
+
+    with ThreadPoolExecutor(max_workers=min(limit-2, 8)) as executor:
+        future_to_k = {executor.submit(run_k, k): k for k in range(2, limit)}
+        for future in as_completed(future_to_k):
+            k, score = future.result()
+            if score > -1:
+                logger.debug(f"K={k}, Silhouette Score={score:.4f}")
+                if score > best_score:
+                    best_score = score
+                    best_k = k
             
     # Heuristic: If best score is very low (< 0.1), data might not be clusterable -> use fewer clusters
     if best_score < 0.1 and n_samples > 10:
@@ -180,8 +191,8 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
         logger.info("Calculating optimal K for inliers...")
         # Dynamic max_k: sqrt(N) is a common heuristic. Allow more clusters for larger datasets.
         max_k_dynamic = max(12, int(np.sqrt(n_inliers)))
-        # Cap at 50 to prevent too many clusters for very large datasets
-        max_k_dynamic = min(max_k_dynamic, 50)
+        # Cap at 20 to prevent too many clusters (latency trade-off)
+        max_k_dynamic = min(max_k_dynamic, 20)
         
         best_k = get_optimal_k(vectors[inlier_indices], max_k=max_k_dynamic)
         logger.info(f"Optimal K determined: {best_k} (Max K: {max_k_dynamic})")
@@ -203,38 +214,51 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
     for rank, idx in enumerate(inlier_indices):
         final_cluster_ids[idx] = inlier_cluster_ids[rank]
 
-    # 5. UMAP for 2D coords (Visualization)
-    logger.info("Reducing dimensions with UMAP for visualization...")
+    # 5. PCA for 2D coords (Visualization) - Faster than UMAP
+    logger.info("Reducing dimensions with PCA for visualization...")
     if n_samples >= 2:
         try:
-            reducer = umap.UMAP(
-                n_components=2, 
-                n_neighbors=min(15, n_samples - 1),
-                min_dist=0.5,
-                metric='cosine',
-                random_state=42
-            )
-            coords = reducer.fit_transform(vectors)
-            coords += np.random.uniform(-0.01, 0.01, coords.shape)
-        except Exception as e:
-            logger.warning(f"UMAP failed, using PCA: {e}")
             pca = PCA(n_components=2)
             coords = pca.fit_transform(vectors)
+            # Add slight jitter to avoid perfect overlap
+            coords += np.random.uniform(-0.01, 0.01, coords.shape)
+        except Exception as e:
+            logger.warning(f"PCA failed: {e}")
+            coords = np.zeros((n_samples, 2))
     else:
         coords = np.zeros((n_samples, 2))
 
     # 6. Naming Themes
+    logger.info("Generating cluster names with Gemini (Parallel Batches)...")
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
     
-    cluster_info = {}
-    # Unique labels excluding -1
-    unique_labels = sorted(list(set(final_cluster_ids)))
-    if -1 in unique_labels:
-        unique_labels.remove(-1)
-        cluster_info[-1] = {"name": "Small Voices (特異点)"} # Default name for outliers
-    
-    prompt = f"""あなたは組織開発のシニア・コンサルタントです。
+    # helper for one batch
+    def process_naming_batch(batch_labels, batch_idx):
+        logger.info(f"  > Batch {batch_idx} started: {batch_labels}")
+        try:
+            model = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
+            prompt_data = []
+            for cid in batch_labels:
+                indices = [i for i, x in enumerate(final_cluster_ids) if x == cid]
+                if not indices: continue
+                
+                cluster_vectors = vectors[indices]
+                centroid = np.mean(cluster_vectors, axis=0)
+                distances = np.linalg.norm(cluster_vectors - centroid, axis=1)
+                # Sort indices by distance (closest first)
+                sorted_local_indices = np.argsort(distances)
+                
+                # Select top 5 closest samples (Balanced for accuracy)
+                top_n = min(5, len(indices))
+                selected_indices = [indices[i] for i in sorted_local_indices[:top_n]]
+                samples = [texts[i] for i in selected_indices]
+                prompt_data.append({"id": int(cid), "samples": samples})
+            
+            if not prompt_data: 
+                logger.info(f"  > Batch {batch_idx} empty.")
+                return {}
+
+            prompt = f"""あなたは組織開発のシニア・コンサルタントです。
 社員から寄せられた「{theme_name}」に関する声を分析し、グループごとのカテゴリ名を付けてください。
 
 ### 指示:
@@ -249,60 +273,57 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 - NG: 「会議時間が長いことについて」「評価制度が納得できない」「情報が共有されていない件」
 
 ### 対象データ（IDとサンプル）:
+{json.dumps(prompt_data, ensure_ascii=False, indent=2)}
+
+### 出力フォーマット (JSON):
+{{
+  "clusters": [
+    {{ "id": 0, "name": "カテゴリ名" }},
+    ...
+  ]
+}}
 """
-    input_data = []
-    for cid in unique_labels:
-        # Get indices of all points in this cluster
-        indices = [i for i, x in enumerate(final_cluster_ids) if x == cid]
-        
-        if not indices:
-            continue
-            
-        # Get vectors for these points to find the centroid
-        cluster_vectors = vectors[indices]
-        
-        # Calculate Centroid
-        centroid = np.mean(cluster_vectors, axis=0)
-        
-        # Calculate distances to centroid
-        distances = np.linalg.norm(cluster_vectors - centroid, axis=1)
-        
-        # Sort indices by distance (closest first)
-        sorted_local_indices = np.argsort(distances)
-        
-        # Select top 10 closest samples (most representative of the cluster center)
-        top_n = min(10, len(indices))
-        selected_indices = [indices[i] for i in sorted_local_indices[:top_n]]
-        
-        samples = [texts[i] for i in selected_indices]
-        input_data.append({"id": int(cid), "samples": samples})
-    
-    if unique_labels:
-        prompt += json.dumps(input_data, ensure_ascii=False)
-        prompt += """
-### 出力形式(JSON):
-{
-    "results": [
-        { "id": ID数値, "name": "カテゴリ名" }
-    ]
-}
-"""
-        try:
-            resp = model.generate_content(prompt)
-            clean_text = resp.text.strip()
-            # JSON clean logic
-            if "```" in clean_text:
-                clean_text = clean_text.split("```")[-2] if "json" in clean_text else clean_text.split("```")[1]
-                if clean_text.startswith("json"): clean_text = clean_text[4:]
-            clean_text = clean_text.strip()
-            
-            data = json.loads(clean_text)
-            for res in data.get("results", []):
-                cluster_info[res["id"]] = {"name": res["name"]}
+            response = model.generate_content(prompt)
+            result = json.loads(response.text)
+            batch_result = {}
+            for item in result.get("clusters", []):
+                batch_result[item["id"]] = {"name": item["name"]}
+            logger.info(f"  > Batch {batch_idx} success. Got {len(batch_result)} names.")
+            return batch_result
         except Exception as e:
-            logger.error(f"Generate thematic names failed: {e}")
-            for cid in unique_labels: 
-                cluster_info[cid] = {"name": f"カテゴリ {cid}"}
+            logger.error(f"  > Batch {batch_idx} failed: {e}")
+            return {}
+
+    cluster_info = {}
+    # Unique labels excluding -1
+    unique_labels = sorted(list(set(final_cluster_ids)))
+    if -1 in unique_labels:
+        unique_labels.remove(-1)
+        cluster_info[-1] = {"name": "Small Voice (特異点)"} # Default name for outliers
+
+    # Batch size of 5 for parallel efficiency
+    BATCH_SIZE = 5
+    batches = [unique_labels[i:i + BATCH_SIZE] for i in range(0, len(unique_labels), BATCH_SIZE)]
+    
+    # Process batches in parallel
+    logger.info(f"Processing {len(unique_labels)} clusters in {len(batches)} batches...")
+    
+    # Use 3 workers: Best balance of speed (parallel) vs stability (CPU load)
+    # With the custom 5-min timeout proxy, we don't need to rush aggressively.
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        # Submit with index for logging
+        futures = [executor.submit(process_naming_batch, batch, i) for i, batch in enumerate(batches)]
+        for future in as_completed(futures):
+            try:
+                batch_res = future.result()
+                cluster_info.update(batch_res)
+            except Exception as e:
+                logger.error(f"Parallel naming error: {e}")
+
+    # Fallback for missing names
+    for cid in unique_labels:
+        if cid not in cluster_info:
+            cluster_info[cid] = {"name": f"Group {cid}"}
 
     # Construct Final Result
     results = []
@@ -318,7 +339,7 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
             "x_coordinate": float(coords[i, 0]),
             "y_coordinate": float(coords[i, 1]),
             "cluster_id": cid,
-            "small_voice_score": float(small_voice_scores[i]), # Save score
+            # "small_voice_score": float(small_voice_scores[i]), # Removed per user request
             "is_noise": cid == -1
         })
         
@@ -327,13 +348,13 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 def generate_issue_logic_from_clusters(df, theme_name):
     """
     Generate discussion agendas from clustered data.
-    Explicitly handles 'Small Voices' (Cluster ID -1) to ensure they are represented.
+    Explicitly handles 'Small Voice' (Cluster ID -1) to ensure they are represented.
     """
     try:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
         
-        # Split DataFrame into Normal and Small Voices
+        # Split DataFrame into Normal and Small Voice
         # Assuming cluster_id -1 is for outliers/small voices as defined in analyze_clusters_logic
         if 'cluster_id' in df.columns:
             small_voices_df = df[df['cluster_id'] == -1]
@@ -351,16 +372,21 @@ def generate_issue_logic_from_clusters(df, theme_name):
             topic_df = normal_df[normal_df['sub_topic'] == topic]
             count = len(topic_df)
             texts = topic_df['original_text'].tolist()
-            # Sample up to 10
-            samples = "\\n".join([f"  - {t}" for t in texts[:min(10, len(texts))]])
-            prompt_content.append(f"### メインカテゴリ: {topic} ({count}件)\\n{samples}")
+            # Sample 30% of items, minimum 10, max 100 to avoid context overflow
+            # User requested "ratio" based sampling
+            sample_size = max(10, int(count * 0.3))
+            sample_size = min(sample_size, 100) # Safety cap
             
-        # 2. Small Voices (CRITICAL)
+            samples = "\\n".join([f"  - {t}" for t in texts[:min(sample_size, len(texts))]])
+            prompt_content.append(f"### メインカテゴリ: {topic} ({count}件 - 抽出{min(sample_size, len(texts))}件)\\n{samples}")
+            
+        # 2. Small Voice (CRITICAL)
         if not small_voices_df.empty:
             sv_texts = small_voices_df['original_text'].tolist()
-            # Sample up to 20 for small voices (show more because they are diverse)
-            sv_samples = "\\n".join([f"  - {t}" for t in sv_texts[:min(20, len(sv_texts))]])
-            prompt_content.append(f"### 【重要】Small Voices (少数だが特異な意見)\\n{sv_samples}")
+            # Small Voice items are critical, so we include ALL of them (User requested "ALL")
+            # No limit applied
+            sv_samples = "\\n".join([f"  - {t}" for t in sv_texts])
+            prompt_content.append(f"### 【重要】Small Voice (少数だが特異な意見 - 全件)\\n{sv_samples}")
             
         all_content_str = "\\n\\n".join(prompt_content)
         total_comments = len(df)
@@ -370,48 +396,55 @@ def generate_issue_logic_from_clusters(df, theme_name):
 データ数: {total_comments}件
 
 ### 指示:
-1. **マジョリティとマイノリティの両立**:
-   - 「メインカテゴリ」からは、多くの社員が感じている組織的な課題（ボトルネック、制度疲労など）を抽出してください。
-   - **「Small Voices」からは、たった1件の意見であっても、ハラスメント、コンプライアンス違反、あるいは革新的なアイデアの種など、見過ごすと危険/勿体ないものを必ず1つ以上救い上げてください。**
+マジョリティ（多数派）の意見と、マイノリティ（Small Voice）の意見をバランスよく取り上げ、合計で**5つのアジェンダ**を作成してください。
 
-2. **対話を促すタイトル**:
-   - 議題タイトルは「〜の問題」ではなく「〜をどう乗り越えるか」「〜についてどう考えるか」といった、建設的な議論を誘発するものにしてください（15文字〜20文字程度）。
+1. **マジョリティの課題（4つ）**:
+   - 「メインカテゴリ」データから、多くの社員が感じている組織的な課題（ボトルネック、制度疲労など）を4つ抽出してください。
+   - `related_topics` には、そのデータの「カテゴリ名」を正確に入れてください。
 
-3. **出力数**: 3〜6個のアジェンダを作成してください。
+2. **Small Voiceの課題（1つ）**:
+   - **「Small Voice」データ全体を俯瞰し、1つの課題としてまとめてください。**
+   - **タイトルは必ず「Small Voice」としてください。**
+   - `related_topics` は必ず `["Small Voice (特異点)"]` としてください。
+   - `insight`（詳細説明）には、そこに含まれる多様な観点（ハラスメントの予兆、コンプライアンスリスク、あるいは突飛だが革新的なアイデアなど）を、**網羅的に要約**して記述してください。多種多様な意見があることを示唆する内容にしてください。
+
+3. **対話を促すタイトル（マジョリティ側）**:
+   - マジョリティ側の議題タイトルは「〜の問題」ではなく「〜をどう乗り越えるか」といった、建設的な議論を誘発するものにしてください。
 
 ### 分析対象データ:
 {all_content_str}
 
-### 出力フォーマット (JSON):
-[
+### 出力フォーマット(JSON):
+{{
+  "issues": [
     {{
-        "title": "議題タイトル",
-        "description": "議題の詳細。なぜ今これを話し合うべきなのか、背景にある社員の声（引用）を含めて記述。",
-        "urgency": "high" | "medium" | "low",
-        "category": "organizational" | "risk_management" | "innovation" | "culture"
-    }}
-]
+      "title": "議題タイトル",
+      "related_topics": ["カテゴリ名"], 
+      "insight": "なぜこれを議論すべきか...",
+      "source_type": "majority" | "small_voice"
+    }},
+    ...
+  ]
+}}
 """
-        resp = model.generate_content(prompt)
-        text = resp.text.strip()
-        
-        # JSON extraction logic
-        if "```" in text:
-            text = text.split("```")[-2] if "json" in text else text.split("```")[1]
-            if text.strip().startswith("json"):
-                text = text.strip()[4:]
-            text = text.strip()
-        
-        # Validate if it's a list
-        import re
-        match = re.search(r'\[.*\]', text, re.DOTALL)
-        if match:
-            return match.group(0)
+        logger.info("Generating Issue Logic with Gemini...")
+        try:
+            response = model.generate_content(prompt)
+            clean_text = response.text.strip()
+             # JSON clean logic
+            if "```" in clean_text:
+                clean_text = clean_text.split("```")[-2] if "json" in clean_text else clean_text.split("```")[1]
+                if clean_text.startswith("json"): clean_text = clean_text[4:]
+            clean_text = clean_text.strip()
             
-        return text
+            data = json.loads(clean_text)
+            return data.get("issues", [])
+        except Exception as e:
+            logger.error(f"Generate Issue Logic failed: {e}")
+            return []
     except Exception as e:
-        logger.exception(f"Report generation failed: {e}")
-        return "[]"
+        logger.error(f"Outer generation error: {e}")
+        return []
 
 
 def analyze_comments_logic(texts):
@@ -446,7 +479,7 @@ def analyze_comments_logic(texts):
             # For the final (or only) stage, we want structured output.
             # If we are chunking, we need an intermediate summary that captures:
             # - Key themes in this chunk
-            # - Unique/Outlier ideas (Small Voices) explicitly
+            # - Unique/Outlier ideas (Small Voice) explicitly
             
             # Map Prompt
             map_prompt = f"""あなたはデータを集約するアナリストです。
@@ -454,7 +487,7 @@ def analyze_comments_logic(texts):
 
 ### 指示:
 1. **主要なトレンド**: 頻出している提案や不満の共通項を3〜5個挙げてください。
-2. **ユニークな提案 (Small Voices)**: 少数だが、鋭い指摘や独創的なアイデアがあれば、見逃さずに全てリストアップしてください。
+2. **ユニークな提案 (Small Voice)**: 少数だが、鋭い指摘や独創的なアイデアがあれば、見逃さずに全てリストアップしてください。
 3. すべての入力を考慮し、情報の「圧縮」を行ってください。
 
 ### データ:
@@ -503,7 +536,7 @@ def analyze_comments_logic(texts):
 
 3. **【最重要】きらりと光るアイデア (Notable Ideas)**:
    - 多数決では埋もれてしまうが、**「実行すれば大きなインパクトを生む逆転の発想」や「誰も気づいていない本質的なリスク指摘」**を探し出してください。
-   - 「Small Voices」や「ユニークな提案」として抽出されているものを特に重視してください。
+   - 「Small Voice」や「ユニークな提案」として抽出されているものを特に重視してください。
    - 常識的な提案（「Macが欲しい」「給料上げて」）はここでは除外してください。
 
 ### 対象データ:
