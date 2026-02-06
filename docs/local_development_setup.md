@@ -54,7 +54,7 @@ docker-compose -f docker-compose.dev.yml up --build
 
 - **Frontend**: http://localhost:3000 (ホットリロード有効)
 - **Backend API**: http://localhost:8000 (自動リロード有効)
-- **Database**: `localhost:5432` (ホスト側からもアクセス可能)
+- **Database**: `localhost:5433` (ホスト側からもアクセス可能)
 
 停止するには `Ctrl+C` を押すか、別のターミナルで以下を実行します。
 ```bash
@@ -105,7 +105,7 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py 
 ホストマシンのクライアントツール（TablePlus, DBeaver, pgAdminなど）からデータベースに接続する場合は、以下の情報を使用してください。
 
 - **Host**: `localhost` (または `127.0.0.1`)
-- **Port**: `5432`
+- **Port**: `5433`
 - **User**: `postgres`
 - **Password**: `postgres`
 - **Database**: `voice_insight_db`
