@@ -188,7 +188,7 @@ class AnalysisResult(Base):
     x_coordinate = Column(Float, nullable=True)
     y_coordinate = Column(Float, nullable=True)
     cluster_id = Column(Integer, nullable=True)
-    small_voice_score = Column(Float, nullable=True) # NEW: Outlier score
+    # small_voice_score removed
     session = relationship("AnalysisSession", back_populates="results")
 
 class IssueDefinition(Base):

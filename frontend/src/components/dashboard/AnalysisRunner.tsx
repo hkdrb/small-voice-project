@@ -106,7 +106,10 @@ export default function AnalysisRunner({ onSuccess }: AnalysisRunnerProps) {
         survey_id: selectedSurveyId,
         question_id: selectedQuestionId,
         title: reportTitle
-      }, { withCredentials: true });
+      }, {
+        withCredentials: true,
+        timeout: 600000 // 10 minutes timeout to prevent client-side abort
+      });
 
       const sessId = res.data.session_id;
       setProgressLog(prev => [...prev, "✅ 分析完了！リダイレクトします..."]);

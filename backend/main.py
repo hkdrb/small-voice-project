@@ -24,6 +24,13 @@ app = FastAPI(title="SmallVoice API")
 @app.on_event("startup")
 def on_startup():
     init_db()
+    # Preload embedding model to prevent timeout on first request
+    try:
+        from backend.services.analysis import get_embedding_model
+        get_embedding_model()
+        logging.info("Embedding model preloaded successfully on startup")
+    except Exception as e:
+        logging.error(f"Failed to preload embedding model: {e}")
 
 # CORS Configuration
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
