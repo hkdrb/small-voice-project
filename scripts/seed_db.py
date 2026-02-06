@@ -88,7 +88,13 @@ def create_dummy_sessions(db):
         {"title": "新製品のフィードバック", "theme": "product"},
         {"title": "開発環境のアンケート結果", "theme": "dev_env"},
         {"title": "技術品質と負債について", "theme": "tech_quality"},
-        {"title": "企業価値観(Values)についての対話", "theme": "value"}
+        {"title": "企業価値観(Values)についての対話", "theme": "value"},
+        # New Forms
+        {"title": "今月の業務振り返り (KPT)", "theme": "kpt"},
+        {"title": "部会についてのフィードバック", "theme": "bukai"},
+        {"title": "サービス精神についての意見", "theme": "service_spirit"},
+        {"title": "組織・開発体制についての意見", "theme": "organization"},
+        {"title": "1on1・ユニット活動についての意見", "theme": "oneonone_unit"}
     ]
     
     created_sessions = []
@@ -114,7 +120,48 @@ def create_dummy_sessions(db):
             # Note: We only use the report (IssueDefinition) part now.
             # AnalysisResults (points) are skipped to avoid mismatch with comments.
             print(f"  Generating mock report for {new_session.title}...")
-            _, issue_content = generate_mock_analysis_data(new_session.theme, num_points=80)
+            
+            # Check if this is a new form
+            new_form_themes = ['kpt', 'bukai', 'service_spirit', 'organization', 'oneonone_unit']
+            if s_data["theme"] in new_form_themes:
+                # Generate simple report for new forms
+                import json
+                report_templates = {
+                    "kpt": [
+                        {"title": "振り返りプロセスの改善", "description": "KPTの運用方法や振り返りの質向上に関する提案が多数寄せられています。", "urgency": "medium", "category": "Organizational"},
+                        {"title": "継続的改善の仕組み化", "description": "Keepの標準化、Problemの根本原因分析、Tryのフォローアップなど、PDCAサイクルを回す仕組みづくりの提案が集まっています。", "urgency": "medium", "category": "Organizational"},
+                        {"title": "心理的安全性の確保", "description": "率直な意見を言いやすい環境づくりや、評価への影響を懸念する声があります。", "urgency": "high", "category": "Organizational"},
+                        {"title": "【要注意】深刻な懸念（Small Voice）", "description": "少数ですが、ハラスメントや強制的な業務に関する深刻な指摘が存在します。", "urgency": "high", "category": "Organizational"}
+                    ],
+                    "bukai": [
+                        {"title": "情報共有の改善", "description": "部会の資料事前共有、議事録公開、録画配信など、情報の透明性向上に関する提案が多数あります。", "urgency": "medium", "category": "Organizational"},
+                        {"title": "運営方法の改善", "description": "部会の時間短縮、頻度の見直し、ハイブリッド形式の導入など、効率的な運営方法の提案が集まっています。", "urgency": "medium", "category": "Organizational"},
+                        {"title": "内容の充実", "description": "成功事例の共有、技術トレンドの紹介、現場の課題のボトムアップ共有など、部会の内容をより充実させる提案があります。", "urgency": "low", "category": "Organizational"},
+                        {"title": "【要注意】深刻な懸念（Small Voice）", "description": "少数ですが、情報の透明性や意思決定プロセスに関する深刻な指摘が存在します。", "urgency": "high", "category": "Organizational"}
+                    ],
+                    "service_spirit": [
+                        {"title": "サービス精神の定義と共有", "description": "サービス精神の具体的な行動例の明文化や、ベストプラクティスの共有に関する提案が多数あります。", "urgency": "medium", "category": "Organizational"},
+                        {"title": "評価と表彰の仕組み", "description": "サービス精神を評価制度に組み込む、表彰制度を新設する、ピアボーナスを導入するなどの提案が集まっています。", "urgency": "medium", "category": "Organizational"},
+                        {"title": "実践と浸透の施策", "description": "リーダー層の率先実践、ワークショップ開催、顧客の声の共有など、サービス精神を組織に浸透させる施策の提案があります。", "urgency": "low", "category": "Organizational"},
+                        {"title": "【要注意】深刻な懸念（Small Voice）", "description": "少数ですが、サービス精神の名のもとに過度な負担が正当化されることへの懸念が存在します。", "urgency": "high", "category": "Organizational"}
+                    ],
+                    "organization": [
+                        {"title": "組織構造の改善", "description": "部署間連携の強化、意思決定プロセスの明確化、リソース配分の最適化など、組織構造の改善に関する提案が多数あります。", "urgency": "high", "category": "Organizational"},
+                        {"title": "評価制度の改善", "description": "評価基準の明文化、フィードバックの充実、評価者研修の実施など、評価制度の透明性向上に関する提案が集まっています。", "urgency": "high", "category": "Organizational"},
+                        {"title": "開発体制の最適化", "description": "チーム構成の見直し、コードレビューの改善、技術的負債の返済など、開発体制の最適化に関する提案があります。", "urgency": "medium", "category": "Technical"},
+                        {"title": "【要注意】深刻な懸念（Small Voice）", "description": "少数ですが、評価の不公平性や属人化、技術的負債の蓄積に関する深刻な指摘が存在します。", "urgency": "high", "category": "Organizational"}
+                    ],
+                    "oneonone_unit": [
+                        {"title": "1on1の質向上", "description": "時間延長、アジェンダの事前共有、評価との切り離しなど、1on1の質を向上させる提案が多数あります。", "urgency": "medium", "category": "Organizational"},
+                        {"title": "1on1の運用改善", "description": "頻度の見直し、満足度測定、メンター制度の拡充など、1on1の運用を改善する提案が集まっています。", "urgency": "medium", "category": "Organizational"},
+                        {"title": "ユニット活動の活性化", "description": "目的の明確化、成果の可視化、知見の組織還元など、ユニット活動を活性化させる提案があります。", "urgency": "low", "category": "Organizational"},
+                        {"title": "【要注意】深刻な懸念（Small Voice）", "description": "少数ですが、1on1の守秘義務違反やユニット活動の強制参加に関する深刻な指摘が存在します。", "urgency": "high", "category": "Organizational"}
+                    ]
+                }
+                issue_content = json.dumps(report_templates.get(s_data["theme"], []), ensure_ascii=False)
+            else:
+                # Use existing generator for old forms
+                _, issue_content = generate_mock_analysis_data(new_session.theme, num_points=80)
             
             # Add Report Only
             db.add(IssueDefinition(session_id=new_session.id, content=issue_content))
@@ -144,7 +191,19 @@ def create_dummy_comments(db, users, num_comments=200):
         # Map session to generator category
         category = "project" # default
         
-        if any(w in theme_text for w in ["営業", "sales", "project", "プロジェクト"]):
+        # New Forms (check first for exact matches)
+        if any(w in theme_text for w in ["kpt", "振り返り"]):
+            category = "kpt"
+        elif any(w in theme_text for w in ["bukai", "部会"]):
+            category = "bukai"
+        elif any(w in theme_text for w in ["service_spirit", "サービス精神"]):
+            category = "service_spirit"
+        elif any(w in theme_text for w in ["organization", "組織", "開発体制"]):
+            category = "organization"
+        elif any(w in theme_text for w in ["oneonone_unit", "1on1", "ユニット"]):
+            category = "oneonone_unit"
+        # Existing categories
+        elif any(w in theme_text for w in ["営業", "sales", "project", "プロジェクト"]):
             category = "project"
         elif any(w in theme_text for w in ["製品", "product", "プロダクト"]):
             category = "product"
