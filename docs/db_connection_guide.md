@@ -64,7 +64,7 @@ gcloud init
 gcloud compute ssh small-voice-server \
   --zone=asia-northeast1-c \
   --tunnel-through-iap \
-  -- -L 5433:localhost:5432 -N
+  -- -L 5434:localhost:5432 -N
 ```
 
 **重要な注意点**:
@@ -83,7 +83,7 @@ SSHトンネルが確立されたら、**新しいターミナルタブ**（⌘+
 | 項目 | 値 |
 |------|-----|
 | **ホスト** | `localhost` |
-| **ポート** | `5433` |
+| **ポート** | `5434` |
 | **ユーザー名** | `postgres` |
 | **パスワード** | `postgres` |
 | **データベース名** | `small_voice_db` |
@@ -96,7 +96,7 @@ SSHトンネルが確立されたら、**新しいターミナルタブ**（⌘+
 4. 接続情報を入力:
    - **Name**: `Small Voice Production DB` （任意の名前）
    - **Host**: `localhost`
-   - **Port**: `5433`
+   - **Port**: `5434`
    - **User**: `postgres`
    - **Password**: `postgres`
    - **Database**: `small_voice_db`
@@ -110,7 +110,7 @@ SSHトンネルが確立されたら、**新しいターミナルタブ**（⌘+
 3. **PostgreSQL** を選択して **「次へ」**
 4. 接続設定を入力:
    - **Host**: `localhost`
-   - **Port**: `5433`
+   - **Port**: `5434`
    - **Database**: `small_voice_db`
    - **Username**: `postgres`
    - **Password**: `postgres`
@@ -124,7 +124,7 @@ SSHトンネルが確立されたら、**新しいターミナルタブ**（⌘+
 3. 接続情報を入力:
    - **Nickname**: `Small Voice Production` （任意）
    - **Host**: `localhost`
-   - **Port**: `5433`
+   - **Port**: `5434`
    - **User**: `postgres`
    - **Password**: `postgres`
    - **Database**: `small_voice_db`
@@ -133,7 +133,7 @@ SSHトンネルが確立されたら、**新しいターミナルタブ**（⌘+
 ### psqlコマンドラインでの接続
 
 ```bash
-psql -h localhost -p 5433 -U postgres -d small_voice_db
+psql -h localhost -p 5434 -U postgres -d small_voice_db
 # パスワード入力: postgres
 ```
 
@@ -210,7 +210,7 @@ git pull origin main
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-### ポート5433が既に使用中の場合
+### ポート5434が既に使用中の場合
 
 別のポート番号を使用してください：
 
@@ -275,7 +275,7 @@ gcloud compute ssh small-voice-server \
 
 ```
 ローカルMac (TablePlus/DBeaver/psql)
-  ↓ localhost:5433
+  ↓ localhost:5434
 SSH トンネル (IAP経由)
   ↓
 GCE VM (small-voice-server)
@@ -290,9 +290,9 @@ PostgreSQL (Dockerコンテナ)
    gcloud compute ssh small-voice-server \
      --zone=asia-northeast1-c \
      --tunnel-through-iap \
-     -- -L 5433:localhost:5432 -N
+     -- -L 5434:localhost:5432 -N
    ```
 
-2. 新しいターミナルタブまたはDBクライアントツールで `localhost:5433` に接続
+2. 新しいターミナルタブまたはDBクライアントツールで `localhost:5434` に接続
 
 何か問題が発生した場合は、トラブルシューティングセクションを参照してください。
