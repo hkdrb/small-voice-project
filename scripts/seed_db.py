@@ -20,60 +20,87 @@ from backend.services.mock_generator import (
 
 DATA_GENERATOR_AVAILABLE = True
 
-def create_dummy_users(db, num_users=10):
-    print(f"--- Creating/Verifying {num_users} Standard Users (user1..{num_users}) ---")
-    created_count = 0
-    users = []
+def create_dummy_users(db):
+    print("\n--- Rebuilding Organization Structure and Users ---")
     
-    # Ensure Default Org exists (should be done by init_db but safety first)
-    default_org = db.query(Organization).filter(Organization.name == "株式会社サンプル").first()
-    if not default_org:
-        print("⚠️ 株式会社サンプル not found. Creating...")
-        default_org = Organization(name="株式会社サンプル", description="Default")
-        db.add(default_org)
-        db.commit()
+    # 1. Ensure/Create Organizations
+    org_names = ["サンプル部署", "サンプル案件1", "サンプル案件2"]
+    orgs = {}
+    for name in org_names:
+        org = db.query(Organization).filter(Organization.name == name).first()
+        if not org:
+            org = Organization(name=name, description=f"{name}のリサーチ用組織")
+            db.add(org)
+            db.commit()
+            db.refresh(org)
+        orgs[name] = org
 
-    for i in range(1, num_users + 1):
+    # Helper to hash password
+    user_pw = os.getenv("INITIAL_USER_PASSWORD", "password123")
+    hashed_pw = hash_pass(user_pw)
+
+    # 2. Create Managers (3 members)
+    # admin1: Both projects (掛け持ち)
+    # admin2: Project 1
+    # admin3: Project 2
+    managers_info = [
+        {"email": "admin1@example.com", "username": "管理者1 (兼務)", "orgs": ["サンプル部署", "サンプル案件1", "サンプル案件2"]},
+        {"email": "admin2@example.com", "username": "管理者2 (案件1責任者)", "orgs": ["サンプル部署", "サンプル案件1"]},
+        {"email": "admin3@example.com", "username": "管理者3 (案件2責任者)", "orgs": ["サンプル部署", "サンプル案件2"]},
+    ]
+    
+    all_users = []
+    for m in managers_info:
+        user = db.query(User).filter(User.email == m["email"]).first()
+        if not user:
+            user = User(email=m["email"], username=m["username"], password_hash=hashed_pw, role="system_user", must_change_password=True)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # Assign memberships
+        for o_name in m["orgs"]:
+            role = "admin" if o_name != "サンプル部署" else "general"
+            existing_member = db.query(OrganizationMember).filter_by(user_id=user.id, organization_id=orgs[o_name].id).first()
+            if not existing_member:
+                db.add(OrganizationMember(user_id=user.id, organization_id=orgs[o_name].id, role=role))
+        all_users.append(user)
+
+    # 3. Create General Members (10 members)
+    # user1, user2: Both projects
+    # user3-6: Project 1
+    # user7-10: Project 2
+    # All: Department
+    for i in range(1, 11):
         email = f"user{i}@example.com"
         username = f"ユーザー{i}"
         
-        existing = db.query(User).filter(User.email == email).first()
-        if not existing:
-            # Get password from env or generate strong random
-            user_pw = os.getenv("INITIAL_USER_PASSWORD")
-            if not user_pw:
-                from backend.security_utils import generate_strong_password
-                user_pw = generate_strong_password()
-                print(f"  Note: Generated random password for {email}: {user_pw}")
-
-            new_user = User(
-                email=email,
-                username=username,
-                password_hash=hash_pass(user_pw),
-                role="user",
-                must_change_password=True
-            )
-            db.add(new_user)
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            user = User(email=email, username=username, password_hash=hashed_pw, role="system_user", must_change_password=True)
+            db.add(user)
             db.commit()
+            db.refresh(user)
+        
+        # Determine target orgs
+        target_org_names = ["サンプル部署"]
+        if i in [1, 2]:
+            target_org_names.extend(["サンプル案件1", "サンプル案件2"])
+        elif 3 <= i <= 6:
+            target_org_names.append("サンプル案件1")
+        elif 7 <= i <= 10:
+            target_org_names.append("サンプル案件2")
             
-            # Assign to Org
-            db.add(OrganizationMember(user_id=new_user.id, organization_id=default_org.id, role="general"))
-            db.commit()
-            
-            users.append(new_user)
-            created_count += 1
-            print(f"Created: {email}")
-        else:
-            users.append(existing)
-            # Ensure org membership
-            member = db.query(OrganizationMember).filter(OrganizationMember.user_id == existing.id, OrganizationMember.organization_id == default_org.id).first()
-            if not member:
-                 db.add(OrganizationMember(user_id=existing.id, organization_id=default_org.id, role="general"))
-                 db.commit()
+        for o_name in target_org_names:
+            existing_member = db.query(OrganizationMember).filter_by(user_id=user.id, organization_id=orgs[o_name].id).first()
+            if not existing_member:
+                db.add(OrganizationMember(user_id=user.id, organization_id=orgs[o_name].id, role="general"))
+        
+        all_users.append(user)
     
     db.commit()
-    print(f"Prepared {len(users)} users.")
-    return users
+    print(f"✅ Prepared {len(all_users)} users across refined organization structure.")
+    return all_users
 
 def create_dummy_sessions(db):
     print("\n--- Creating Dummy Analysis Sessions ---")
@@ -298,14 +325,14 @@ if __name__ == "__main__":
         # 1. Users
         users = []
         if args.init_users or args.with_dummy_data:
-            users = create_dummy_users(db, num_users=10)
+            users = create_dummy_users(db)
         
         # If we need to seed comments but didn't init users, fetch them
         if (args.seed_comments) and not users:
             users = db.query(User).filter(User.email.like("user%@example.com")).all()
             if not users:
                 print("⚠️ No dummy users found. Generating them automatically to proceed with comments...")
-                users = create_dummy_users(db, num_users=10)
+                users = create_dummy_users(db)
 
         # 2. Sessions
         if args.seed_sessions or args.with_dummy_data:

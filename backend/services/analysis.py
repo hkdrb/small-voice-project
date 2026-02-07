@@ -389,7 +389,7 @@ def generate_issue_logic_from_clusters(df, theme_name):
         all_content_str = "\\n\\n".join(prompt_content)
         total_comments = len(df)
         
-        # Dynamic Prompt Construction based on existence of Small Voice
+        # Unify instructions to always have 4 Majority + 1 Small Voice
         if has_small_voice:
             # Case A: Normal + Small Voice
             instructions = """
@@ -407,10 +407,16 @@ def generate_issue_logic_from_clusters(df, theme_name):
         else:
             # Case B: All Majority (No Small Voice)
             instructions = """
-1. **マジョリティの課題（5つ）**:
-   - 「メインカテゴリ」データから、多くの社員が感じている組織的な課題（ボトルネック、制度疲労など）を**5つ**抽出してください。
+1. **マジョリティの課題（4つ）**:
+   - 「メインカテゴリ」データから、多くの社員が感じている組織的な課題（ボトルネック、制度疲労など）を4つ抽出してください。
    - `related_topics` には、そのデータの「カテゴリ名」を正確に入れてください。
-   - **Small Voice の課題は作成しないでください（データが存在しないため）。**
+
+2. **Small Voiceの課題（1つ）**:
+   - **今回の分析では、特異な少数意見（Small Voice）は検出されませんでした。**
+   - **タイトルは必ず「Small Voice」としてください。**
+   - `related_topics` は必ず `["Small Voice (特異点)"]` としてください。
+   - `insight`（詳細説明）には、「今回の分析では、特異な少数意見（Small Voice）は検出されませんでした。」と記述してください。
+   - `source_type` は必ず `small_voice` としてください。
 """
 
         prompt = f"""あなたは組織開発のシニア・コンサルタントとして、社員の声を元に「議論のアジェンダ（議題）」を作成します。
