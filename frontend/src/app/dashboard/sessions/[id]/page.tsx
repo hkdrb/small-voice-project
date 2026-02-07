@@ -600,8 +600,8 @@ export default function SessionDetailPage() {
                             {issue.insight || issue.description}
                           </p>
 
-                          <div className="mt-4 pt-3 border-t border-slate-200/60 flex justify-between items-center">
-                            <div className="flex gap-2 flex-wrap">
+                          <div className="mt-4 pt-3 border-t border-slate-200/60 flex flex-wrap justify-between items-center gap-3">
+                            <div className="flex gap-2 flex-wrap flex-1 min-w-0">
                               {topics.map((t, i) => (
                                 <span key={i} className="bg-sage-100 text-sage-700 text-[10px] px-2 py-0.5 rounded flex items-center gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-sage-500"></span>
@@ -614,7 +614,7 @@ export default function SessionDetailPage() {
                                 e.stopPropagation();
                                 handleDiscuss(issue);
                               }}
-                              className={`btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all ${isActive ? 'bg-sage-600 ring-2 ring-offset-1 ring-sage-400' : ''}`}
+                              className={`btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all shrink-0 ml-auto ${isActive ? 'bg-sage-600 ring-2 ring-offset-1 ring-sage-400' : ''}`}
                             >
                               <MessageCircle className="w-3 h-3" />
                               {isActive ? '議論中' : '議論する'}
@@ -736,59 +736,32 @@ export default function SessionDetailPage() {
 
               {/* Main Comment Area */}
               <div className="p-6">
-                {/* New Post Form (Only if no thread exists or explicit open) */}
-                {isCreatingPost && !activeThreadRootId && (
-                  <div className="mb-6 p-4 bg-white rounded-xl border border-sage-200 shadow-sm">
-                    <h4 className="font-bold text-sage-800 mb-2 text-xs">新しい議論・スレッドを開始</h4>
-                    <RichTextEditor
-                      content={postContent}
-                      onChange={(content) => setPostContent(content)}
-                      placeholder="提案やコメントを入力してください..."
-                      className="mb-3 min-h-[100px]"
-                      minHeight="100px"
-                    />
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={isAnonymous}
-                          onChange={(e) => setIsAnonymous(e.target.checked)}
-                          className="w-4 h-4 text-sage-600 rounded"
-                        />
-                        <span className="text-xs text-gray-600">匿名で投稿</span>
-                      </label>
-                      <button
-                        onClick={handleCreatePost}
-                        disabled={!postContent.trim()}
-                        className="btn-primary px-4 py-1.5 text-xs shadow-md"
-                      >
-                        スレッドを作成
-                      </button>
-                    </div>
-                  </div>
-                )}
+
 
                 {activeThreadRootId && activeThreadRoot ? (
                   <>
-                    {/* Root Comment Display (Thread Starter) */}
-                    <div className="mb-6 pb-6 border-b border-slate-200">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="bg-sage-100 text-sage-700 p-2 rounded-full">
-                          <UserIcon className="h-5 w-5" />
-                        </span>
-                        <div>
-                          <div className="font-bold text-slate-800 text-sm">{activeThreadRoot.user_name || '名無し'}</div>
-                          <div className="text-xs text-slate-400">
-                            {new Date(activeThreadRoot.created_at).toLocaleString('ja-JP')}
+                    {/* Root Comment Display (Thread Starter) - ONLY if NOT System Root */}
+                    {/* System Root is hidden, and its children (user comments) are rendered by CommentTree */}
+                    {!activeThreadRoot.content.includes('<!-- system_root -->') && (
+                      <div className="mb-6 pb-6 border-b border-slate-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="bg-sage-100 text-sage-700 p-2 rounded-full">
+                            <UserIcon className="h-5 w-5" />
+                          </span>
+                          <div>
+                            <div className="font-bold text-slate-800 text-sm">{activeThreadRoot.user_name || '名無し'}</div>
+                            <div className="text-xs text-slate-400">
+                              {new Date(activeThreadRoot.created_at).toLocaleString('ja-JP')}
+                            </div>
                           </div>
                         </div>
+                        <div className="text-sm text-slate-700 markdown-body bg-white p-4 rounded-xl border border-sage-200 shadow-sm">
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                            {activeThreadRoot.content.replace(/<!-- issue:.*? -->/g, '')}
+                          </ReactMarkdown>
+                        </div>
                       </div>
-                      <div className="text-sm text-slate-700 markdown-body bg-white p-4 rounded-xl border border-sage-200 shadow-sm">
-                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                          {activeThreadRoot.content.replace(/<!-- issue:.*? -->/g, '')}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
+                    )}
 
                     <h4 className="font-bold text-slate-400 text-xs mb-4 flex items-center gap-2">
                       <span>コメント ({activeThreadDescendants.length})</span>
@@ -811,74 +784,77 @@ export default function SessionDetailPage() {
                     />
                   </>
                 ) : (
-                  !isCreatingPost && (
-                    <div className="text-center text-slate-400 py-10">
-                      スレッドはまだありません
-                    </div>
-                  )
+                  <div className="text-center text-slate-400 py-10">
+                    <div className="mb-2 text-4xl">💬</div>
+                    <p>まだコメントはありません</p>
+                    <p className="text-xs mt-1">最初のコメントを投稿して議論を始めましょう</p>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Persistent Input Footer (Bottom of Right Panel) */}
-            {activeThreadRootId && (
-              <div className="shrink-0 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-bold text-sage-800 text-xs flex items-center gap-1.5">
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    コメントを投稿
-                  </h4>
-                </div>
-                <RichTextEditor
-                  content={postContent}
-                  onChange={(content) => setPostContent(content)}
-                  placeholder="コメントを入力... (Shift+Enterで改行)"
-                  className="mb-3 min-h-[80px]"
-                  minHeight="80px"
-                />
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isAnonymous}
-                      onChange={(e) => setIsAnonymous(e.target.checked)}
-                      className="w-4 h-4 text-sage-600 rounded"
-                    />
-                    <span className="text-xs text-gray-600">匿名で投稿</span>
-                  </label>
-                  <button
-                    onClick={async () => {
-                      if (!postContent.trim()) return;
-
-                      try {
-                        if (activeThreadRootId) {
-                          await axios.post(`/api/dashboard/sessions/${data.id}/comments`, {
-                            content: postContent,
-                            is_anonymous: isAnonymous,
-                            parent_id: activeThreadRootId
-                          }, { withCredentials: true });
-                        }
-
-                        setPostContent('');
-                        setIsAnonymous(false);
-
-                        // Refresh
-                        const res = await axios.get(`/api/dashboard/sessions/${id}`, { withCredentials: true });
-                        setData(res.data);
-
-                      } catch (e) {
-                        console.error("Failed to post comment", e);
-                        alert("投稿に失敗しました");
-                      }
-                    }}
-                    disabled={!postContent.trim()}
-                    className="btn-primary px-4 py-1.5 text-xs shadow-md"
-                  >
-                    送信
-                  </button>
-                </div>
+            {/* Persistent Input Footer (Always Visible) */}
+            <div className="shrink-0 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-bold text-sage-800 text-xs flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  コメントを投稿
+                </h4>
               </div>
-            )}
+              <RichTextEditor
+                content={postContent}
+                onChange={(content) => setPostContent(content)}
+                placeholder="コメントを入力... (Shift+Enterで改行)"
+                className="mb-3 min-h-[80px]"
+                minHeight="80px"
+              />
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                    className="w-4 h-4 text-sage-600 rounded"
+                  />
+                  <span className="text-xs text-gray-600">匿名で投稿</span>
+                </label>
+                <button
+                  onClick={async () => {
+                    if (!postContent.trim()) return;
+
+                    try {
+                      if (activeThreadRootId) {
+                        await axios.post(`/api/dashboard/sessions/${data.id}/comments`, {
+                          content: postContent,
+                          is_anonymous: isAnonymous,
+                          parent_id: activeThreadRootId
+                        }, { withCredentials: true });
+                      } else {
+                        // Create New Thread (System Root + Comment)
+                        await handleCreatePost();
+                        return;
+                      }
+
+                      setPostContent('');
+                      setIsAnonymous(false);
+
+                      // Refresh
+                      const res = await axios.get(`/api/dashboard/sessions/${id}`, { withCredentials: true });
+                      setData(res.data);
+
+                    } catch (e) {
+                      console.error("Failed to post comment", e);
+                      alert("投稿に失敗しました");
+                    }
+                  }}
+                  disabled={!postContent.trim()}
+                  className="btn-primary px-4 py-1.5 text-xs shadow-md"
+                >
+                  送信
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
