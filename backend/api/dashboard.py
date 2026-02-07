@@ -485,3 +485,76 @@ def publish_comments(
     session.is_comment_analysis_published = request.is_published
     db.commit()
     return {"message": "Publication status updated", "is_published": session.is_comment_analysis_published}
+
+class ThreadAnalysisRequest(BaseModel):
+    parent_comment_id: int
+
+@router.post("/sessions/{session_id}/analyze-thread")
+def analyze_thread(
+    session_id: int,
+    payload: ThreadAnalysisRequest,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Only Admin (System or Org)
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    if not is_admin:
+         raise HTTPException(status_code=403, detail="Permission denied")
+         
+    session = db.query(AnalysisSession).filter(
+        AnalysisSession.id == session_id,
+        AnalysisSession.organization_id == current_user.current_org_id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    # 1. Fetch Comments for Thread
+    # Parent
+    parent = db.query(Comment).filter(Comment.id == payload.parent_comment_id, Comment.session_id == session_id).first()
+    if not parent:
+        raise HTTPException(status_code=404, detail="Parent comment not found")
+        
+    # Children
+    children = db.query(Comment).filter(Comment.parent_id == payload.parent_comment_id, Comment.session_id == session_id).order_by(Comment.created_at.asc()).all()
+    
+    # Prepare list for service
+    # Combine parent + children sorted by time
+    thread_comments = [parent] + children
+    
+    # Convert to simple objects for service
+    formatted_comments = []
+    for c in thread_comments:
+        name = "匿名" if c.is_anonymous else (c.user.username if c.user else "Unknown")
+        formatted_comments.append({
+            "content": c.content,
+            "user_name": name,
+            "created_at": c.created_at
+        })
+        
+    try:
+        from backend.services.analysis import analyze_thread_logic
+        result = analyze_thread_logic(formatted_comments)
+        
+        # Update Session JSON
+        # Structure: { "threads": { "parent_id": { ...result... } }, ...other_existing_data... }
+        current_data = {}
+        if session.comment_analysis:
+            try:
+                current_data = json.loads(session.comment_analysis)
+            except:
+                current_data = {}
+        
+        if "threads" not in current_data:
+            current_data["threads"] = {}
+            
+        current_data["threads"][str(payload.parent_comment_id)] = result
+        
+        session.comment_analysis = json.dumps(current_data, ensure_ascii=False)
+        db.commit()
+        
+        return {"message": "Thread analysis completed", "result": result}
+        
+    except Exception as e:
+        print(f"Thread Analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Thread analysis failed")
