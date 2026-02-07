@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+import json
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 from typing import List, Optional
@@ -425,66 +426,7 @@ def update_comment(
 
 
 
-@router.post("/sessions/{session_id}/analyze-comments")
-def analyze_session_comments(
-    session_id: int,
-    current_user: UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    # Only Admin (System or Org)
-    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
-    if not is_admin:
-         raise HTTPException(status_code=403, detail="Permission denied")
-         
-    session = db.query(AnalysisSession).filter(
-        AnalysisSession.id == session_id,
-        AnalysisSession.organization_id == current_user.current_org_id
-    ).first()
-    
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-        
-    comments = db.query(Comment).filter(Comment.session_id == session_id).all()
-    texts = [c.content for c in comments if c.content and c.content.strip()]
-    
-    if not texts:
-        raise HTTPException(status_code=400, detail="No comments to analyze")
-        
-    try:
-        from backend.services.analysis import analyze_comments_logic
-        analysis_result = analyze_comments_logic(texts)
-        
-        session.comment_analysis = analysis_result
-        session.is_comment_analysis_published = False # Default to private
-        db.commit()
-        
-        return {"message": "Analysis completed", "result": analysis_result}
-    except Exception as e:
-        print(f"Analysis error: {e}")
-        raise HTTPException(status_code=500, detail="Analysis failed")
 
-@router.put("/sessions/{session_id}/publish-comments")
-def publish_comments(
-    session_id: int,
-    request: PublishRequest, 
-    current_user: UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
-    if not is_admin:
-         raise HTTPException(status_code=403, detail="Permission denied")
-         
-    session = db.query(AnalysisSession).filter(
-        AnalysisSession.id == session_id,
-        AnalysisSession.organization_id == current_user.current_org_id
-    ).first()
-    
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-        
-    session.is_comment_analysis_published = request.is_published
-    db.commit()
-    return {"message": "Publication status updated", "is_published": session.is_comment_analysis_published}
 
 class ThreadAnalysisRequest(BaseModel):
     parent_comment_id: int

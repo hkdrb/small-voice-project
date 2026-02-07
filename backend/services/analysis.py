@@ -467,139 +467,54 @@ def generate_issue_logic_from_clusters(df, theme_name):
         return []
 
 
-def analyze_comments_logic(texts):
+def analyze_thread_logic(comments):
     """
-    Summarize comments/proposals using Gemini with a focus on discussion and unique insights.
-    Uses a Map-Reduce approach to handle large datasets (all comments are considered).
+    Analyze a discussion thread (parent + children) and generate a simple summary and actions.
     """
-    if not texts: return "分析対象のコメントがありません。"
-    
+    if not comments:
+        return {"summary": "議論がありません。", "key_points": [], "next_steps": []}
+
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        # Use Flash for intermediate steps (fast, large context)
-        model_flash = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
-        # Use Thinking/Smart model for final synthesis
-        model_thinking = genai.GenerativeModel(MODEL_NAME_THINKING, generation_config={"response_mime_type": "application/json"})
-        
-        # 1. Map Phase: Chunk Processing if needed
-        # Increase limit to 300 for direct processing, or use chunking for larger sets
-        CHUNK_SIZE = 300 
-        
-        intermediate_summaries = []
-        
-        # If texts fit in one chunk, use direct analysis
-        if len(texts) <= CHUNK_SIZE:
-             chunks = [texts]
-        else:
-             # Split into chunks
-             chunks = [texts[i:i + CHUNK_SIZE] for i in range(0, len(texts), CHUNK_SIZE)]
-             logger.info(f"Processing {len(texts)} comments in {len(chunks)} chunks...")
+        model = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
 
-        for i, chunk in enumerate(chunks):
-            # For the final (or only) stage, we want structured output.
-            # If we are chunking, we need an intermediate summary that captures:
-            # - Key themes in this chunk
-            # - Unique/Outlier ideas (Small Voice) explicitly
-            
-            # Map Prompt
-            map_prompt = f"""あなたはデータを集約するアナリストです。
-以下の{len(chunk)}件の社員の声（改善提案）から、重要な要素を抽出して構造化してください。
+        # Format comments for prompt
+        formatted_thread = ""
+        for c in comments:
+            # c is a dict with content, user_name, created_at
+            formatted_thread += f"[{c.get('user_name', '不明')}] {c.get('content', '')}\n"
+
+        prompt = f"""あなたは中立的かつ理性的で、議論を建設的な解決へと導く専門家（プロのファシリテーター）です。
+以下のチャットスレッド（議論の流れ）を深く分析し、参加者の意見を尊重しつつ、状況を整理して次の具体的なアクションを提案してください。
+
+### 議論の内容:
+{formatted_thread}
 
 ### 指示:
-1. **主要なトレンド**: 頻出している提案や不満の共通項を3〜5個挙げてください。
-2. **ユニークな提案 (Small Voice)**: 少数だが、鋭い指摘や独創的なアイデアがあれば、見逃さずに全てリストアップしてください。
-3. すべての入力を考慮し、情報の「圧縮」を行ってください。
+1. **要約 (summary)**: 議論の現在の状況を3行以内で、何について話し合われているかが一目でわかるように簡潔にまとめてください。
+2. **論点 (points)**: 議論の中で出た重要な視点、合意が得られた事項、あるいは対立している懸念点を最大3つ抽出してリスト形式で出力してください。
+3. **次のアクション (next_steps)**: 議論を停滞させず、具体的かつ実行可能な解決策や次にとるべきステップを提示してください。
 
-### データ:
-{json.dumps(chunk, ensure_ascii=False)}
-
-### 出力形式(JSON):
+### 出力フォーマット(JSON):
 {{
-    "trends": ["トレンド1: 詳細...", "トレンド2: 詳細..."],
-    "unique_ideas": ["アイデア1: 詳細...", "アイデア2: 詳細..."]
+    "summary": "要約文...",
+    "points": ["ポイント1", "ポイント2", ...],
+    "next_steps": "提案される具体的なアクションや解決策の記述..."
 }}
 """
-            # If it's a single chunk, we can skip to final analysis directly using the original 'texts'
-            # But to keep logic unified, let's treat single chunk as just data for final prompt if it's small enough.
-            # However, for consistency, let's just use the `texts` directly in final prompt if len < CHUNK_SIZE.
-            pass
+        logger.info("Generating Thread Analysis with Gemini...")
+        response = model.generate_content(prompt)
+        result = json.loads(response.text)
+        return result
 
-        # If data is small enough, skip Map phase and go specific
-        if len(texts) <= CHUNK_SIZE:
-            final_input_text = json.dumps(texts, ensure_ascii=False)
-            input_label = "改善提案リスト"
-        else:
-            # Execute Map Phase
-            for i, chunk in enumerate(chunks):
-                try:
-                    logger.info(f"Analyzing chunk {i+1}/{len(chunks)}...")
-                    resp = model_flash.generate_content(map_prompt)
-                    intermediate_summaries.append(resp.text)
-                except Exception as e:
-                    logger.error(f"Chunk {i+1} failed: {e}")
-                    # Continue with partial data
-            
-            final_input_text = "\\n".join(intermediate_summaries)
-            input_label = "各グループからの抽出結果（中間要約）"
-
-        # 2. Reduce Phase: Final Synthesis
-        prompt = f"""あなたは組織変革を支援する戦略コンサルタントです。
-以下の「{input_label}」を読み込み、経営層やリーダーが「ハッとする」ような洞察を抽出してください。
-元のデータは全{len(texts)}件の社員の声です。
-
-### 指示:
-1. **全体俯瞰 (Overall Summary)**: 
-   - 単に「多かった意見」を並べるのではなく、その背後にある**「組織の深層心理」や「構造的な矛盾」**を言語化してください。
-
-2. **トレンド分析 (Key Trends)**:
-   - 「なぜ今、この意見が増えているのか？」という背景推察を含めて記述してください。
-
-3. **【最重要】きらりと光るアイデア (Notable Ideas)**:
-   - 多数決では埋もれてしまうが、**「実行すれば大きなインパクトを生む逆転の発想」や「誰も気づいていない本質的なリスク指摘」**を探し出してください。
-   - 「Small Voice」や「ユニークな提案」として抽出されているものを特に重視してください。
-   - 常識的な提案（「Macが欲しい」「給料上げて」）はここでは除外してください。
-
-### 対象データ:
-{final_input_text}
-
-### 出力形式(JSON):
-{{
-    "overall_summary": "組織の深層心理に迫る要約（150文字程度）",
-    "key_trends": [
-        {{
-            "title": "トレンド名",
-            "description": "内容と背景の考察",
-            "count_inference": "High" | "Medium" | "Low"
-        }}
-    ],
-    "notable_ideas": [
-        {{
-            "title": "アイデア/指摘のタイトル",
-            "description": "提案の具体的記述",
-            "expected_impact": "これが組織にもたらす変革インパクト（具体的利益や回避できるリスク）",
-            "feasibility": "High" | "Medium" | "Low"
-        }}
-    ]
-}}
-"""
-        resp = model_thinking.generate_content(prompt)
-        text = resp.text.strip()
-        
-        # JSON Clean logic
-        if "```" in text:
-            text = text.split("```")[-2] if "json" in text else text.split("```")[1]
-            if text.strip().startswith("json"):
-                text = text.strip()[4:]
-        text = text.strip()
-
-        return text
-            
     except Exception as e:
-        logger.error(f"Comment analysis failed: {e}")
-        return json.dumps({
-            "overall_summary": f"分析中にエラーが発生しました。時間を置いて再試行するか、データ量を調整してください: {str(e)}",
-            "key_trends": [],
-            "notable_ideas": []
-        }, ensure_ascii=False)
+        logger.error(f"Thread analysis logic failed: {e}")
+        return {
+            "summary": "分析中にエラーが発生しました。",
+            "points": [str(e)],
+            "next_steps": "時間を置いて再試行してください。"
+        }
+
+
             
 

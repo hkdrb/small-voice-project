@@ -241,42 +241,7 @@ export default function SessionDetailPage() {
     }
   };
 
-  const handleRunCommentAnalysis = async () => {
-    if (!data) return;
-    setIsAnalyzing(true);
-    setIsUpdating(true); // Disable other interactions
-    try {
-      await axios.post(`/api/dashboard/sessions/${id}/analyze-comments`, {}, { withCredentials: true });
-      // Reload Data
-      const res = await axios.get(`/api/dashboard/sessions/${id}`, { withCredentials: true });
-      setData(res.data);
-      alert("分析が完了しました");
-    } catch (error) {
-      alert("分析の実行に失敗しました（コメントが存在しない可能性があります）");
-    } finally {
-      setIsUpdating(false);
-      setIsAnalyzing(false);
-    }
-  };
 
-  const handleToggleCommentAnalysisPublish = async () => {
-    if (!data) return;
-    const action = data.is_comment_analysis_published ? "非公開" : "公開";
-    if (!confirm(`みんなの提案分析結果を${action}にしますか？`)) return;
-    setIsUpdating(true);
-    try {
-      const newState = !data.is_comment_analysis_published;
-      await axios.put(`/api/dashboard/sessions/${id}/publish-comments`, {
-        is_published: newState
-      }, { withCredentials: true });
-
-      setData({ ...data, is_comment_analysis_published: newState });
-    } catch (error) {
-      alert("更新に失敗しました");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   const handleIssueClick = (issue: any, index: number) => {
     // 1. Toggle Expansion
@@ -764,10 +729,10 @@ export default function SessionDetailPage() {
                         </ul>
                       </div>
                     )}
-                    {currentAnalysis.conclusion && (
+                    {currentAnalysis.next_steps && (
                       <div>
-                        <h5 className="font-bold text-amber-800/80 mb-1 flex items-center gap-1">🏁 結論</h5>
-                        <p className="text-slate-700 leading-relaxed">{currentAnalysis.conclusion}</p>
+                        <h5 className="font-bold text-amber-800/80 mb-1 flex items-center gap-1">🚀 次のアクション</h5>
+                        <p className="text-slate-700 leading-relaxed">{currentAnalysis.next_steps}</p>
                       </div>
                     )}
                   </div>
