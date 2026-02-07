@@ -472,7 +472,7 @@ export default function SessionDetailPage() {
                       marker: {
                         size: 10,
                         color: data.results.map(r => {
-                          if (r.is_noise || r.cluster_id === -1 || r.sub_topic.includes("特異点")) {
+                          if (r.is_noise || r.cluster_id === -1) {
                             if (selectedIssueTopics.length > 0 && !selectedIssueTopics.some(t => r.sub_topic.includes(t))) {
                               return 'rgba(239, 68, 68, 0.2)';
                             }
@@ -568,7 +568,7 @@ export default function SessionDetailPage() {
 
                     const isActive = activeIssue?.title === issue.title;
                     const isExpanded = idx === expandedIssueIndex || isActive;
-                    const isSmallVoice = issue.source_type === 'small_voice' || topics.some(t => t.includes('Small Voice') || t.includes('特異点'));
+                    const isSmallVoice = issue.source_type === 'small_voice' || topics.some(t => t.includes('Small Voice'));
 
                     return (
                       <div
