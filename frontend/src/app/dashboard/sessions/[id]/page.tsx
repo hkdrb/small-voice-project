@@ -701,7 +701,7 @@ export default function SessionDetailPage() {
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
-                    議論のAI分析・要約
+                    AIファシリテーターの整理と提案
                   </h4>
                   {activeThreadRootId && (user?.role === 'system_admin' || user?.org_role === 'admin') && (
                     <button
