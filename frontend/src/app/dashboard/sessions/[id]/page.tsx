@@ -93,6 +93,9 @@ export default function SessionDetailPage() {
   // State for highlighting specific text from Small Voice links
   const [highlightedText, setHighlightedText] = useState<string | null>(null);
 
+  // Ref for auto-scrolling to map
+  const mapSectionRef = useRef<HTMLElement>(null);
+
   // New state for Split View & Thread Focus
   const [activeIssue, setActiveIssue] = useState<any>(null);
   const [activeThreadRootId, setActiveThreadRootId] = useState<number | null>(null);
@@ -465,12 +468,12 @@ export default function SessionDetailPage() {
 
         {/* Left Column: Input (Map & Issues) */}
         <div className={`
-          h-full overflow-y-auto p-6 space-y-6 custom-scrollbar transition-all duration-100 ease-[cubic-bezier(0.23,1,0.32,1)]
+          h-full overflow-y-auto p-6 space-y-6 custom-scrollbar transition-all ${activeIssue ? 'duration-100' : 'duration-0'} ease-[cubic-bezier(0.23,1,0.32,1)]
           ${activeIssue ? 'w-[60%] border-r border-slate-200/60' : 'w-full'}
         `}>
 
           {/* 1. Meaning Map */}
-          <section className="glass-card p-4 h-[500px] relative">
+          <section ref={mapSectionRef} className="glass-card p-4 h-[500px] relative">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-sage-dark pl-2 border-l-4 border-sage-primary">1. クラスタリング</h3>
               {selectedIssueTopics.length > 0 && (
@@ -642,6 +645,7 @@ export default function SessionDetailPage() {
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setHighlightedText(text);
+                                            mapSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                           }}
                                           className={`text-xs text-left leading-normal py-0.5 hover:text-amber-600 hover:underline transition-colors ${highlightedText === text ? 'text-amber-700 font-bold underline' : 'text-slate-600'}`}
                                         >
@@ -699,7 +703,7 @@ export default function SessionDetailPage() {
         {/* Right Column: Dynamic Panel (Chat & Thread Analysis) */}
         <div className={`
           h-full bg-white border-l border-slate-200 
-          transition-all duration-100 ease-[cubic-bezier(0.23,1,0.32,1)] origin-right flex flex-col
+          transition-all ${activeIssue ? 'duration-100' : 'duration-0'} ease-[cubic-bezier(0.23,1,0.32,1)] origin-right flex flex-col
           ${activeIssue ? 'w-[40%] opacity-100 shadow-xl' : 'w-0 opacity-0 overflow-hidden'}
         `}>
           {/* Important: Use min-w to prevent content squashing during transition */}
@@ -707,13 +711,13 @@ export default function SessionDetailPage() {
 
             {/* Panel Header (Fixed at top) */}
             <div className="shrink-0 bg-white/95 z-20 px-6 py-4 border-b border-slate-100 shadow-sm flex items-center justify-between">
-              <div>
+              <div className="min-w-0 flex-1">
                 <span className="text-[10px] bg-sage-100 text-sage-600 px-2 py-0.5 rounded font-bold mb-1 inline-block">議論中の課題</span>
                 <h3 className="text-sm font-bold text-sage-800 line-clamp-1" title={activeIssue?.title}>{activeIssue?.title}</h3>
               </div>
               <button
                 onClick={handleCloseRightPanel}
-                className="group flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 rounded-full transition-all border border-slate-200/60 shadow-sm"
+                className="group flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 rounded-full transition-all border border-slate-200/60 shadow-sm shrink-0 ml-4"
                 title="スレッドを閉じる"
               >
                 <div className="flex items-center justify-center bg-white rounded-full w-5 h-5 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
