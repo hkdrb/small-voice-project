@@ -118,7 +118,62 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py 
 docker-compose -f docker-compose.dev.yml exec backend flake8 .
 ```
 
+
 **Frontend (TypeScript/JavaScript)**
 ```bash
 docker-compose -f docker-compose.dev.yml exec frontend npm run lint
 ```
+
+## 🔑 デモ用ログイン情報 (初期設定)
+
+初回起動時に以下のユーザーが自動作成されます。パスワードはログ出力を確認するか、`.env` で `INITIAL_***_PASSWORD` を設定してください。
+
+| 役割 | Email | 説明 |
+| --- | --- | --- |
+| **System Admin** | `system@example.com` | システム管理者 |
+| **Org Admin** | `admin@example.com` | 組織管理者 |
+| **User** | `user1@example.com` | 一般ユーザー |
+
+---
+
+## 手動セットアップ (Dockerを使用しない場合)
+Dockerを使用せず、ローカルマシンに直接環境を構築する場合の手順です。
+
+### 1. リポジトリのクローン
+```bash
+git clone https://github.com/koderahayato/small-voice-project.git
+cd small-voice-project
+```
+
+### 2. バックエンドのセットアップ
+```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+`.env` ファイルを作成し、Gemini APIキーとモデル設定を行ってください。
+```ini
+GEMINI_API_KEY=your_api_key_here
+# AIモデル設定
+GEMINI_MODEL_NAME=gemini-2.0-flash
+GEMINI_MODEL_NAME_THINKING=gemini-1.5-pro
+GEMINI_MODEL_NAME_LIGHT=gemini-1.5-flash
+# 開発用デフォルトDB設定
+DATABASE_URL=sqlite:///voice_insight.db
+```
+
+サーバー起動:
+```bash
+cd backend
+uvicorn main:app --reload --port 8000
+```
+※ 初回起動時にDBとデフォルトユーザーが自動生成されます。
+
+### 3. フロントエンドのセットアップ
+```bash
+cd frontend
+npm install
+npm run dev
+```
+ブラウザで `http://localhost:3000` にアクセスしてください。
