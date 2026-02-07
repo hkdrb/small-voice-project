@@ -14,12 +14,6 @@ NUM_ROWS_OTHERS = 1000
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "outputs", "test_data")
 
 # --- Utility Functions ---
-def generate_random_date():
-    start_date = datetime.now() - timedelta(days=90)
-    random_days = random.randint(0, 90)
-    random_seconds = random.randint(0, 86400)
-    dt = start_date + timedelta(days=random_days, seconds=random_seconds)
-    return dt.strftime("%Y/%m/%d %H:%M")
 
 def generate_combinatorial_sentence(parts):
     """
@@ -320,44 +314,44 @@ Q3_SUFFIXES = [
 
 SMALL_VOICES = {
     "project": [
-        "部長の経費私的流用疑惑について、第三者委員会による調査を提案します。",
-        "役員への虚偽報告を防ぐため、監査ログの自動送信システムを導入すべきです。",
-        "機密情報流出を防ぐため、USBポートの物理封鎖とログ監視の強化を求めます。",
-        "ハラスメント防止のため、外部機関による匿名通報窓口の設置を即時に行うべきです。"
+        "すべての会議をメタバース上で実施し、アバターでの参加を義務化することを提案します。",
+        "意思決定能力を向上させるため、プロジェクトの全決裁権をAIに委ねる試みを開始すべきです。",
+        "スプリント期間を3ヶ月に延長し、超長期視点でのみ開発を行う体制への変更を求めます。",
+        "進捗報告を廃止し、各自が脳波計を装着して集中度をリアルタイム共有する仕組みを導入すべきです。"
     ],
     "product": [
-        "脆弱性対応のため、リリースを延期し、セキュリティ監査を完了させることを提案します。",
-        "差別的なUIを修正するため、アクセシビリティ専門家の監修を受けるべきです。",
-        "過剰徴収バグについて、ユーザーへの正直な謝罪と全額返金を直ちに行うべきです。",
-        "著作権侵害リスク回避のため、該当コードの完全書き直しを提案します。"
+        "徹底したミニマリズムを追求するため、全画面から一切のテキストを排除し、アイコンのみのUIに変更すべきです。",
+        "ユーザーの忍耐力を試すため、あえてロード時間にランダムな遅延を発生させる機能を提案します。",
+        "アクセシビリティの究極形として、画面表示を廃止し、すべて音と振動のみで操作するモードを標準にすべきです。",
+        "リリースの緊張感を高めるため、バグが1つでも見つかったらソースコードを全削除するルールを導入しませんか。"
     ],
     "welfare": [
-        "監視カメラによる監視をやめ、信頼に基づくマネジメントへの転換を求めます。",
-        "サービス残業撤廃のため、PCの強制シャットダウンシステムの導入を提案します。",
-        "ハラスメント相談窓口を人事から独立した外部機関に委託することを提案します。",
-        "耐震性の問題について、即時のビル移転または補強工事の実施を求めます。"
+        "開発効率を極限まで高めるため、オフィス内にカプセルホテルを併設し、24時間居住可能な体制を希望します。",
+        "集中力を研ぎ澄ますため、PCのモニターを廃止し、すべてのコーディングを点字ディスプレイで行うことを提案します。",
+        "健康増進のため、スタンディングデスクではなく、ランニングマシーン上でのタイピングを義務化すべきです。",
+        "場所を選ばない働き方の究極として、宇宙ステーションからのリモートワーク手当を新設してください。"
     ],
     "tech": [
-        "顧客情報の平文保存をやめ、DBレベルでの暗号化を即時実施するよう提案します。",
-        "ソースコード流出を防ぐため、プライベートリポジトリの権限棚卸しを提案します。",
-        "バックアップ失敗の対策として、リストア訓練を含むDR計画の策定を求めます。",
-        "退職者のアクセス権限を自動削除するID管理システムを導入すべきです。"
+        "テストコードは甘えです。すべての自動テストを廃止し、本番環境でのユーザーの反応のみを信じるべきです。",
+        "セキュリティ向上のため、すべての変数名と関数名をランダムな32文字の文字列に難読化して管理することを提案します。",
+        "エコシステムへの依存を脱却するため、ライブラリの使用を一切禁止し、標準ライブラリのみで全機能を再実装すべきです。",
+        "ハードウェアの限界に挑むため、全プログラムをアセンブラで記述し直すプロジェクトを立ち上げたいです。"
     ],
     "values": [
-        "心理的安全性を担保するため、無記名での組織サーベイ実施を提案します。",
-        "多様性を確保するため、採用における学歴フィルターの廃止を提案します。",
-        "下請け法遵守のため、発注プロセスの透明化と監査を求めます。",
-        "失敗を許容する文化醸成のため、失敗事例発表会の定期開催を提案します。"
+        "利益追求を一切の悪とし、すべての売上を即座に寄付する純粋な慈善団体への転換を強く提案します。",
+        "組織の壁をなくすため、全社員が毎日くじ引きで役職と給与を入れ替える完全平等システムの導入を求めます。",
+        "「沈黙は金」をバリューとし、社内での言語によるコミュニケーションを一切禁止する文化を作りたいです。",
+        "過去の経験をすべてリセットするため、入社3年ごとに全社員の記憶を消去する技術の導入を検討すべきです。"
     ],
     "values_episode": [
-        "大きな不正を目撃したが報告できなかった無力感から、組織の透明性を何より大切にするようになりました。",
-        "過労で倒れた同僚を見て、健康を犠牲にする働き方は間違っていると強く思うようになりました。",
-        "育休取得を妨害された経験から、多様性を尊重する文化の重要性を痛感しました。",
-        "内部告発者が不当に扱われるのを見て、心理的安全性の確保が最優先だと考えるようになりました。"
+        "山にこもって1ヶ月間誰とも話さなかった経験から、言語を使わない意思疎通こそが真実だと悟りました。",
+        "サイコロを振って人生の決断をすべて行ってきた結果、確率論こそが組織運営の正解だと確信しました。",
+        "夢の中で見た「青い鳥」に導かれ、すべてのプロダクトを青色のみで構成すべきだと強く思うようになりました。",
+        "100種類以上のプログラミング言語を一晩で習得した際、技術は存在しないという境地に達しました。"
     ],
     "values_theme": [
-        "多様性の受容", "健康第一", "社会貢献", "コンプライアンス遵守", 
-        "サステナビリティ", "公平性", "ワークライフバランス"
+        "無言語主義", "AIへの全権委任", "極限のミニマリズム", "運命論的経営", 
+        "記憶のリセット", "宇宙規模の視点", "絶対的平等"
     ]
 }
 
@@ -675,19 +669,27 @@ def generate_mixed_comments_list(count, category):
     elif category == "values_theme": gen_func = get_value_comment_q1
     
     # 1. ADD SMALL VOICES (Rare outliers) - ensure uniqueness
-    cat = category if category in SMALL_VOICES else "project"
-    available_small_voices = SMALL_VOICES[cat].copy()
-    random.shuffle(available_small_voices)
-    
-    for i in range(min(n_small_voices, len(available_small_voices))):
-        comment = available_small_voices[i]
-        if comment not in seen:
-            comments.append(comment)
-            seen.add(comment)
+    if category in SMALL_VOICES:
+        available_small_voices = SMALL_VOICES[category].copy()
+        random.shuffle(available_small_voices)
         
+        for i in range(min(n_small_voices, len(available_small_voices))):
+            comment = available_small_voices[i]
+            if comment not in seen:
+                comments.append(comment)
+                seen.add(comment)
+    else:
+        # If category not in SMALL_VOICES, fulfill n_small_voices with gen_func
+        # This prevents leaking other category's outliers (like KPT format)
+        for _ in range(n_small_voices):
+            comment = gen_func()
+            if comment not in seen:
+                comments.append(comment)
+                seen.add(comment)
+    
     # 2. ADD DENSE CLUSTERS - WITH BALANCED DISTRIBUTION
-    cat = category if category in DENSE_CLUSTERS else "project"
-    available_clusters = DENSE_CLUSTERS[cat]
+    if category in DENSE_CLUSTERS:
+        available_clusters = DENSE_CLUSTERS[category]
     
     if available_clusters:
         # Create BALANCED distribution: each cluster gets roughly equal comments
@@ -785,7 +787,6 @@ def generate_csv_files():
     project_data = []
     for i in range(NUM_ROWS_OTHERS):
         project_data.append({
-            "日時": generate_random_date(),
             "プロジェクトの進め方やプロセスについて、改善提案はありますか？": project_comments_1[i],
             "会議の運営やコミュニケーションについて、ご意見をお聞かせください": project_comments_2[i]
         })
@@ -799,7 +800,6 @@ def generate_csv_files():
     dev_data = []
     for i in range(NUM_ROWS_OTHERS):
         dev_data.append({
-            "日時": generate_random_date(),
             "ハードウェア環境について、改善してほしい点や要望などを教えてください": dev_comments_1[i],
             "ソフトウェア開発環境やツールについて、改善してほしい点や要望などを教えてください": dev_comments_2[i]
         })
@@ -813,7 +813,6 @@ def generate_csv_files():
     tech_data = []
     for i in range(NUM_ROWS_OTHERS):
         tech_data.append({
-            "日時": generate_random_date(),
             "現在のコードベースの品質について、懸念点や改善案を教えてください": tech_comments_1[i],
             "テストやQAプロセスについて、ご意見や改善提案を教えてください": tech_comments_2[i]
         })
@@ -829,7 +828,6 @@ def generate_csv_files():
     values_data = []
     for i in range(NUM_ROWS_VALUES):
         values_data.append({
-            "日時": generate_random_date(),
             "あなたが仕事をする上で、大切にしている価値観を教えてください": q1_list[i],  # Q1
             "その価値観を大切にするようになったきっかけは？（実際のエピソード）": q2_list[i],  # Q2
             "社内で共有されたら嬉しい価値観は？": q3_list[i]  # Q3
