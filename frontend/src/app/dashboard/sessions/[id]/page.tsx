@@ -71,6 +71,28 @@ export default function SessionDetailPage() {
   // State for Accordion Expansion (One can be open at a time)
   const [expandedIssueIndex, setExpandedIssueIndex] = useState<number | null>(null);
 
+  // Layout state for Plotly to handle zoom/reset
+  const [plotLayout, setPlotLayout] = useState<any>({
+    autosize: true,
+    hovermode: 'closest',
+    margin: { l: 20, r: 20, t: 20, b: 20 },
+    xaxis: { showgrid: true, gridcolor: 'rgba(200,200,200,0.2)', zeroline: false, showticklabels: false },
+    yaxis: { showgrid: true, gridcolor: 'rgba(200,200,200,0.2)', zeroline: false, showticklabels: false },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(255,255,255,0.3)',
+    showlegend: false,
+    dragmode: 'zoom',
+    hoverlabel: {
+      bgcolor: 'rgba(255, 255, 255, 0.95)',
+      bordercolor: '#e2e8f0',
+      font: { family: 'sans-serif', size: 12, color: '#334155' },
+      align: 'left'
+    }
+  });
+
+  // State for highlighting specific text from Small Voice links
+  const [highlightedText, setHighlightedText] = useState<string | null>(null);
+
   // New state for Split View & Thread Focus
   const [activeIssue, setActiveIssue] = useState<any>(null);
   const [activeThreadRootId, setActiveThreadRootId] = useState<number | null>(null);
@@ -255,12 +277,15 @@ export default function SessionDetailPage() {
 
   const handleIssueClick = (issue: any, index: number) => {
     // 1. Toggle Expansion
-    if (expandedIssueIndex === index) {
+    const isClearing = expandedIssueIndex === index;
+    if (isClearing) {
       setExpandedIssueIndex(null);
       setSelectedIssueTopics([]); // Also clear map selection
+      setHighlightedText(null);
       return;
     } else {
       setExpandedIssueIndex(index);
+      setHighlightedText(null);
     }
 
     // 2. Map Selection Logic
@@ -470,10 +495,18 @@ export default function SessionDetailPage() {
                       mode: 'markers',
                       type: 'scatter',
                       marker: {
-                        size: 10,
+                        size: data.results.map(r => {
+                          const isTopicSelected = selectedIssueTopics.some(t => r.sub_topic.includes(t)) ||
+                            (r.cluster_id === -1 && selectedIssueTopics.some(t => t.includes('Small Voice')));
+
+                          if (highlightedText && r.original_text.includes(highlightedText)) {
+                            return 18;
+                          }
+                          return isTopicSelected ? 14 : 10;
+                        }),
                         color: data.results.map(r => {
                           if (r.is_noise || r.cluster_id === -1) {
-                            if (selectedIssueTopics.length > 0 && !selectedIssueTopics.some(t => r.sub_topic.includes(t))) {
+                            if (selectedIssueTopics.length > 0 && !selectedIssueTopics.some(t => r.sub_topic.includes(t)) && !selectedIssueTopics.some(t => t.includes('Small Voice'))) {
                               return 'rgba(239, 68, 68, 0.2)';
                             }
                             return '#EF4444';
@@ -489,8 +522,21 @@ export default function SessionDetailPage() {
                           return color;
                         }),
                         line: {
-                          width: 1,
-                          color: 'white'
+                          width: data.results.map(r => {
+                            const isTopicSelected = selectedIssueTopics.some(t => r.sub_topic.includes(t)) ||
+                              (r.cluster_id === -1 && selectedIssueTopics.some(t => t.includes('Small Voice')));
+
+                            if (highlightedText && r.original_text.includes(highlightedText)) {
+                              return 3;
+                            }
+                            return isTopicSelected ? 2 : 1;
+                          }),
+                          color: data.results.map(r => {
+                            if (highlightedText && r.original_text.includes(highlightedText)) {
+                              return '#1e293b';
+                            }
+                            return 'white';
+                          })
                         },
                         opacity: 0.8,
                         symbol: 'circle'
@@ -499,23 +545,7 @@ export default function SessionDetailPage() {
                       hovertemplate: '%{text}<extra></extra>'
                     }
                   ]}
-                  layout={{
-                    autosize: true,
-                    hovermode: 'closest',
-                    margin: { l: 20, r: 20, t: 20, b: 20 },
-                    xaxis: { showgrid: true, gridcolor: 'rgba(200,200,200,0.2)', zeroline: false, showticklabels: false },
-                    yaxis: { showgrid: true, gridcolor: 'rgba(200,200,200,0.2)', zeroline: false, showticklabels: false },
-                    paper_bgcolor: 'rgba(0,0,0,0)',
-                    plot_bgcolor: 'rgba(255,255,255,0.3)',
-                    showlegend: false,
-                    dragmode: 'zoom',
-                    hoverlabel: {
-                      bgcolor: 'rgba(255, 255, 255, 0.95)',
-                      bordercolor: '#e2e8f0',
-                      font: { family: 'sans-serif', size: 12, color: '#334155' },
-                      align: 'left'
-                    }
-                  }}
+                  layout={plotLayout}
                   style={{ width: '100%', height: '100%' }}
                   useResizeHandler
                   config={{
@@ -594,11 +624,45 @@ export default function SessionDetailPage() {
 
                         {/* Expandable Content */}
                         <div className={`transition-all duration-300 ease-in-out border-t border-slate-100 bg-slate-50/50
-                            ${isExpanded ? 'max-h-[500px] opacity-100 p-4' : 'max-h-0 opacity-0 p-0 overflow-hidden'}
+                            ${isExpanded ? 'max-h-[800px] opacity-100 p-4' : 'max-h-0 opacity-0 p-0 overflow-hidden'}
                         `}>
-                          <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">
-                            {issue.insight || issue.description}
-                          </p>
+                          {isSmallVoice ? (
+                            <div className="space-y-2">
+                              {(() => {
+                                const content = issue.insight || issue.description || '';
+                                const lines = content.split('\n');
+                                return lines.map((line: string, lIdx: number) => {
+                                  // Detect bullet points (e.g., "- ", "• ", "1. ")
+                                  const bulletMatch = line.match(/^(\s*[-•*]|\s*\d+\.)\s*(.*)/);
+                                  if (bulletMatch) {
+                                    const text = bulletMatch[2];
+                                    return (
+                                      <div key={lIdx} className="pl-2 flex items-start gap-2 group/item">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setHighlightedText(text);
+                                          }}
+                                          className={`text-xs text-left leading-normal py-0.5 hover:text-amber-600 hover:underline transition-colors ${highlightedText === text ? 'text-amber-700 font-bold underline' : 'text-slate-600'}`}
+                                        >
+                                          {text}
+                                        </button>
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <p key={lIdx} className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">
+                                      {line}
+                                    </p>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">
+                              {issue.insight || issue.description}
+                            </p>
+                          )}
 
                           <div className="mt-4 pt-3 border-t border-slate-200/60 flex flex-wrap justify-between items-center gap-3">
                             <div className="flex gap-2 flex-wrap flex-1 min-w-0">
