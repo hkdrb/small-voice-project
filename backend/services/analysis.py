@@ -348,20 +348,21 @@ def analyze_clusters_logic(texts, theme_name, timestamps=None):
 def generate_issue_logic_from_clusters(df, theme_name):
     """
     Generate discussion agendas from clustered data.
-    Explicitly handles 'Small Voice' (Cluster ID -1) to ensure they are represented.
+    Dynamically adjusts prompt based on presence of Small Voice (Cluster ID -1).
     """
     try:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
         
         # Split DataFrame into Normal and Small Voice
-        # Assuming cluster_id -1 is for outliers/small voices as defined in analyze_clusters_logic
         if 'cluster_id' in df.columns:
             small_voices_df = df[df['cluster_id'] == -1]
             normal_df = df[df['cluster_id'] != -1]
         else:
             small_voices_df = pd.DataFrame()
             normal_df = df
+
+        has_small_voice = not small_voices_df.empty
 
         # Prepare Inputs
         prompt_content = []
@@ -372,41 +373,54 @@ def generate_issue_logic_from_clusters(df, theme_name):
             topic_df = normal_df[normal_df['sub_topic'] == topic]
             count = len(topic_df)
             texts = topic_df['original_text'].tolist()
-            # Sample 30% of items, minimum 10, max 100 to avoid context overflow
-            # User requested "ratio" based sampling
+            # Sample 30% of items, minimum 10, max 100
             sample_size = max(10, int(count * 0.3))
-            sample_size = min(sample_size, 100) # Safety cap
+            sample_size = min(sample_size, 100)
             
             samples = "\\n".join([f"  - {t}" for t in texts[:min(sample_size, len(texts))]])
             prompt_content.append(f"### メインカテゴリ: {topic} ({count}件 - 抽出{min(sample_size, len(texts))}件)\\n{samples}")
             
-        # 2. Small Voice (CRITICAL)
-        if not small_voices_df.empty:
+        # 2. Small Voice
+        if has_small_voice:
             sv_texts = small_voices_df['original_text'].tolist()
-            # Small Voice items are critical, so we include ALL of them (User requested "ALL")
-            # No limit applied
             sv_samples = "\\n".join([f"  - {t}" for t in sv_texts])
             prompt_content.append(f"### 【重要】Small Voice (少数だが特異な意見 - 全件)\\n{sv_samples}")
             
         all_content_str = "\\n\\n".join(prompt_content)
         total_comments = len(df)
         
-        prompt = f"""あなたは組織開発のシニア・コンサルタントとして、社員の声を元に「議論のアジェンダ（議題）」を作成します。
-分析テーマ: {theme_name}
-データ数: {total_comments}件
-
-### 指示:
-マジョリティ（多数派）の意見と、マイノリティ（Small Voice）の意見をバランスよく取り上げ、合計で**5つのアジェンダ**を作成してください。
-
+        # Dynamic Prompt Construction based on existence of Small Voice
+        if has_small_voice:
+            # Case A: Normal + Small Voice
+            instructions = """
 1. **マジョリティの課題（4つ）**:
    - 「メインカテゴリ」データから、多くの社員が感じている組織的な課題（ボトルネック、制度疲労など）を4つ抽出してください。
    - `related_topics` には、そのデータの「カテゴリ名」を正確に入れてください。
 
 2. **Small Voiceの課題（1つ）**:
-   - **「Small Voice」データ全体を俯瞰し、1つの課題としてまとめてください。**
+   - **「Small Voice」データに含まれる意見を、分析や解釈を加えずに、具体的に紹介してください。**
    - **タイトルは必ず「Small Voice」としてください。**
    - `related_topics` は必ず `["Small Voice (特異点)"]` としてください。
-   - `insight`（詳細説明）には、そこに含まれる多様な観点（ハラスメントの予兆、コンプライアンスリスク、あるいは突飛だが革新的なアイデアなど）を、**網羅的に要約**して記述してください。多種多様な意見があることを示唆する内容にしてください。
+   - `insight`（詳細説明）には、「以下のような意見がありました」という形式で、具体的な意見の内容を**列挙**してください。
+   - **【禁止事項】**: 背景の推測、過度な一般化、元の発言にない解釈を加えることは禁止です。事実のみを伝えてください。
+"""
+        else:
+            # Case B: All Majority (No Small Voice)
+            instructions = """
+1. **マジョリティの課題（5つ）**:
+   - 「メインカテゴリ」データから、多くの社員が感じている組織的な課題（ボトルネック、制度疲労など）を**5つ**抽出してください。
+   - `related_topics` には、そのデータの「カテゴリ名」を正確に入れてください。
+   - **Small Voice の課題は作成しないでください（データが存在しないため）。**
+"""
+
+        prompt = f"""あなたは組織開発のシニア・コンサルタントとして、社員の声を元に「議論のアジェンダ（議題）」を作成します。
+分析テーマ: {theme_name}
+データ数: {total_comments}件
+
+### 指示:
+以下の指示に従い、合計で**5つのアジェンダ**を作成してください。
+
+{instructions.strip()}
 
 3. **対話を促すタイトル（マジョリティ側）**:
    - マジョリティ側の議題タイトルは「〜の問題」ではなく「〜をどう乗り越えるか」といった、建設的な議論を誘発するものにしてください。
@@ -427,7 +441,7 @@ def generate_issue_logic_from_clusters(df, theme_name):
   ]
 }}
 """
-        logger.info("Generating Issue Logic with Gemini...")
+        logger.info(f"Generating Issue Logic with Gemini (Has SV: {has_small_voice})...")
         try:
             response = model.generate_content(prompt)
             clean_text = response.text.strip()
