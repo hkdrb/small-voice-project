@@ -184,9 +184,7 @@ export default function RichTextEditor({
     if (editor && content !== editor.storage.markdown.getMarkdown()) {
       // Only update if content is drastically different to avoid cursor jumps
       // This is a simple check, ideally we'd compare more robustly
-      if (content === '') {
-        editor.commands.setContent(content);
-      }
+      editor.commands.setContent(content);
     }
   }, [content, editor]);
 

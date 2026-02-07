@@ -1,11 +1,10 @@
-'use client';
 
 import React, { useState } from 'react';
 import { CommentItem } from '@/types/dashboard';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { MessageCircle, Heart, Reply, Edit2, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { MessageCircle, Heart, Reply, Edit2, ChevronDown, ChevronUp, User, Sparkles, Bot } from 'lucide-react';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 
 import axios from 'axios';
@@ -15,9 +14,24 @@ interface CommentTreeProps {
   currentUserId?: number;
   sessionId: number;
   onRefresh?: () => void;
+  analysisResults?: Record<string, any>; // parent_id -> result
+  onAnalyzeThread?: (rootCommentId: number) => Promise<void>;
+  isAnalyzing?: boolean;
+  isAdmin?: boolean;
+  onQuote?: (text: string) => void;
 }
 
-export default function CommentTree({ comments, currentUserId, sessionId, onRefresh }: CommentTreeProps) {
+export default function CommentTree({
+  comments,
+  currentUserId,
+  sessionId,
+  onRefresh,
+  analysisResults = {},
+  onAnalyzeThread,
+  isAnalyzing = false,
+  isAdmin = false,
+  onQuote
+}: CommentTreeProps) {
   // Build tree logic
   const buildTree = (items: CommentItem[]): CommentItem[] => {
     const map = new Map<number, CommentItem>();
@@ -64,6 +78,10 @@ export default function CommentTree({ comments, currentUserId, sessionId, onRefr
           depth={0}
           sessionId={sessionId}
           onRefresh={onRefresh}
+          analysisResult={analysisResults[node.id.toString()]}
+          onAnalyzeThread={onAnalyzeThread}
+          isAnalyzingGlobal={isAnalyzing}
+          isAdmin={isAdmin}
         />
       ))}
       {tree.length === 0 && <p className="text-slate-400 text-sm">まだコメントはありません。</p>}
@@ -71,13 +89,30 @@ export default function CommentTree({ comments, currentUserId, sessionId, onRefr
   );
 }
 
-function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, defaultExpanded = false }: {
+function CommentNode({
+  node,
+  currentUserId,
+  depth,
+  sessionId,
+  onRefresh,
+  defaultExpanded = false,
+  analysisResult,
+  onAnalyzeThread,
+  isAnalyzingGlobal,
+  isAdmin,
+  onQuote
+}: {
   node: CommentItem,
   currentUserId?: number,
   depth: number,
   sessionId: number,
   onRefresh?: () => void,
-  defaultExpanded?: boolean
+  defaultExpanded?: boolean,
+  analysisResult?: any,
+  onAnalyzeThread?: (id: number) => Promise<void>,
+  isAnalyzingGlobal?: boolean,
+  isAdmin?: boolean,
+  onQuote?: (text: string) => void
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
@@ -85,6 +120,9 @@ function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, default
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
+
+  // Analysis UI State
+  const [showAnalysis, setShowAnalysis] = useState(!!analysisResult);
 
   // Helper to count all descendants
   const countDescendants = (item: CommentItem): number => {
@@ -153,6 +191,13 @@ function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, default
     }
   };
 
+  const handleRunAnalysis = async () => {
+    if (onAnalyzeThread) {
+      setShowAnalysis(true); // Ensure expanded
+      await onAnalyzeThread(node.id);
+    }
+  };
+
   const indent = Math.min(depth * 20, 100); // Cap indent
   const isOwner = currentUserId === node.user_id;
 
@@ -187,14 +232,41 @@ function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, default
               <Heart className="h-4 w-4" />
               <span>{node.likes_count}</span>
             </button>
-            <button onClick={() => setIsReplying(!isReplying)} className="text-slate-400 hover:text-sage-primary p-1 rounded hover:bg-sage-50 transition-colors">
+            <button
+              onClick={() => setIsReplying(!isReplying)}
+              className="text-slate-400 hover:text-sage-primary p-1 rounded hover:bg-sage-50 transition-colors"
+              title="返信"
+            >
               <Reply className="h-4 w-4" />
             </button>
+            {onQuote && (
+              <button
+                onClick={() => {
+                  const quoteText = `> @${node.user_name || '名無し'}: ${node.content.split('\n')[0]}`;
+                  onQuote(quoteText);
+                }}
+                className="text-slate-400 hover:text-sage-primary p-1 rounded hover:bg-sage-50 transition-colors"
+                title="引用"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </button>
+            )}
+            {/* Thread Analysis Button (Root Only & Admin Only/or visible to all?) -> Visible to all but restricted execution maybe? Assuming Visible for now */}
+            {depth === 0 && onAnalyzeThread && (
+              <button
+                onClick={() => setShowAnalysis(!showAnalysis)}
+                className={`ml-1 p-1 rounded transition-colors ${analysisResult ? 'text-amber-500 bg-amber-50 hover:bg-amber-100' : 'text-slate-400 hover:text-sage-primary hover:bg-sage-50'}`}
+                title="議論の分析（AI）"
+              >
+                <Bot className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
         {/* Content */}
         {isEditing ? (
+          // ... (Editing UI same as before)
           <div className="animate-in fade-in">
             <RichTextEditor
               content={editContent}
@@ -210,12 +282,84 @@ function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, default
           </div>
         ) : (
           <div className="text-sm text-slate-700 markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{node.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+              {node.content.replace(/<!-- issue:.*? -->/g, '')}
+            </ReactMarkdown>
+          </div>
+        )}
+
+        {/* Thread Analysis Result (Root Only) */}
+        {depth === 0 && showAnalysis && (
+          <div className="mt-4 pt-3 border-t border-slate-200/50 animate-in fade-in">
+            {!analysisResult ? (
+              <div className="text-center py-4 bg-slate-50/50 rounded-lg">
+                <p className="text-xs text-slate-500 mb-2">このスレッドの議論をAIが要約・分析します。</p>
+                <button
+                  onClick={handleRunAnalysis}
+                  disabled={isAnalyzingGlobal}
+                  className="btn-primary px-3 py-1.5 text-xs flex items-center justify-center gap-2 mx-auto disabled:opacity-50"
+                >
+                  {isAnalyzingGlobal ? <div className="animate-spin h-3 w-3 border-b-2 border-white rounded-full"></div> : <Sparkles className="h-3 w-3" />}
+                  分析を実行
+                </button>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-br from-amber-50 to-white rounded-lg p-3 border border-amber-100 shadow-sm text-xs">
+                {/* Summary */}
+                <div className="mb-3">
+                  <h5 className="font-bold text-amber-800 mb-1 flex items-center gap-1.5">
+                    <span className="bg-amber-100 p-0.5 rounded text-amber-600">📝</span>
+                    議論の要約
+                  </h5>
+                  <p className="text-slate-700 leading-relaxed pl-6">{analysisResult.summary}</p>
+                </div>
+
+                {/* Points */}
+                {analysisResult.points && analysisResult.points.length > 0 && (
+                  <div className="mb-3">
+                    <h5 className="font-bold text-amber-800 mb-1 flex items-center gap-1.5">
+                      <span className="bg-amber-100 p-0.5 rounded text-amber-600">📌</span>
+                      主な論点
+                    </h5>
+                    <ul className="list-disc list-inside text-slate-700 pl-6 space-y-0.5">
+                      {analysisResult.points.map((p: string, i: number) => (
+                        <li key={i}>{p}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Conclusion */}
+                {analysisResult.conclusion && (
+                  <div>
+                    <h5 className="font-bold text-amber-800 mb-1 flex items-center gap-1.5">
+                      <span className="bg-amber-100 p-0.5 rounded text-amber-600">🏁</span>
+                      結論・ネクストアクション
+                    </h5>
+                    <p className="text-slate-700 leading-relaxed pl-6">{analysisResult.conclusion}</p>
+                  </div>
+                )}
+
+                {/* Re-analyze button */}
+                {isAdmin && (
+                  <div className="mt-3 text-right">
+                    <button
+                      onClick={handleRunAnalysis}
+                      disabled={isAnalyzingGlobal}
+                      className="text-[10px] text-slate-400 hover:text-amber-600 underline"
+                    >
+                      再分析を実行
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* Reply Form */}
         {isReplying && !isEditing && (
+          // ... (Same Reply Form as before)
           <div className="mt-3 pt-3 border-t border-slate-200/50 animate-in slide-in-from-top-1">
             <RichTextEditor
               content={replyContent}
@@ -244,7 +388,7 @@ function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, default
         )}
       </div>
 
-      {/* Children (Replies) */}
+      {/* Children (Replies) - Existing code ... */}
       {node.children && node.children.length > 0 && (
         <div className="mt-2">
           {!isExpanded && (
@@ -276,6 +420,8 @@ function CommentNode({ node, currentUserId, depth, sessionId, onRefresh, default
                   sessionId={sessionId}
                   onRefresh={onRefresh}
                   defaultExpanded={true}
+                  onQuote={onQuote}
+                // Do not pass analysis props to children, only root matters for this design
                 />
               ))}
             </div>
