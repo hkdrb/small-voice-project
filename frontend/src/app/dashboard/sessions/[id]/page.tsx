@@ -545,12 +545,77 @@ export default function SessionDetailPage() {
           </div>
         </section>
 
-        {/* 3. Everyone's Suggestions Analysis */}
+        {/* 3. Comments Chat */}
+        <section className="glass-card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm font-bold text-sage-dark pl-2 border-l-4 border-sage-primary">3. みんなの提案チャット</h3>
+            <button
+              onClick={() => setIsCreatingPost(!isCreatingPost)}
+              className="btn-primary px-4 py-2 text-sm flex items-center gap-2"
+            >
+              <MessageCircle className="h-4 w-4" />
+              新規投稿
+            </button>
+          </div>
+
+          {/* New Post Form */}
+          {isCreatingPost && (
+            <div className="mb-8 p-4 bg-sage-50 rounded-xl animate-in slide-in-from-top-2 border border-sage-200">
+              <h4 className="font-bold text-sage-800 mb-2">新規投稿を作成</h4>
+              <RichTextEditor
+                content={postContent}
+                onChange={(content) => setPostContent(content)}
+                placeholder="提案やコメントを入力してください..."
+                className="mb-3 min-h-[150px]"
+                minHeight="150px"
+              />
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                    className="w-4 h-4 text-sage-600 rounded"
+                  />
+                  <span className="text-sm text-gray-600">匿名で投稿</span>
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsCreatingPost(false)}
+                    className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={handleCreatePost}
+                    disabled={!postContent.trim()}
+                    className="btn-primary px-4 py-2 text-sm"
+                  >
+                    投稿する
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <CommentTree
+            comments={data.comments}
+            sessionId={data.id}
+            currentUserId={user?.id}
+            onRefresh={() => {
+              // Re-fetch data
+              axios.get(`/api/dashboard/sessions/${id}`, { withCredentials: true })
+                .then(res => setData(res.data));
+            }}
+          />
+        </section>
+
+        {/* 4. Everyone's Suggestions Analysis */}
         <section className="glass-card p-6">
           <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
             <div className="flex items-center gap-3">
               <h3 className="text-sm font-bold text-sage-dark pl-2 border-l-4 border-sage-primary flex items-center gap-2">
-                <Sparkles className="h-4 w-4" /> 3. みんなの提案分析
+                <Sparkles className="h-4 w-4" /> 4. みんなの提案分析
               </h3>
               {isAdmin && (
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${data.is_comment_analysis_published ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -685,71 +750,6 @@ export default function SessionDetailPage() {
               );
             })()}
           </div>
-        </section>
-
-        {/* 4. Comments Chat */}
-        <section className="glass-card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-bold text-sage-dark pl-2 border-l-4 border-sage-primary">4. みんなの提案チャット</h3>
-            <button
-              onClick={() => setIsCreatingPost(!isCreatingPost)}
-              className="btn-primary px-4 py-2 text-sm flex items-center gap-2"
-            >
-              <MessageCircle className="h-4 w-4" />
-              新規投稿
-            </button>
-          </div>
-
-          {/* New Post Form */}
-          {isCreatingPost && (
-            <div className="mb-8 p-4 bg-sage-50 rounded-xl animate-in slide-in-from-top-2 border border-sage-200">
-              <h4 className="font-bold text-sage-800 mb-2">新規投稿を作成</h4>
-              <RichTextEditor
-                content={postContent}
-                onChange={(content) => setPostContent(content)}
-                placeholder="提案やコメントを入力してください..."
-                className="mb-3 min-h-[150px]"
-                minHeight="150px"
-              />
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isAnonymous}
-                    onChange={(e) => setIsAnonymous(e.target.checked)}
-                    className="w-4 h-4 text-sage-600 rounded"
-                  />
-                  <span className="text-sm text-gray-600">匿名で投稿</span>
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsCreatingPost(false)}
-                    className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    キャンセル
-                  </button>
-                  <button
-                    onClick={handleCreatePost}
-                    disabled={!postContent.trim()}
-                    className="btn-primary px-4 py-2 text-sm"
-                  >
-                    投稿する
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <CommentTree
-            comments={data.comments}
-            sessionId={data.id}
-            currentUserId={user?.id}
-            onRefresh={() => {
-              // Re-fetch data
-              axios.get(`/api/dashboard/sessions/${id}`, { withCredentials: true })
-                .then(res => setData(res.data));
-            }}
-          />
         </section>
       </div>
     </div>
