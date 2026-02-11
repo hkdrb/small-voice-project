@@ -1,96 +1,96 @@
 erDiagram
     %% Styles
-    classDef userOrg fill:#E1F5FE,stroke:#01579B,stroke-width:2px;
-    classDef survey fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px;
-    classDef analysis fill:#FFF3E0,stroke:#EF6C00,stroke-width:2px;
-    classDef casual fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px;
-    classDef notif fill:#FFEBEE,stroke:#C62828,stroke-width:2px;
+    classDef userOrg fill:#E1F5FE,stroke:#01579B,stroke-width:3px,font-size:24px,font-weight:bold;
+    classDef survey fill:#E8F5E9,stroke:#2E7D32,stroke-width:3px,font-size:24px,font-weight:bold;
+    classDef analysis fill:#FFF3E0,stroke:#EF6C00,stroke-width:3px,font-size:24px,font-weight:bold;
+    classDef casual fill:#F3E5F5,stroke:#7B1FA2,stroke-width:3px,font-size:24px,font-weight:bold;
+    classDef notif fill:#FFEBEE,stroke:#C62828,stroke-width:3px,font-size:24px,font-weight:bold;
 
     %% --- Tier 1: Core (Top) ---
-    users["users (ユーザー)"] {
+    users["<center><b>users</b><br><b>(ユーザー)</b></center>"] {
         int id PK
         string name
         string role
     }
-    organizations["organizations (組織)"] {
+    organizations["<center><b>organizations</b><br><b>(組織)</b></center>"] {
         int id PK
         string name
     }
-    organization_members["organization_members (組織メンバー)"] {
+    organization_members["<center><b>organization_members</b><br><b>(組織メンバー)</b></center>"] {
         int user_id FK
         int org_id FK
         string role
     }
 
-    organizations ||--o{ organization_members : "has"
-    users ||--o{ organization_members : "belongs"
+    organizations ||--o{ organization_members : ""
+    users ||--o{ organization_members : ""
 
     class users userOrg
     class organizations userOrg
     class organization_members userOrg
 
     %% --- Tier 2: Notifications (Side/Top) ---
-    notifications["notifications (通知)"] {
-        int u_id FK
+    notifications["<center><b>notifications</b><br><b>(通知)</b></center>"] {
+        int user_id FK
         string type
         string title
     }
-    users ||--o{ notifications : "receives"
+    users ||--o{ notifications : ""
 
     class notifications notif
 
     %% --- Tier 3: Modules (Middle) ---
     
     %% Module A: Surveys
-    surveys["surveys (アンケート)"] {
+    surveys["<center><b>surveys</b><br><b>(アンケート)</b></center>"] {
         int id PK
         string title
     }
-    questions["questions (設問)"] {
+    questions["<center><b>questions</b><br><b>(設問)</b></center>"] {
         int id PK
         string content
     }
-    answers["answers (回答)"] {
+    answers["<center><b>answers</b><br><b>(回答)</b></center>"] {
         int survey_id FK
         int question_id FK
         int user_id FK
         string content
     }
 
-    organizations ||--o{ surveys : "manages"
-    surveys ||--o{ questions : "contains"
-    questions ||--o{ answers : "has"
-    users ||--o{ answers : "submits"
+    organizations ||--o{ surveys : ""
+    surveys ||--o{ questions : ""
+    questions ||--o{ answers : ""
+    users ||--o{ answers : ""
 
     class surveys survey
     class questions survey
     class answers survey
 
     %% Module B: Analysis
-    analysis_sessions["analysis_sessions (分析セッション)"] {
+    analysis_sessions["<center><b>analysis_sessions</b><br><b>(分析セッション)</b></center>"] {
         int id PK
         string title
         string status
     }
-    analysis_results["analysis_results (分析結果)"] {
+    analysis_results["<center><b>analysis_results</b><br><b>(分析結果)</b></center>"] {
         int session_id FK
         string summary
     }
-    issue_definitions["issue_definitions (課題定義)"] {
+    issue_definitions["<center><b>issue_definitions</b><br><b>(課題定義)</b></center>"] {
         int session_id FK
         string description
     }
-    comments["comments (コメント)"] {
+    comments["<center><b>comments</b><br><b>(コメント)</b></center>"] {
         int session_id FK
         int user_id FK
         string content
     }
 
-    organizations ||--o{ analysis_sessions : "runs"
-    analysis_sessions ||--o{ analysis_results : "generates"
-    analysis_sessions ||--o{ issue_definitions : "identifies"
-    analysis_sessions ||--o{ comments : "discusses"
-    users ||--o{ comments : "posts"
+    organizations ||--o{ analysis_sessions : ""
+    analysis_sessions ||--o{ analysis_results : ""
+    analysis_sessions ||--o{ issue_definitions : ""
+    analysis_sessions ||--o{ comments : ""
+    users ||--o{ comments : ""
 
     class analysis_sessions analysis
     class analysis_results analysis
@@ -98,18 +98,18 @@ erDiagram
     class comments analysis
 
     %% Module C: Casual Board
-    casual_posts["casual_posts (雑談投稿)"] {
+    casual_posts["<center><b>casual_posts</b><br><b>(雑談投稿)</b></center>"] {
         int id PK
         string content
     }
-    casual_analyses["casual_analyses (雑談分析)"] {
+    casual_analyses["<center><b>casual_analyses</b><br><b>(雑談分析)</b></center>"] {
         int org_id FK
         json result
     }
 
-    organizations ||--o{ casual_posts : "hosts"
-    organizations ||--o{ casual_analyses : "analyzes"
-    users ||--o{ casual_posts : "writes"
+    organizations ||--o{ casual_posts : ""
+    organizations ||--o{ casual_analyses : ""
+    users ||--o{ casual_posts : ""
 
     class casual_posts casual
     class casual_analyses casual
