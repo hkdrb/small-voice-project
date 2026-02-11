@@ -4,7 +4,7 @@
 
 本ドキュメントは、Small Voice（ブロードリスニングシステム）の技術アーキテクチャを包括的に説明します。システムの設計思想、機能詳細、技術スタック、実装の詳細まで網羅しています。
 
-**対象読者**: 開発者、システムアーキテクト、技術リード
+**対象読者**: 開発者
 
 **読み方ガイド**:
 - **全体像を把握したい**: 「主な機能」「技術スタック」セクションを参照
@@ -16,10 +16,9 @@
 ## 📋 目次
 
 1. [主な機能](#主な機能)
-   - データ収集方法（雑談掲示板、メンバー申請、CSV、管理者作成）
+   - フォーム管理（作成、申請、承認、CSV、エクスポート、チャット）
    - 雑談掲示板
-   - AI分析とクラスタリング
-   - 分析セッション管理
+   - クラスタリング
    - 課題リスト生成
    - 議論チャット
    - AIファシリテーター
@@ -49,8 +48,8 @@
 
 ## 主な機能
 
-### 1. 多様なデータ収集方法
-本システムは、組織内の声を様々な経路で収集し、一元的に分析できるように設計されています。
+### 1. フォーム管理
+本システムの中核となるフォーム機能です。雑談掲示板からのAI生成、メンバーからのボトムアップ申請、管理者による直接作成、外部CSVインポートなど、多様な経路でフォームを作成・管理できます。
 
 #### 1.1 雑談掲示板からのフォーム作成
 - **実装**: `backend/api/casual_chat.py` でCRUD操作を提供
@@ -98,13 +97,24 @@
 - **用途**: 外部ツールでの分析、バックアップ、レポート作成
 - **権限**: 組織管理者のみ
 
-#### 1.6 フォームへのコメント・議論
+#### 1.6 申請フォームへのチャット・議論
 - **実装**: `backend/api/survey.py`
   - `POST /api/surveys/{survey_id}/comments` - コメント投稿
   - `GET /api/surveys/{survey_id}/comments` - コメント一覧取得
-- **データモデル**: `SurveyComment` 
-- **用途**: フォーム自体に対する質問や議論（回答とは別）
-- **機能**: 組織メンバー間で、フォームの内容や結果について議論可能
+- **データモデル**: `SurveyComment`
+- **用途**: 申請フォームに対する質問、内容の確認、議論（フォーム回答とは別の機能）
+- **権限・状態別の動作**:
+
+  | ユーザー権限 | フォーム状態 | 閲覧 | 投稿 | 詳細 |
+  | :--- | :--- | :---: | :---: | :--- |
+  | **申請者（一般）** | `pending`（申請中） | ✅ | ✅ | 申請内容の補足説明や管理者への質問が可能 |
+  | **申請者（一般）** | `approved`（承認済み） | ✅ | ✅ | 承認後も内容に関する議論が可能 |
+  | **申請者（一般）** | `rejected`（却下） | ✅ | ✅ | 却下理由の確認や修正相談が可能 |
+  | **組織管理者** | すべて | ✅ | ✅ | 申請内容の確認、質問、承認判断の議論に使用 |
+  | **他の一般ユーザー** | `pending`（申請中） | ❌ | ❌ | 承認前は申請者と管理者のみがアクセス可能 |
+  | **他の一般ユーザー** | `approved` + `is_active=True`（公開中） | ✅ | ✅ | 公開後は全メンバーが閲覧・投稿可能 |
+
+- **通知連携**: コメント投稿時に申請者・管理者に通知
 
 ### 2. 雑談掲示板（日常的なコミュニケーション）
 組織メンバーが自由に意見を投稿し、議論できる場を提供します。この掲示板の投稿は、AI分析によってフォーム作成の素材として活用されます（1.1参照）。
@@ -137,17 +147,32 @@
   - 管理者が分析結果の公開状態を制御
   - 不要な分析結果を削除
 
-### 3. AI分析とクラスタリング
-収集されたテキストデータを構造化し、視覚的に理解しやすい形に変換します。
+### 3. クラスタリング
+管理画面の「分析」機能に対応します。収集されたフォーム回答やCSVデータを、AIがクラスタリングして視覚化・構造化します。
 
-#### 3.1 意味ベクトル化
+#### 3.1 分析セッション管理
+- **実装**: `backend/api/dashboard.py`
+- **API**:
+  - `POST /api/dashboard/sessions/analyze` - 新規分析セッション作成＋AI分析実行
+  - `GET /api/dashboard/sessions` - セッション一覧取得
+  - `GET /api/dashboard/sessions/{session_id}` - セッション詳細取得
+  - `DELETE /api/dashboard/sessions/{session_id}` - セッション削除
+  - `PUT /api/dashboard/sessions/{session_id}/publish` - セッション公開/非公開切り替え
+  - `POST /api/dashboard/sessions/{session_id}/comments/import` - CSVデータインポート
+- **データモデル**: `AnalysisSession` (テーマ、タイトル、作成日時、組織ID、公開フラグ)
+- **機能**:
+  - 1つのセッションに、フォームの回答データまたはCSVデータを紐付け
+  - クラスタリング結果、課題リスト、議論を一元管理
+  - 公開設定により、一般メンバーへの表示/非表示を制御
+
+#### 3.2 意味ベクトル化
 - **実装**: `backend/services/analysis.py::get_vectors_semantic()`
 - **手法**: 
   - **Sentence Transformers** (`paraphrase-multilingual-MiniLM-L12-v2`) をローカルで使用
   - 多言語対応の軽量モデルで、日本語テキストを高次元ベクトル空間に埋め込み
   - フォールバック: 失敗時はTF-IDF (文字n-gram) に自動切り替え
 
-#### 3.2 外れ値検出（Small Voice）
+#### 3.3 外れ値検出（Small Voice）
 - **実装**: `backend/services/analysis.py::detect_outliers()`
 - **手法**:
   - **Isolation Forest** と **Local Outlier Factor (LOF)** を併用
@@ -155,7 +180,7 @@
   - 動的閾値調整: データ分布に応じて外れ値判定を適応的に変更
 - **目的**: 少数意見を統計的に「ノイズ」として除外せず、重要な兆候として保持
 
-#### 3.3 クラスタリング
+#### 3.4 クラスタリング実行
 - **実装**: `backend/services/analysis.py::analyze_clusters_logic()`
 - **手法**:
   - **K-Means** によるクラスタリング（外れ値を除いた主要意見のみ対象）
@@ -165,39 +190,17 @@
   - Gemini 2.0 Flash API を使用して、各クラスタの代表的なテキストから簡潔なラベルを生成
   - バッチ処理（5クラスタごと）で並列実行し、レイテンシを削減
 
-#### 3.4 2次元可視化
+#### 3.5 2次元可視化
 - **実装**: `backend/services/analysis.py::analyze_clusters_logic()` 内でPCA実行
 - **手法**: 
   - **PCA (主成分分析)** による2次元座標の算出（高速処理のためUMAPから変更）
   - フロントエンドで `react-plotly.js` を使用してインタラクティブな散布図を表示
   - 各点をクリックすると元のテキストを表示可能
 
-### 4. 分析セッション管理
-フォームやCSVから収集したデータを分析するためのセッション（分析プロジェクト）を管理します。
+### 4. 課題リスト生成
+管理画面の「イシューリスト」機能に対応します。クラスタリング結果から、議論すべきアジェンダを自動生成します。
 
-#### 4.1 基本機能
-- **実装**: `backend/api/dashboard.py`
-- **API**:
-  - `POST /api/dashboard/sessions/analyze` - 新規分析セッション作成＋分析実行
-  - `GET /api/dashboard/sessions` - セッション一覧取得
-  - `GET /api/dashboard/sessions/{session_id}` - セッション詳細取得
-  - `DELETE /api/dashboard/sessions/{session_id}` - セッション削除
-  - `PUT /api/dashboard/sessions/{session_id}/publish` - セッション公開/非公開切り替え
-- **データモデル**: `AnalysisSession` (テーマ、タイトル、作成日時、組織ID、公開フラグ)
-- **機能**:
-  - 1つのセッションに、フォームの回答データまたはCSVデータを紐付け
-  - クラスタリング結果、課題リスト、議論を一元管理
-  - 公開設定により、一般メンバーへの表示/非表示を制御
-
-#### 4.2 CSVインポート（補足）
-- **API**: `POST /api/dashboard/sessions/{session_id}/comments/import`
-- **パラメータ**: `session_id` (既存セッションID), `issue_title` (課題タイトル), `file` (CSVファイル)
-- **機能**: 既存セッションに追加でCSVデータを取り込み、指定した課題に紐付けてコメントとして格納
-
-### 5. 課題リスト生成
-クラスタリング結果から、議論すべきアジェンダを自動生成します。
-
-#### 5.1 実装
+#### 4.1 実装
 - **関数**: `backend/services/analysis.py::generate_issue_logic_from_clusters()`
 - **API**: `GET /api/dashboard/sessions/{session_id}/issues` - 課題一覧取得
 - **処理フロー**:
@@ -207,19 +210,19 @@
      - Small Voiceの課題 1つ（少数意見の具体的な紹介）
   3. Small Voiceが存在しない場合は、「検出されませんでした」として空の項目を生成
 
-#### 5.2 プロンプトエンジニアリング
+#### 4.2 プロンプトエンジニアリング
 - **マジョリティ課題**: 「〜の問題」ではなく「〜をどう乗り越えるか」といった建設的なタイトルを生成
 - **Small Voice課題**: 
   - 分析や解釈を加えず、具体的な意見を列挙する形式
   - 背景の推測や過度な一般化を禁止（プロンプトで明示）
 
-#### 5.3 データモデル
-- **DiscussionIssue**: 課題タイトル、関連トピック、洞察、ソースタイプ (`majority` | `small_voice`) を保持
+#### 4.3 データモデル
+- **IssueDefinition**: 課題タイトル、関連トピック、洞察、ソースタイプ (`majority` | `small_voice`) をJSON形式で保持
 
-### 6. 課題ごとの議論チャット
+### 5. 課題ごとの議論チャット
 各課題に対して、メンバーが意見を投稿し、議論を深める空間を提供します。
 
-#### 6.1 コメント機能
+#### 5.1 コメント機能
 - **API**: `backend/api/dashboard.py`
   - `POST /api/dashboard/sessions/{session_id}/comments` - コメント投稿
   - `GET /api/dashboard/sessions/{session_id}/comments` - コメント一覧取得（課題IDでフィルタ可能）
@@ -234,7 +237,7 @@
   - いいね数の表示
   - コメント編集（投稿者のみ）
 
-#### 6.2 通知システム
+#### 5.2 通知システム
 - **実装**: `backend/services/notification_service.py`, `backend/api/notifications.py`
 - **トリガー**:
   - 自分のコメントへのリプライ
@@ -244,87 +247,78 @@
 - **API**: 
   - `GET /api/notifications` - 通知一覧取得
   - `POST /api/notifications/{id}/read` - 個別既読マーク
-  - `POST /api/notifications/read-all` - 一括既読
+- `POST /api/notifications/read-all` - 一括既読
 
-### 7. AIファシリテーター
+### 6. AIファシリテーター
 議論の内容を分析し、次のアクションを提案します。
 
-#### 7.1 実装
+#### 6.1 実装
 - **関数**: `backend/services/analysis.py::analyze_thread_logic()`
 - **API**: `POST /api/dashboard/sessions/{session_id}/analyze-thread`
+- **入力**: `parent_comment_id` （スレッドのルートコメントID）
 - **処理フロー**:
-  1. 課題に紐づくコメント（親+子）をすべて取得
-  2. Gemini 2.0 Flash API に議論の流れを渡す
-  3. AIが以下を生成:
-     - **next_steps**: 次にとるべき具体的なアクション（最大3つ）
-       - `title`: アクションの見出し（20文字以内）
-       - `detail`: 具体的な内容、担当者、期限の目安、背景説明
+  1. `parent_comment_id` を起点に、すべての子コメント（リプライ）を再帰的に取得
+  2. 時系列順に整理してプロンプトを構築
+  3. Gemini 2.0 Flash Thinking API に議論内容を送信し、次のアクションを提案
+  4. 結果を返却（フロントエンドでアコーディオン形式で表示）
 
-#### 7.2 プロンプト設計
-- **中立的なファシリテーター**: 参加者の意見を尊重しつつ、建設的な解決策を提示
-- **実行可能性**: 抽象的な提案ではなく、具体的な次のステップを明示
+#### 6.2 プロンプト設計
+- **役割**: 中立的なファシリテーター（診断や分析ではなく、合意形成のためのサポートを提供）
+- **出力形式**: JSON形式で「論点」と「次のアクション」を構造化
 
-### 8. マルチテナント構成（組織管理）
+### 7. マルチテナント構成（組織管理）
 複数の組織が同一システムを利用し、データが論理的に分離される設計です。
 
-#### 8.1 権限モデル
+#### 7.1 権限モデル
 | 役割 | 権限範囲 | データモデル |
 | :--- | :--- | :--- |
 | **システム管理者** | 全組織の管理、ユーザー作成、組織作成 | `User.role = "system_admin"` |
 | **組織管理者** | 所属組織内のフォーム管理、分析実行 | `OrganizationMember.role = "admin"` |
 | **一般ユーザー** | フォーム回答、申請、議論参加 | `OrganizationMember.role = "general"` |
 
-#### 8.2 多重所属
-- **実装**: `OrganizationMember` テーブルで `user_id` と `organization_id` の複数組み合わせを許可
-- **データ分離**: 
-  - すべてのデータモデル (`Survey`, `AnalysisSession`, `CasualPost` 等) に `organization_id` カラム
-  - API層で `current_org_id` を検証し、クエリにフィルタを適用
+#### 7.2 多重所属
+- **仕組**: `OrganizationMember` テーブルで `user_id` と `organization_id` の多対多関係を実現
+- **ユースケース**: 
+  - 1人のユーザーが、複数の部署・プロジェクトに参加
+  - 各組織内で異なる役割を持つことが可能（例: A組織は一般、B組織は管理者）
 
-#### 8.3 組織切り替え
-- **API**: `POST /api/auth/switch-org` - ユーザーが所属する組織を切り替え
-- **実装**: セッションに `last_org_id` を保存し、ログイン時に自動復元
-- **フロントエンド**: サイドバーの組織セレクターで切り替え可能
+#### 7.3 組織切り替え
+- **実装**: `POST /api/auth/switch-org` 
+- **機能**: 所属する組織間での切り替え。Cookieに現在の組織コンテキストを保存し、全APIがこれを参照
 
-#### 8.4 組織管理機能（システム管理者）
-- **実装**: `backend/api/organization.py`
-- **API**:
-  - `GET /api/organizations` - 組織一覧取得
-  - `POST /api/organizations` - 組織作成（システム管理者のみ）
-  - `PUT /api/organizations/{org_id}` - 組織編集（システム管理者のみ）
-  - `DELETE /api/organizations/{org_id}` - 組織削除（システム管理者のみ）
-  - `GET /api/organizations/{org_id}/members` - メンバー一覧取得
-  - `POST /api/organizations/{org_id}/members` - メンバー追加
-- **データモデル**: `Organization`, `OrganizationMember`
-- **機能**: 
-  - 組織の作成・編集・削除
-  - メンバーの追加・削除
-  - 組織内ロール設定（管理者/一般）
+#### 7.4 組織管理機能（システム管理者）
+- **API**: `backend/api/organization.py`
+  - `POST /api/organizations` - 組織作成
+  - `GET /api/organizations` - 組織一覧
+  - `PUT /api/organizations/{id}` - 組織情報更新
+  - `DELETE /api/organizations/{id}` - 組織削除
+  - `POST /api/organizations/{id}/members` - メンバー追加
+  - `GET /api/organizations/{id}/members` - メンバー一覧
+- **権限**: システム管理者のみ
 
-### 9. ユーザー管理機能
-システム管理者がユーザーを作成・管理する機能です。
+### 8. ユーザー管理機能
+システム管理者が全ユーザーを管理できます。
 
-#### 9.1 ユーザーCRUD
-- **実装**: `backend/api/users.py`
-- **API**:
-  - `GET /api/users` - ユーザー一覧取得（システム管理者のみ）
-  - `POST /api/users` - ユーザー作成（システム管理者のみ）
-  - `PUT /api/users/{user_id}` - ユーザー情報更新（システム管理者のみ）
-  - `DELETE /api/users/{user_id}` - ユーザー削除（システム管理者のみ）
-- **データモデル**: `User`
-- **機能**: 
-  - emailアドレスでユーザーを一意に識別
-  - パスワードはBcryptでハッシュ化
-  - システム全体のロール設定（`system_admin`, `admin`, `general`）
-  - 所属組織の一括設定
+#### 8.1 ユーザーCRUD
+- **API**: `backend/api/users.py`
+  - `POST /api/users` - 新規ユーザー作成（システム管理者のみ）
+  - `GET /api/users` - ユーザー一覧取得
+  - `PUT /api/users/{id}` - ユーザー情報更新（システム管理者のみ）
+  - `DELETE /api/users/{id}` - ユーザー削除（システム管理者のみ）
+- **機能**:
+  - 初期パスワード自動生成
+  - メールによる招待通知
+  - 組織への自動紐付け
+  - ロール設定 (`system_admin` /` system_user`)
 
-#### 9.2 プロフィール編集
-- **API**: `PUT /api/auth/me` - 自分のプロフィール更新
-- **機能**: ユーザー名、パスワード変更
+#### 8.2 プロフィール編集
+- **API**: `PUT /api/auth/me`
+- **機能**: ユーザー自身が自分の情報（氏名、パスワード）を更新可能
 
-### 10. 認証・セキュリティ
+### 9. 認証・セキュリティ
 ユーザー認証とセッション管理を提供します。
 
-#### 10.1 認証機能
+#### 9.1 認証機能
 - **実装**: `backend/api/auth.py`, `backend/security_utils.py`
 - **API**:
   - `POST /api/auth/login` - ログイン（メール・パスワード）
@@ -339,18 +333,19 @@
   - パスワードはBcryptでハッシュ化
   - セッショントークンは `secrets.token_urlsafe(32)` で生成
 
-#### 10.2 招待リンク機能
-- **実装**: `backend/api/auth.py`（詳細はauth.pyに実装）
-- **機能**: 
-  - 管理者が招待リンクを生成
-  - ユーザーがリンク経由でアカウント作成
-  - 招待時に組織とロールを事前設定
+#### 9.2 招待リンク機能
+- **実装**: `backend/api/auth.py`
+- **処理フロー**:
+  1. システム管理者が招待トークンを発行
+  2. ユーザーが招待リンクをクリックし、初回パスワードを設定
+  3. 組織に自動的に所属
 
-#### 10.3 パスワードリセット
-- **実装**: `backend/api/auth.py`（詳細はauth.pyに実装）
-- **機能**: 
-  - メールアドレスでリセットリンクを送信
-  - リンク経由で新しいパスワードを設定
+#### 9.3 パスワードリセット
+- **実装**: `backend/api/auth.py`, `backend/services/email_service.py`
+- **処理フロー**:
+  1. ユーザーがメールアドレスを入力
+  2. リセットトークンを生成し、メール送信
+  3. リンク経由で新しいパスワードを設定
 - **メール送信**: `backend/services/email_service.py` を使用
 
 
