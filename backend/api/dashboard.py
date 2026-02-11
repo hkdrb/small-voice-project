@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 import json
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
+import random
+import csv
+import io
 
-from backend.database import SessionLocal, AnalysisSession, AnalysisResult, IssueDefinition, Survey, Comment, CommentLike, Answer, get_db
+from backend.database import SessionLocal, AnalysisSession, AnalysisResult, IssueDefinition, Survey, Comment, CommentLike, Answer, get_db, OrganizationMember, User
 from backend.api.auth import get_current_user, UserResponse
 
 router = APIRouter()
@@ -500,3 +503,135 @@ def analyze_thread(
     except Exception as e:
         print(f"Thread Analysis error: {e}")
         raise HTTPException(status_code=500, detail="Thread analysis failed")
+
+@router.get("/sessions/{session_id}/issues")
+def get_session_issues(
+    session_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Check access
+    if not current_user.current_org_id:
+        return []
+        
+    session = db.query(AnalysisSession).filter(
+        AnalysisSession.id == session_id,
+        AnalysisSession.organization_id == current_user.current_org_id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    # Get Issue Definition
+    issue_def = db.query(IssueDefinition).filter(IssueDefinition.session_id == session_id).first()
+    if not issue_def or not issue_def.content:
+        return []
+        
+    try:
+        issues = json.loads(issue_def.content)
+        if isinstance(issues, list):
+            return [issue.get("title") for issue in issues if issue.get("title")]
+        return []
+    except:
+        return []
+
+@router.post("/sessions/{session_id}/comments/import")
+def import_session_comments(
+    session_id: int,
+    issue_title: str = Form(...),
+    file: UploadFile = File(...),
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # 1. System Admin Only
+    if current_user.role != 'system_admin':
+         raise HTTPException(status_code=403, detail="System Admin access required")
+         
+    # 2. Validate Session
+    session = db.query(AnalysisSession).filter(AnalysisSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # 3. Find or Create System Root for Issue
+    hidden_tag = f"<!-- issue:{issue_title} -->"
+    
+    # Check for existing root
+    # We look for a comment in this session that is a root (parent_id is None) and contains the tag
+    root_comment = db.query(Comment).filter(
+        Comment.session_id == session_id,
+        Comment.parent_id == None,
+        Comment.content.like(f"%{hidden_tag}%")
+    ).first()
+    
+    if not root_comment:
+        # Create new root
+        system_content = f"System Root for Issue: {issue_title}\n\n{hidden_tag} <!-- system_root -->"
+        root_comment = Comment(
+            session_id=session_id,
+            user_id=current_user.id, # System Admin owns the root
+            content=system_content,
+            is_anonymous=False
+        )
+        db.add(root_comment)
+        db.commit()
+        db.refresh(root_comment)
+        
+    # 4. Get Org Members for Random Assignment
+    if not session.organization_id:
+         raise HTTPException(status_code=400, detail="Session has no organization")
+         
+    members = db.query(OrganizationMember).filter(
+        OrganizationMember.organization_id == session.organization_id
+    ).all()
+    
+    member_user_ids = [m.user_id for m in members]
+    if not member_user_ids:
+        # Fallback to current user if no members (unlikely)
+        member_user_ids = [current_user.id]
+
+    # 5. Process CSV using pandas or csv module. Using csv module for simplicity with Stream
+    import pandas as pd
+    try:
+        content = file.file.read()
+        # Auto-detect encoding? Assume utf-8 first
+        try:
+            df = pd.read_csv(io.BytesIO(content))
+        except UnicodeDecodeError:
+            # Try Shift-JIS just in case for excel exports
+            df = pd.read_csv(io.BytesIO(content), encoding='shift-jis')
+            
+        if 'content' not in df.columns:
+             raise HTTPException(status_code=400, detail="CSV must have 'content' column")
+             
+        comments_to_add = []
+        for _, row in df.iterrows():
+            text = str(row['content']).strip()
+            if not text or text.lower() == 'nan':
+                continue
+                
+            # Random User
+            uid = random.choice(member_user_ids)
+            
+            # Random Anonymity (50/50 is default? or maybe bias towards one?)
+            # User said "Random is fine"
+            is_anon = random.choice([True, False])
+            
+            new_comment = Comment(
+                session_id=session_id,
+                user_id=uid,
+                content=text,
+                is_anonymous=is_anon,
+                parent_id=root_comment.id
+            )
+            comments_to_add.append(new_comment)
+            
+        if comments_to_add:
+            db.add_all(comments_to_add)
+            db.commit()
+            
+        return {"message": f"Imported {len(comments_to_add)} comments", "root_id": root_comment.id}
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+

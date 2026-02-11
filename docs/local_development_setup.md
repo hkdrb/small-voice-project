@@ -99,6 +99,12 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py 
 # (既にセッションが存在する場合のみ実行可能。何度でも実行してコメントを増やせます)
 docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --seed-comments
 ```
+
+### 議論コメントのCSVインポート (Web UI)
+コマンドライン以外に、管理画面（Web UI）からもテスト用コメントを投入できます。
+特定の議論スレッドに対して、自作のCSVデータを投入したい場合に便利です。
+- URL: `http://localhost:3000/admin/csv-import`
+
 ```
 
 ### データベースへの接続

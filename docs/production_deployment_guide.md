@@ -383,6 +383,15 @@ docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py
 # docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --seed-comments
 ```
 
+### 議論コメントのCSVインポート (管理画面)
+本番環境でも、特定の議論スレッドに対してCSVファイルからコメントを一括インポート可能です。
+URLを直接叩くことでアクセスできます。
+
+- **URL**: `https://your-domain.com/admin/csv-import`
+  - (`your-domain.com` は実際のドメインに置き換えてください)
+- **権限**: システム管理者 (`system_admin`) のみ実行可能
+- **用途**: デモデータの投入や、外部システムからのデータ移行など
+
 ---
 
 ## 付録
