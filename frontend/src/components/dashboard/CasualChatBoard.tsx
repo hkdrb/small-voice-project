@@ -76,9 +76,7 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
 
   useEffect(() => {
     fetchPosts();
-    if (isAdmin) {
-      fetchAnalyses();
-    }
+    fetchAnalyses();
   }, [user]);
 
   const fetchPosts = async () => {
@@ -179,10 +177,14 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
   };
 
   const toggleVisibility = async (analysis: AnalysisReport) => {
+    const action = analysis.is_published ? "非公開" : "公開";
+    if (!confirm(`このレポートを${action}にしますか？`)) return;
+
     try {
       const newStatus = !analysis.is_published;
       await axios.patch(`/api/casual/analyses/${analysis.id}/visibility`, { is_published: newStatus });
       setAnalyses(analyses.map(a => a.id === analysis.id ? { ...a, is_published: newStatus } : a));
+      setSelectedAnalysis(null);
     } catch (e) {
       alert('更新に失敗しました');
     }
@@ -380,8 +382,8 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
         )}
       </div>
 
-      {/* Analysis Sidebar (Admin Only) */}
-      {isAdmin && (
+      {/* Analysis Sidebar (Visible to Admin, or to Members if published analyses exist) */}
+      {(isAdmin || analyses.length > 0) && (
         <div className="w-80 flex flex-col h-full bg-white/60 backdrop-blur-md rounded-2xl border border-sage-200/40 shadow-sm overflow-hidden shrink-0">
           <div className="p-4 border-b border-sage-100 bg-gradient-to-br from-sage-50 to-white sticky top-0 z-10">
             <div className="flex items-center mb-2">
@@ -392,49 +394,53 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
               日々の雑談投稿をAIが分析し、作成するフォームを提案します。
             </p>
 
-            {/* Date Range Selector */}
-            <div className="mb-3 space-y-2">
-              <label className="text-[10px] text-sage-700 font-bold mb-1.5 block">分析対象期間</label>
-              <div className="space-y-2">
-                <div>
-                  <label className="text-[9px] text-sage-600 block mb-1">開始日</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    max={endDate}
-                    className="w-full px-3 py-1.5 text-xs border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-200 focus:border-sage-400 outline-none"
-                  />
+            {isAdmin && (
+              <>
+                {/* Date Range Selector */}
+                <div className="mb-3 space-y-2">
+                  <label className="text-[10px] text-sage-700 font-bold mb-1.5 block">分析対象期間</label>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[9px] text-sage-600 block mb-1">開始日</label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        max={endDate}
+                        className="w-full px-3 py-1.5 text-xs border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-200 focus:border-sage-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-sage-600 block mb-1">終了日</label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate}
+                        max={getDefaultEndDate()}
+                        className="w-full px-3 py-1.5 text-xs border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-200 focus:border-sage-400 outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[9px] text-sage-600 block mb-1">終了日</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    min={startDate}
-                    max={getDefaultEndDate()}
-                    className="w-full px-3 py-1.5 text-xs border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-200 focus:border-sage-400 outline-none"
-                  />
-                </div>
-              </div>
-            </div>
 
-            <button
-              onClick={handleAnalyze}
-              disabled={analyzing}
-              className="w-full bg-gradient-to-r from-sage-500 to-sage-600 hover:from-sage-600 hover:to-sage-700 text-white py-2 text-xs flex items-center justify-center gap-2 shadow-sm rounded-lg font-bold transition-all"
-            >
-              {analyzing ? (
-                <>
-                  <RefreshCw className="w-3 h-3 animate-spin" /> 分析中...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3 h-3" /> AI分析を実行
-                </>
-              )}
-            </button>
+                <button
+                  onClick={handleAnalyze}
+                  disabled={analyzing}
+                  className="w-full bg-gradient-to-r from-sage-500 to-sage-600 hover:from-sage-600 hover:to-sage-700 text-white py-2 text-xs flex items-center justify-center gap-2 shadow-sm rounded-lg font-bold transition-all"
+                >
+                  {analyzing ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 animate-spin" /> 分析中...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3 h-3" /> AI分析を実行
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
@@ -459,18 +465,20 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
                       <span className="w-1.5 h-1.5 rounded-full bg-sage-500"></span>
                       {format(new Date(analysis.created_at), 'M/d HH:mm', { locale: ja })}
                     </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteAnalysis(analysis.id);
-                      }}
-                      className="text-red-400 hover:text-red-600 transition-colors p-1 hover:bg-red-50 rounded"
-                      title="削除"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAnalysis(analysis.id);
+                        }}
+                        className="text-red-400 hover:text-red-600 transition-colors p-1 hover:bg-red-50 rounded"
+                        title="削除"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                   <div
                     onClick={() => setSelectedAnalysis(analysis)}

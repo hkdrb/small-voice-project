@@ -239,7 +239,7 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
               className="btn-primary px-4 py-2 text-sm flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              {isAdmin ? "新規作成" : "作成申請"}
+              {isAdmin ? "新規作成" : "フォーム申請作成"}
             </button>
           </div>
 
