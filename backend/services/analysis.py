@@ -514,6 +514,67 @@ def analyze_thread_logic(comments):
             "next_steps": [{"title": "エラー", "detail": f"分析中にエラーが発生しました: {str(e)}"}]
         }
 
+def analyze_casual_posts_logic(posts, org_name=""):
+    """
+    Analyze casual posts to identify topics that should be escalated to a formal survey.
+    Returns a list of recommendations.
+    """
+    if not posts:
+        return {"recommendations": []}
+
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel(MODEL_NAME, generation_config={"response_mime_type": "application/json"})
+
+        # Format posts
+        formatted_posts = ""
+        # Assuming posts is a list of strings or objects with 'content'
+        for p in posts:
+            content = p.content if hasattr(p, 'content') else str(p)
+            formatted_posts += f"- {content}\n"
+
+        prompt = f"""あなたは組織開発の専門家です。
+「{org_name}」という組織の「雑談掲示板」に投稿された以下の内容を分析し、
+全社的なアンケート（サーベイ）を実施して意見を問うべき重要なトピックを特定してください。
+メンバーが直面している課題、潜在的な要望、組織として対応すべき兆候を拾い上げてください。
+
+### 投稿内容:
+{formatted_posts}
+
+### 分析の視点:
+1. 個人の単なる愚痴ではなく、組織全体の課題や改善につながる可能性のあるテーマを探す。
+2. 潜在的な不満や、新しいアイデアの芽を見つけ出す。
+3. メンバーの関心が高く、定量的に状況を把握すべき事項を選ぶ。
+
+### 出力フォーマット (JSON):
+{{
+    "recommendations": [
+        {{
+            "title": "アンケートのタイトル案",
+            "reason": "なぜいまアンケートをとるべきかの理由・背景（管理者向け）",
+            "survey_description": "アンケート回答者に表示する説明文。回答を促す前向きで分かりやすい文章。",
+            "suggested_questions": ["具体的な質問案1", "具体的な質問案2"]
+        }},
+        ...
+    ]
+}}
+推論の結果、特筆すべきアンケート推奨事項がない場合は、空のリストを返しても構いません。
+"""
+        logger.info("Generating Casual Post Analysis with Gemini...")
+        response = model.generate_content(prompt)
+        # Parse JSON
+        result_text = response.text.strip()
+        if "```" in result_text:
+             result_text = result_text.split("```")[-2] if "json" in result_text else result_text.split("```")[1]
+             if result_text.startswith("json"): result_text = result_text[4:]
+        
+        result = json.loads(result_text)
+        return result
+
+    except Exception as e:
+        logger.error(f"Casual post analysis failed: {e}")
+        return {"recommendations": [], "error": str(e)}
+
 
             
 

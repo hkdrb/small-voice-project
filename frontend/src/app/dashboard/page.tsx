@@ -13,6 +13,7 @@ import SurveyManager from "@/components/dashboard/SurveyManager";
 import AnalysisRunner from "@/components/dashboard/AnalysisRunner";
 import CsvImporter from "@/components/dashboard/CsvImporter";
 import MemberList from "@/components/dashboard/MemberList";
+import CasualChatBoard from "@/components/dashboard/CasualChatBoard";
 
 // Types
 interface Session {
@@ -136,7 +137,12 @@ function DashboardContent() {
             <AnalysisRunner onSuccess={() => setActiveTab('reports')} />
           )}
 
-          {/* 2. Reports (Shared) */}
+          {/* 2. Casual Chat */}
+          {activeTab === 'casual' && (
+            <CasualChatBoard user={user} />
+          )}
+
+          {/* 3. Reports (Shared) */}
           {activeTab === 'reports' && (
             <div>
               {sessions.length === 0 ? (

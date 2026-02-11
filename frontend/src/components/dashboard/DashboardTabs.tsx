@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart2, FileText, Folder, Upload, Users, ClipboardList } from "lucide-react";
+import { BarChart2, FileText, Folder, Upload, Users, ClipboardList, MessageSquare } from "lucide-react";
 import { TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
 interface DashboardTabsProps {
@@ -60,6 +60,17 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
           アンケート回答
         </TabsTrigger>
       )}
+
+      {/* Everyone's Voices (Casual Chat) */}
+      <TabsTrigger
+        value="casual"
+        activeTab={activeTab}
+        onClick={() => handleTabClick('casual')}
+        className="flex items-center px-4 py-2 cursor-pointer"
+      >
+        <MessageSquare className="w-4 h-4 mr-2" />
+        雑談掲示板
+      </TabsTrigger>
 
       {/* Combined Survey Management (Admin) or Requests (User) */}
       {isAdmin && (

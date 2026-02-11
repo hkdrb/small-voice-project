@@ -15,6 +15,18 @@
   --image-sage-gradient: linear-gradient(135deg, #F1F4F2 0%, #E0E8E4 100%);
   --image-sage-btn: linear-gradient(135deg, #7E948B 0%, #5C7066 100%);
   --image-gray-btn: linear-gradient(135deg, #7F8C8D 0%, #616A6B 100%);
+  
+  /* Sage color scale for Tailwind utilities */
+  --color-sage-50: #F1F4F2;
+  --color-sage-100: #E0E8E4;
+  --color-sage-200: #C5D3CC;
+  --color-sage-300: #A9BEB5;
+  --color-sage-400: #8DA399;
+  --color-sage-500: #7E948B;
+  --color-sage-600: #5C7066;
+  --color-sage-700: #4A5D54;
+  --color-sage-800: #3A4A43;
+  --color-sage-900: #2A3732;
 }
 
 :root {

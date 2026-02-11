@@ -59,6 +59,9 @@ app.include_router(survey.router, prefix="/api/surveys", tags=["surveys"])
 app.include_router(organization.router, prefix="/api/organizations", tags=["organizations"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 
+from backend.api import casual_chat
+app.include_router(casual_chat.router, prefix="/api/casual", tags=["casual_chat"])
+
 @app.get("/")
 @app.get("/api")
 @app.get("/api/")

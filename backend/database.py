@@ -230,6 +230,55 @@ class CommentLike(Base):
     comment = relationship("Comment", back_populates="likes")
     user = relationship("User")
 
+# --- 雑談掲示板 (Casual Chat / Daily Thoughts) ---
+class CasualPost(Base):
+    """みんなの雑談掲示板の投稿"""
+    __tablename__ = "casual_posts"
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # ユーザー削除後も残す
+    parent_id = Column(Integer, ForeignKey("casual_posts.id"), nullable=True)  # 返信機能用
+    content = Column(Text)
+    created_at = Column(DateTime, default=datetime.now)
+    likes_count = Column(Integer, default=0) # Simple counter for now, or relationship if needed
+    
+    # Relationships
+    organization = relationship("Organization")
+    user = relationship("User")
+    likes = relationship("CasualPostLike", back_populates="post", cascade="all, delete-orphan")
+    children = relationship("CasualPost", back_populates="parent", cascade="all, delete-orphan")
+    parent = relationship("CasualPost", back_populates="children", remote_side=[id])
+
+class CasualPostLike(Base):
+    """雑談投稿へのいいね"""
+    __tablename__ = "casual_post_likes"
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("casual_posts.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.now)
+    
+    post = relationship("CasualPost", back_populates="likes")
+    user = relationship("User")
+
+class CasualAnalysis(Base):
+    """雑談からの分析・推奨レポート"""
+    __tablename__ = "casual_analyses"
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+    
+    # Analysis Scope
+    start_date = Column(DateTime)
+    end_date = Column(DateTime)
+    
+    # Content (JSON)
+    # Expected format: { "recommendations": [ { "title": "...", "reason": "...", "suggested_questions": [...] } ] }
+    result_json = Column(Text)
+    
+    is_published = Column(Boolean, default=False) # 公開/非公開
+    
+    organization = relationship("Organization")
+
 # --- 初期化 ---
 def init_db():
     Base.metadata.create_all(bind=engine)
