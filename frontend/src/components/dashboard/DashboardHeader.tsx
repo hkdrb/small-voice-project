@@ -3,6 +3,7 @@
 import React from 'react';
 import { LayoutDashboard, ArrowLeft } from "lucide-react";
 import Link from 'next/link';
+import NotificationBell from './NotificationBell';
 
 interface DashboardHeaderProps {
   title?: string;
@@ -29,6 +30,9 @@ export default function DashboardHeader({
           {icon}
           {title}
         </h1>
+      </div>
+      <div className="flex items-center gap-4">
+        <NotificationBell />
       </div>
     </header>
   );

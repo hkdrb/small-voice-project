@@ -1,7 +1,11 @@
 import uuid
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Text, DateTime, Boolean, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+JST = timezone(timedelta(hours=9))
+def now_jst():
+    """Returns the current JST time as a naive datetime object for DB consistency."""
+    return datetime.now(JST).replace(tzinfo=None)
 import secrets
 import bcrypt
 import os
@@ -76,12 +80,13 @@ class User(Base):
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     created_surveys = relationship("Survey", back_populates="creator")
     survey_comments = relationship("SurveyComment", back_populates="user")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 class UserSession(Base):
     __tablename__ = "sessions"
     id = Column(String, primary_key=True, default=lambda: secrets.token_urlsafe(32))
     user_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     expires_at = Column(DateTime)
     
     user = relationship("User", back_populates="sessions")
@@ -92,7 +97,7 @@ class Organization(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True)
     description = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     
     members = relationship("OrganizationMember", back_populates="organization")
     surveys = relationship("Survey", back_populates="organization", cascade="all, delete-orphan")
@@ -104,7 +109,7 @@ class OrganizationMember(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
     role = Column(String, default="general") # admin, general (Organization Level Role)
-    joined_at = Column(DateTime, default=datetime.now)
+    joined_at = Column(DateTime, default=now_jst)
     
     user = relationship("User", back_populates="organization_mappings")
     organization = relationship("Organization", back_populates="members")
@@ -118,8 +123,8 @@ class Survey(Base):
     title = Column(String)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True) # 公開/非公開
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
+    updated_at = Column(DateTime, default=now_jst, onupdate=now_jst)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True) # Link to Org
     
     # New columns for Request feature
@@ -156,7 +161,7 @@ class Answer(Base):
     question_id = Column(Integer, ForeignKey("questions.id"))
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True) # ゲスト回答可能に
     content = Column(Text) # 回答内容
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     
     survey = relationship("Survey", back_populates="answers")
     question = relationship("Question", back_populates="answers")
@@ -168,7 +173,7 @@ class AnalysisSession(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     theme = Column(String)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     is_published = Column(Boolean, default=False)
     comment_analysis = Column(Text, nullable=True)
     is_comment_analysis_published = Column(Boolean, default=False)
@@ -207,7 +212,7 @@ class Comment(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     content = Column(Text)
     is_anonymous = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     session = relationship("AnalysisSession", back_populates="comments")
     user = relationship("User", back_populates="comments")
     
@@ -227,7 +232,7 @@ class CommentLike(Base):
     id = Column(Integer, primary_key=True, index=True)
     comment_id = Column(Integer, ForeignKey("comments.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     
     comment = relationship("Comment", back_populates="likes")
     user = relationship("User")
@@ -241,7 +246,7 @@ class CasualPost(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # ユーザー削除後も残す
     parent_id = Column(Integer, ForeignKey("casual_posts.id"), nullable=True)  # 返信機能用
     content = Column(Text)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     likes_count = Column(Integer, default=0) # Simple counter for now, or relationship if needed
     
     # Relationships
@@ -257,7 +262,7 @@ class CasualPostLike(Base):
     id = Column(Integer, primary_key=True, index=True)
     post_id = Column(Integer, ForeignKey("casual_posts.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     
     post = relationship("CasualPost", back_populates="likes")
     user = relationship("User")
@@ -267,7 +272,7 @@ class CasualAnalysis(Base):
     __tablename__ = "casual_analyses"
     id = Column(Integer, primary_key=True, index=True)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     
     # Analysis Scope
     start_date = Column(DateTime)
@@ -288,10 +293,26 @@ class SurveyComment(Base):
     survey_id = Column(Integer, ForeignKey("surveys.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     content = Column(Text)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=now_jst)
     
     survey = relationship("Survey", back_populates="comments")
     user = relationship("User", back_populates="survey_comments")
+
+class Notification(Base):
+    """通知管理"""
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
+    type = Column(String) # survey_released, report_published, casual_suggestion, chat_new, form_rejected, form_applied
+    title = Column(String)
+    content = Column(Text)
+    link = Column(String)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(JST))
+
+    user = relationship("User", back_populates="notifications")
+    organization = relationship("Organization")
 
 # --- 初期化 ---
 def init_db():

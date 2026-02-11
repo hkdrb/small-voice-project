@@ -8,11 +8,31 @@ from datetime import datetime
 import random
 import csv
 import io
+import re
+from urllib.parse import quote
 
 from backend.database import SessionLocal, AnalysisSession, AnalysisResult, IssueDefinition, Survey, Comment, CommentLike, Answer, get_db, OrganizationMember, User
 from backend.api.auth import get_current_user, UserResponse
+from backend.services.notification_service import create_notification, notify_organization_members, notify_organization_admins
 
 router = APIRouter()
+
+def get_issue_title_for_comment(db: Session, comment_id: int) -> Optional[str]:
+    """Finds the issue title associated with a thread by tracing back to the root comment."""
+    curr = db.query(Comment).filter(Comment.id == comment_id).first()
+    while curr and curr.parent_id:
+        curr = db.query(Comment).filter(Comment.id == curr.parent_id).first()
+    
+    if curr:
+        # Match by hidden comment tag: <!-- issue:TITLE -->
+        match = re.search(r'<!-- issue:(.*?) -->', curr.content)
+        if match:
+            return match.group(1)
+        # Match by visible legacy format: 【議題: TITLE】
+        legacy_match = re.search(r'【議題: (.*?)】', curr.content)
+        if legacy_match:
+            return legacy_match.group(1)
+    return None
 
 # --- Pydantic Models for Response ---
 class SessionSummary(BaseModel):
@@ -184,6 +204,18 @@ def publish_session(
         
     session.is_published = payload.get("is_published", False)
     db.commit()
+
+    if session.is_published:
+        notify_organization_members(
+            db,
+            session.organization_id,
+            "report_published",
+            "新しいレポート公開",
+            f"レポート「{session.title}」が閲覧可能になりました。",
+            f"/dashboard?tab=reports",
+            exclude_user_id=current_user.id
+        )
+
     return {"message": "Updated publish status", "is_published": session.is_published}
 
 @router.delete("/sessions/{session_id}")
@@ -375,6 +407,33 @@ def create_comment(
     db.commit()
     db.refresh(new_comment)
     
+    # Notify based on publication status
+    issue_title = get_issue_title_for_comment(db, new_comment.id)
+    url_suffix = f"?title={quote(issue_title)}" if issue_title else ""
+    
+    if session.is_published:
+        # Everyone can see it
+        notify_organization_members(
+            db,
+            session.organization_id,
+            "chat_new",
+            "レポートチャット新着",
+            f"レポート「{session.title}」に新しいコメントが投稿されました。",
+            f"/dashboard/sessions/{session_id}{url_suffix}",
+            exclude_user_id=current_user.id
+        )
+    else:
+        # Only admins can see it
+        notify_organization_admins(
+            db,
+            session.organization_id,
+            "chat_new",
+            "レポートチャット新着 (未公開)",
+            f"未公開レポート「{session.title}」に管理者コメントが投稿されました。",
+            f"/dashboard/sessions/{session_id}{url_suffix}",
+            exclude_user_id=current_user.id
+        )
+    
     return {"message": "Comment created", "id": new_comment.id}
 
 @router.post("/comments/{comment_id}/like")
@@ -497,6 +556,32 @@ def analyze_thread(
         
         session.comment_analysis = json.dumps(current_data, ensure_ascii=False)
         db.commit()
+        
+        # Notify organization members only if the AI analysis is actually published
+        issue_title = get_issue_title_for_comment(db, payload.parent_comment_id)
+        url_suffix = f"?title={quote(issue_title)}" if issue_title else ""
+
+        if session.is_comment_analysis_published:
+            notify_organization_members(
+                db,
+                session.organization_id,
+                "report_published",
+                "AI分析更新",
+                f"レポート「{session.title}」のAIスレッド分析が更新されました。",
+                f"/dashboard/sessions/{session_id}{url_suffix}",
+                exclude_user_id=current_user.id
+            )
+        else:
+            # Notify admins even if it's not published to general members
+            notify_organization_admins(
+                db,
+                session.organization_id,
+                "report_published",
+                "AI分析更新 (未公開)",
+                f"レポート「{session.title}」のAIスレッド分析（内部確認用）が更新されました。",
+                f"/dashboard/sessions/{session_id}{url_suffix}",
+                exclude_user_id=current_user.id
+            )
         
         return {"message": "Thread analysis completed", "result": result}
         

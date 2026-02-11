@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+JST = timezone(timedelta(hours=9))
 import secrets
 import os
 
@@ -52,7 +53,7 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
     session_token = secrets.token_urlsafe(32)
     
     # Session valid for 7 days
-    expires_at = datetime.now() + timedelta(days=7)
+    expires_at = (datetime.now(JST) + timedelta(days=7)).replace(tzinfo=None)
     
     db_session = UserSession(id=session_token, user_id=user.id, expires_at=expires_at)
     db.add(db_session)
@@ -105,7 +106,7 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="無効なセッションです")
     
     # Check Expiration
-    if session_record.expires_at and session_record.expires_at < datetime.now():
+    if session_record.expires_at and session_record.expires_at < datetime.now(JST).replace(tzinfo=None):
         # Clean up expired session
         db.delete(session_record)
         db.commit()

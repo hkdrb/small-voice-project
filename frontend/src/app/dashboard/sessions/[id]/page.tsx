@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
 import ReactMarkdown from 'react-markdown';
@@ -58,6 +58,8 @@ export default function SessionDetailPage() {
   const params = useParams();
   const id = params?.id;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const targetTitle = searchParams.get('title');
 
   const [data, setData] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,27 @@ export default function SessionDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Active Issue/Thread State
+  const [activeIssue, setActiveIssue] = useState<any>(null);
+  const [activeThreadRootId, setActiveThreadRootId] = useState<number | null>(null);
+
+  // Auto-open issue from query param
+  useEffect(() => {
+    if (data && targetTitle && !activeIssue) {
+      let issues = [];
+      try {
+        const parsed = JSON.parse(data.report_content);
+        if (Array.isArray(parsed)) issues = parsed;
+      } catch (e) { }
+
+      const tTitle = targetTitle as string;
+      const found = issues.find((i: any) => i.title === tTitle);
+      if (found) {
+        setActiveIssue(found);
+      }
+    }
+  }, [data, targetTitle, activeIssue]);
 
   // State for linking Issue List with Clustering Map
   const [selectedIssueTopics, setSelectedIssueTopics] = useState<string[]>([]);
@@ -95,10 +118,6 @@ export default function SessionDetailPage() {
 
   // Ref for auto-scrolling to map
   const mapSectionRef = useRef<HTMLElement>(null);
-
-  // New state for Split View & Thread Focus
-  const [activeIssue, setActiveIssue] = useState<any>(null);
-  const [activeThreadRootId, setActiveThreadRootId] = useState<number | null>(null);
 
   // Memoize color mapping
   const categoryColorMap = useMemo(() => {

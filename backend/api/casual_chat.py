@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+JST = timezone(timedelta(hours=9))
 from typing import List, Optional
 from pydantic import BaseModel
 import json
@@ -8,6 +9,7 @@ import json
 from backend.database import get_db, CasualPost, CasualPostLike, CasualAnalysis, OrganizationMember, Organization
 from backend.api.auth import get_current_user, UserResponse
 from backend.services.analysis import analyze_casual_posts_logic
+from backend.services.notification_service import create_notification, notify_organization_members
 
 router = APIRouter()
 
@@ -62,6 +64,18 @@ def create_post(
     db.add(post)
     db.commit()
     db.refresh(post)
+    
+    # Notify all organization members about the new post
+    notification_title = "雑談掲示板: 新規投稿" if not post.parent_id else "雑談掲示板: 返信"
+    notify_organization_members(
+        db,
+        current_user.current_org_id,
+        "chat_new",
+        notification_title,
+        f"{current_user.username}さんがメッセージを投稿しました。",
+        f"/dashboard?tab=casual",
+        exclude_user_id=current_user.id
+    )
     
     return {
         "id": post.id,
@@ -174,7 +188,7 @@ def analyze_posts(
         start_dt = dt.fromisoformat(start_date)
     else:
         # Default: 30 days ago
-        start_dt = datetime.now() - timedelta(days=30)
+        start_dt = (datetime.now(JST) - timedelta(days=30)).replace(tzinfo=None)
     
     if end_date:
         end_dt = dt.fromisoformat(end_date)
@@ -182,7 +196,7 @@ def analyze_posts(
         end_dt = end_dt.replace(hour=23, minute=59, second=59)
     else:
         # Default: now
-        end_dt = datetime.now()
+        end_dt = datetime.now(JST).replace(tzinfo=None)
     
     # 1. Fetch posts
     posts = db.query(CasualPost).filter(
@@ -194,7 +208,7 @@ def analyze_posts(
     if not posts:
         return {
             "id": 0, # Dummy ID
-            "created_at": datetime.now(),
+            "created_at": datetime.now(JST).replace(tzinfo=None),
             "start_date": start_dt,
             "end_date": end_dt,
             "is_published": False,
@@ -287,6 +301,17 @@ def update_visibility(
     analysis.is_published = update.is_published
     db.commit()
     
+    if analysis.is_published:
+        notify_organization_members(
+            db,
+            analysis.organization_id,
+            "casual_suggestion",
+            "新しいAI提案公開",
+            f"雑談掲示板のAI提案が公開されました。",
+            f"/dashboard?tab=casual",
+            exclude_user_id=current_user.id
+        )
+
     return {"id": analysis.id, "is_published": analysis.is_published}
 
 @router.delete("/analyses/{analysis_id}")

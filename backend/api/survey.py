@@ -3,12 +3,16 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+JST = timezone(timedelta(hours=9))
+def now_jst():
+    return datetime.now(JST).replace(tzinfo=None)
 import csv
 import io
 
 from backend.database import SessionLocal, Survey, Question, Answer, User, OrganizationMember, SurveyComment, get_db
 from backend.api.auth import get_current_user, UserResponse
+from backend.services.notification_service import create_notification, notify_organization_admins, notify_organization_members
 
 router = APIRouter()
 
@@ -102,6 +106,19 @@ def create_survey(
     
     db.commit()
     db.refresh(new_survey)
+    
+    # Notify Admins if it's a request
+    if new_survey.source == "request":
+        notify_organization_admins(
+            db, 
+            new_survey.organization_id,
+            "form_applied",
+            "新規フォーム申請",
+            f"「{new_survey.title}」の申請が届きました。",
+            f"/dashboard?tab=surveys",
+            exclude_user_id=current_user.id
+        )
+
     return new_survey
 
 @router.get("/{survey_id}", response_model=SurveyResponse)
@@ -385,6 +402,19 @@ def update_survey(
         
     db.commit()
     db.refresh(survey)
+
+    # Notify admins when a user updates (re-applies) a survey
+    if not is_admin and survey.source == 'request':
+        notify_organization_admins(
+            db,
+            survey.organization_id,
+            "form_applied",
+            "フォーム再申請",
+            f"「{survey.title}」が再編集・再申請されました。",
+            f"/dashboard?tab=surveys",
+            exclude_user_id=current_user.id
+        )
+
     return survey
 
 @router.delete("/{survey_id}")
@@ -433,6 +463,19 @@ def toggle_survey_status(
         survey.approval_status = "approved"
         
     db.commit()
+
+    # Notify members if it became active
+    if survey.is_active:
+        notify_organization_members(
+            db,
+            survey.organization_id,
+            "survey_released",
+            "新しいアンケート公開",
+            f"アンケート「{survey.title}」が公開されました。",
+            f"/dashboard?tab=answers",
+            exclude_user_id=current_user.id
+        )
+
     return {"message": "Toggled status", "is_active": survey.is_active}
 
 @router.put("/{survey_id}/approve")
@@ -454,6 +497,19 @@ def approve_survey(
     survey.is_active = False # Default to stopped after approval
     
     db.commit()
+
+    # Notify creator on approval
+    if survey.created_by:
+        create_notification(
+            db,
+            survey.created_by,
+            "form_approved",
+            "フォーム申請承認",
+            f"申請したフォーム「{survey.title}」が承認されました。",
+            f"/dashboard?tab=requests",
+            organization_id=survey.organization_id
+        )
+
     return {"message": "Survey approved", "approval_status": survey.approval_status}
 
 @router.put("/{survey_id}/reject")
@@ -476,6 +532,19 @@ def reject_survey(
     survey.is_active = False # Ensures it is treated as "Stopped" and hidden from general users
     
     db.commit()
+    
+    # Notify creator
+    if survey.created_by:
+        create_notification(
+            db,
+            survey.created_by,
+            "form_rejected",
+            "フォーム申請却下",
+            f"申請したフォーム「{survey.title}」が却下されました。",
+            f"/dashboard?tab=requests",
+            organization_id=survey.organization_id
+        )
+
     return {"message": "Survey rejected", "approval_status": survey.approval_status}
 
 @router.get("/{survey_id}/comments", response_model=List[CommentResponse])
@@ -530,11 +599,33 @@ def create_survey_comment(
     )
     db.add(new_comment)
     db.commit()
-    db.refresh(new_comment)
-    
-    # Reload user for response
     db.refresh(new_comment, attribute_names=['user'])
     
+    # Notify the other party
+    if is_admin:
+        # If admin commented, notify the creator
+        if survey.created_by and survey.created_by != current_user.id:
+            create_notification(
+                db,
+                survey.created_by,
+                "chat_new",
+                "フォームチャット新着",
+                f"フォーム「{survey.title}」に関する新しいチャット通知があります。",
+                f"/dashboard?tab=requests",
+                organization_id=survey.organization_id
+            )
+    else:
+        # If user commented, notify admins
+        notify_organization_admins(
+            db,
+            survey.organization_id,
+            "chat_new",
+            "フォームチャット新着",
+            f"フォーム「{survey.title}」に関する新しいチャット通知があります。",
+            f"/dashboard?tab=surveys",
+            exclude_user_id=current_user.id
+        )
+
     return CommentResponse(
         id=new_comment.id,
         content=new_comment.content,
