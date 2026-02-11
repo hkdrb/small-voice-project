@@ -16,15 +16,16 @@
 ## 📋 目次
 
 1. [主な機能](#主な機能)
-   - フォーム管理（作成、申請、承認、CSV、エクスポート、チャット）
+   - フォーム管理
    - 雑談掲示板
    - クラスタリング
-   - 課題リスト生成
+   - 課題リスト
    - 議論チャット
    - AIファシリテーター
    - マルチテナント構成
    - ユーザー管理
    - 認証・セキュリティ
+   - 通知システム
 
 2. [技術スタック](#技術スタック)
    - Frontend: Next.js, React, TypeScript, Tailwind CSS
@@ -233,7 +234,6 @@
 ### 5. 課題ごとの議論チャット
 各課題に対して、メンバーが意見を投稿し、議論を深める空間を提供します。
 
-#### 5.1 コメント機能
 - **API**: `backend/api/dashboard.py`
   - `POST /api/dashboard/sessions/{session_id}/comments` - コメント投稿
   - `GET /api/dashboard/sessions/{session_id}/comments` - コメント一覧取得（課題IDでフィルタ可能）
@@ -248,43 +248,7 @@
   - いいね数の表示
   - コメント編集（投稿者のみ）
 
-#### 5.2 通知システム
-- **実装**: `backend/services/notification_service.py`, `backend/api/notifications.py`
-- **データモデル**: `Notification` テーブル（`type`, `title`, `content`, `link`, `organization_id`, `is_read`, `created_at`）
-- **API**: 
-  - `GET /api/notifications` - 通知一覧取得（最新99件）
-  - `POST /api/notifications/{id}/read` - 個別既読マーク
-  - `POST /api/notifications/read-all` - 一括既読マーク
 
-##### 通知の種類と対象者
-
-| 通知タイプ | トリガー | 対象者 | 権限条件 | リンク先 | 実装箇所 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **`form_applied`** | フォーム新規申請、再申請 | 組織管理者、システム管理者 | 申請者を除く全管理者 | `/dashboard?tab=surveys` | survey.py:112, 408 |
-| **`form_approved`** | フォーム申請承認 | 申請者本人 | 申請者のみ | `/dashboard?tab=requests` | survey.py:503 |
-| **`form_rejected`** | フォーム申請却下 | 申請者本人 | 申請者のみ | `/dashboard?tab=requests` | survey.py:538 |
-| **`chat_new`** (申請チャット) | 申請フォームへのコメント投稿 | 管理者 or 申請者 | 投稿者以外の関係者 | `/dashboard?tab=surveys` (管理者) <br> `/dashboard?tab=requests` (申請者) | survey.py:608, 619 |
-| **`survey_released`** | フォーム公開 | 組織全メンバー | 公開者を除く全員 | `/dashboard?tab=answers` | survey.py:469 |
-| **`report_published`** | 分析レポート公開 | 組織全メンバー | 公開者を除く全員 | `/dashboard?tab=reports` | dashboard.py:209 |
-| **`report_published`** (AI分析更新) | AIスレッド分析実行・更新 | **公開中**: 組織全メンバー<br>**未公開**: 組織管理者のみ | 公開状態による | `/dashboard/sessions/{id}?title={議題}` | dashboard.py:565, 576 |
-| **`chat_new`** (レポート議論) | レポート課題チャットへのコメント投稿 | **公開中**: 組織全メンバー<br>**未公開**: 組織管理者のみ | 公開状態&投稿者除く | `/dashboard/sessions/{id}?title={議題}` | dashboard.py:416, 427 |
-| **`chat_new`** (雑談掲示板) | 雑談掲示板への投稿・返信 | 組織全メンバー | 投稿者を除く全員 | `/dashboard?tab=casual` | casual_chat.py:70 |
-| **`casual_suggestion`** | 雑談AI提案公開 | 組織全メンバー | 公開者を除く全員 | `/dashboard?tab=casual` | casual_chat.py:305 |
-
-##### 通知の基本ルール
-- **自己除外**: 自身の操作による通知は自分には届かない（`exclude_user_id`パラメータで制御）
-- **組織スコープ**: 通知は組織単位で管理され、所属組織のイベントのみ通知
-- **権限による制限**: 
-  - **管理者**: 未公開レポートの通知、申請フローの通知を受信
-  - **一般ユーザー**: 公開済みコンテンツの通知のみ受信
-- **最大表示件数**: 最新99件まで表示
-- **日本時間**: 通知時刻はJST（日本時間）で表示
-- **自動遷移**: 通知クリック時に該当ページへ遷移し、レポート関連の通知では該当する議論スレッドが自動的に開く
-
-##### 通知サービスの関数
-- **`create_notification(db, user_id, type, title, content, link, organization_id)`**: 特定のユーザーに通知を作成
-- **`notify_organization_members(db, organization_id, type, title, content, link, exclude_user_id)`**: 組織の全メンバーに通知（`exclude_user_id` を除く）
-- **`notify_organization_admins(db, organization_id, type, title, content, link, exclude_user_id)`**: 組織管理者とシステム管理者全員に通知（`exclude_user_id` を除く）
 
 
 
@@ -386,6 +350,46 @@
   2. リセットトークンを生成し、メール送信
   3. リンク経由で新しいパスワードを設定
 - **メール送信**: `backend/services/email_service.py` を使用
+
+### 10. 通知システム
+システム全体のイベントをユーザーに通知します。権限と公開状態に応じて、適切な対象者に配信されます。
+
+- **実装**: `backend/services/notification_service.py`, `backend/api/notifications.py`
+- **データモデル**: `Notification` テーブル（`type`, `title`, `content`, `link`, `organization_id`, `is_read`, `created_at`）
+- **API**: 
+  - `GET /api/notifications` - 通知一覧取得（最新99件）
+  - `POST /api/notifications/{id}/read` - 個別既読マーク
+  - `POST /api/notifications/read-all` - 一括既読マーク
+
+#### 通知の種類と対象者
+
+| 通知タイプ | トリガー | 対象者 | 権限条件 | リンク先 | 実装箇所 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`form_applied`** | フォーム新規申請、再申請 | 組織管理者、システム管理者 | 申請者を除く全管理者 | `/dashboard?tab=surveys` | survey.py:112, 408 |
+| **`form_approved`** | フォーム申請承認 | 申請者本人 | 申請者のみ | `/dashboard?tab=requests` | survey.py:503 |
+| **`form_rejected`** | フォーム申請却下 | 申請者本人 | 申請者のみ | `/dashboard?tab=requests` | survey.py:538 |
+| **`chat_new`** (申請チャット) | 申請フォームへのコメント投稿 | 管理者 or 申請者 | 投稿者以外の関係者 | `/dashboard?tab=surveys` (管理者) <br> `/dashboard?tab=requests` (申請者) | survey.py:608, 619 |
+| **`survey_released`** | フォーム公開 | 組織全メンバー | 公開者を除く全員 | `/dashboard?tab=answers` | survey.py:469 |
+| **`report_published`** | 分析レポート公開 | 組織全メンバー | 公開者を除く全員 | `/dashboard?tab=reports` | dashboard.py:209 |
+| **`report_published`** (AI分析更新) | AIスレッド分析実行・更新 | **公開中**: 組織全メンバー<br>**未公開**: 組織管理者のみ | 公開状態による | `/dashboard/sessions/{id}?title={議題}` | dashboard.py:565, 576 |
+| **`chat_new`** (レポート議論) | レポート課題チャットへのコメント投稿 | **公開中**: 組織全メンバー<br>**未公開**: 組織管理者のみ | 公開状態&投稿者除く | `/dashboard/sessions/{id}?title={議題}` | dashboard.py:416, 427 |
+| **`chat_new`** (雑談掲示板) | 雑談掲示板への投稿・返信 | 組織全メンバー | 投稿者を除く全員 | `/dashboard?tab=casual` | casual_chat.py:70 |
+| **`casual_suggestion`** | 雑談AI提案公開 | 組織全メンバー | 公開者を除く全員 | `/dashboard?tab=casual` | casual_chat.py:305 |
+
+#### 通知の基本ルール
+- **自己除外**: 自身の操作による通知は自分には届かない（`exclude_user_id`パラメータで制御）
+- **組織スコープ**: 通知は組織単位で管理され、所属組織のイベントのみ通知
+- **権限による制限**: 
+  - **管理者**: 未公開レポートの通知、申請フローの通知を受信
+  - **一般ユーザー**: 公開済みコンテンツの通知のみ受信
+- **最大表示件数**: 最新99件まで表示
+- **日本時間**: 通知時刻はJST（日本時間）で表示
+- **自動遷移**: 通知クリック時に該当ページへ遷移し、レポート関連の通知では該当する議論スレッドが自動的に開く
+
+#### 通知サービスの関数
+- **`create_notification(db, user_id, type, title, content, link, organization_id)`**: 特定のユーザーに通知を作成
+- **`notify_organization_members(db, organization_id, type, title, content, link, exclude_user_id)`**: 組織の全メンバーに通知（`exclude_user_id` を除く）
+- **`notify_organization_admins(db, organization_id, type, title, content, link, exclude_user_id)`**: 組織管理者とシステム管理者全員に通知（`exclude_user_id` を除く)
 
 
 ## 技術スタック
