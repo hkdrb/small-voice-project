@@ -21,6 +21,7 @@ erDiagram
     users ||--o{ surveys : "作成"
     surveys ||--o{ questions : "質問"
     surveys ||--o{ answers : "回答"
+    questions ||--o{ answers : "回答"
     surveys ||--o{ survey_comments : "チャット"
     users ||--o{ answers : "回答"
     users ||--o{ survey_comments : "投稿"
@@ -162,6 +163,40 @@ erDiagram
 ```
 
 </details>
+
+## リレーション一覧表
+
+システム内で定義されている全テーブル間の関係性一覧です。
+
+| 親テーブル | 子テーブル | 多重度 | 説明 |
+| :--- | :--- | :--- | :--- |
+| **users** | organization_members | 1:N | ユーザーの組織所属情報 |
+| **users** | sessions | 1:N | ログインセッション |
+| **users** | surveys | 1:N | アンケート作成者 |
+| **users** | answers | 1:N | アンケート回答 |
+| **users** | comments | 1:N | 分析セッションへのコメント |
+| **users** | comment_likes | 1:N | コメントへのいいね |
+| **users** | survey_comments | 1:N | アンケート申請チャット |
+| **users** | casual_posts | 1:N | 雑談投稿 |
+| **users** | casual_post_likes | 1:N | 雑談へのいいね |
+| **users** | notifications | 1:N | 通知 |
+| **organizations** | organization_members | 1:N | 組織メンバー |
+| **organizations** | surveys | 1:N | 組織所有のアンケート |
+| **organizations** | analysis_sessions | 1:N | 組織の分析セッション |
+| **organizations** | casual_posts | 1:N | 組織内の雑談投稿 |
+| **organizations** | casual_analyses | 1:N | 雑談分析結果 |
+| **organizations** | notifications | 1:N | 組織関連の通知 |
+| **surveys** | questions | 1:N | アンケート設問 |
+| **surveys** | answers | 1:N | アンケート回答（回答はアンケートに紐付く） |
+| **surveys** | survey_comments | 1:N | 申請チャット |
+| **questions** | answers | 1:N | 設問に対する回答（回答は設問にも紐付く） |
+| **analysis_sessions** | analysis_results | 1:N | 分析結果詳細 |
+| **analysis_sessions** | issue_definitions | 1:N | 課題レポート |
+| **analysis_sessions** | comments | 1:N | ディスカッション |
+| **comments** | comment_likes | 1:N | いいね |
+| **comments** | comments | 1:N | 返信（自己参照・階層構造） |
+| **casual_posts** | casual_post_likes | 1:N | いいね |
+| **casual_posts** | casual_posts | 1:N | 返信（自己参照・スレッド） |
 
 ## 1. ユーザー管理
 
