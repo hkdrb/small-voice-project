@@ -12,7 +12,7 @@
 
 ## 🚀 主な機能
 
-### データ収集と集計
+### 多様なデータ収集・集計方法
 管理者によるフォーム作成・管理に加えて、さまざまな方法でデータ収集が可能です：
 - **雑談掲示板からのフォーム作成**： メンバーが日常的に投稿した声をAI分析し、フォーム作成のベースとなるテーマを自動抽出。分析結果から直接フォームを作成できます。
 - **メンバーからのフォーム申請**： メンバーが自発的に問いたい内容をフォームにし、管理者へ承認申請できるボトムアップ設計。
@@ -37,38 +37,9 @@
 | :--- | :--- |
 | **システム管理者** | システム全体の統括。組織の作成や全ユーザーの管理権限を持ちます。 |
 | **組織管理者** | 所属する組織内におけるフォーム作成や管理、分析の実行や分析結果の管理を行います。 |
-| **一般ユーザー** | フォームへの回答や申請、分析結果の閲覧、議論（チャット）への参加が可能です。 |
+| **一般ユーザー** | フォームへの回答や申請、分析結果の閲覧、議論への参加が可能です。 |
 
 ---
-
-## 🛠️ 技術スタック
-
-
-| Category | Tech Stack |
-| --- | --- |
-| **Frontend** | Next.js 15 (App Router), Tailwind CSS v4, Lucide React, Plotly.js |
-| **Backend** | FastAPI (Python), SQLAlchemy, Pydantic |
-| **AI / LLM** | **Google Gemini 2.0 Flash** (Main), **Gemini 1.5 Pro** (Deep Analysis) |
-| **Machine Learning** | **Sentence Transformers** (multilingual-e5-large), **HDBSCAN**, UMAP, PyTorch |
-| **Database** | PostgreSQL (Production) / SQLite (Dev) |
-| **Infra** | Docker Native, Vercel/Render ready |
-
-## 📦 インストールと実行手順
-
-
-本プロジェクトは **Docker** での動作を推奨しています。
-詳細なセットアップ手順や、手動でのインストール方法は [ローカル開発環境セットアップガイド](docs/local_development_setup.md) を参照してください。
-
-### Quick Start (Docker)
-```bash
-git clone https://github.com/koderahayato/small-voice-project.git
-cd small-voice-project
-docker-compose -f docker-compose.dev.yml up --build
-```
-ブラウザで `http://localhost:3000` にアクセスしてください。
-
-初期ログイン情報は [こちら](docs/local_development_setup.md#%E3%83%87%E3%83%A2%E7%94%A8%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3%E6%83%85%E5%A0%B1-%E5%88%9D%E6%9C%9F%E8%A8%AD%E5%AE%9A) を参照してください。
-
 
 ## 📚 ドキュメント
 - [システムアーキテクチャ詳細](docs/architecture.md)
