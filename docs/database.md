@@ -5,166 +5,203 @@
 
 ## ER図 (Entity Relationship Diagram)
 
-![データベースER図](images/database_er_diagram_mermaid.png)
-
-
-
-<details>
-<summary>Mermaidコード（参考）</summary>
-
 ```mermaid
-erDiagram
-    %% ユーザーと組織の基本関係
-    users ||--o{ organization_members : "所属"
-    organizations ||--o{ organization_members : "メンバー管理"
+classDiagram
+    direction TB
+
+    %% スタイルの定義
+    classDef userLayer fill:#E1F5FE,stroke:#01579B,stroke-width:2px;
+    classDef surveyLayer fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px;
+    classDef analysisLayer fill:#FFF3E0,stroke:#EF6C00,stroke-width:2px;
+    classDef casualLayer fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px;
+    classDef notificationLayer fill:#FFEBEE,stroke:#C62828,stroke-width:2px;
+
+    %% ------------------------------
+    %% 1. ユーザー・組織管理 (User & Organization)
+    %% ------------------------------
+    namespace User_Organization_Management {
+        class users {
+            int id PK
+            string email
+            string username
+            string role
+        }
+        class organizations {
+            int id PK
+            string name
+        }
+        class organization_members {
+            int id PK
+            int user_id FK
+            int organization_id FK
+            string role
+        }
+        class sessions {
+            string id PK
+            int user_id FK
+        }
+    }
+    class users userLayer
+    class organizations userLayer
+    class organization_members userLayer
+    class sessions userLayer
+
+    %% ------------------------------
+    %% 2. アンケートシステム (Survey System)
+    %% ------------------------------
+    namespace Survey_System {
+        class surveys {
+            int id PK
+            string title
+            int organization_id FK
+            int created_by FK
+            string approval_status
+        }
+        class questions {
+            int id PK
+            int survey_id FK
+            string text
+        }
+        class answers {
+            int id PK
+            int survey_id FK
+            int question_id FK
+            int user_id FK
+        }
+        class survey_comments {
+            int id PK
+            int survey_id FK
+            int user_id FK
+            string content
+        }
+    }
+    class surveys surveyLayer
+    class questions surveyLayer
+    class answers surveyLayer
+    class survey_comments surveyLayer
+
+    %% ------------------------------
+    %% 3. 分析・議論システム (Analysis & Discussion)
+    %% ------------------------------
+    namespace Analysis_System {
+        class analysis_sessions {
+            int id PK
+            string title
+            int organization_id FK
+            boolean is_published
+        }
+        class analysis_results {
+            int id PK
+            int session_id FK
+            int cluster_id
+        }
+        class issue_definitions {
+            int id PK
+            int session_id FK
+        }
+        class comments {
+            int id PK
+            int session_id FK
+            int user_id FK
+            int parent_id FK
+        }
+        class comment_likes {
+            int id PK
+            int comment_id FK
+            int user_id FK
+        }
+    }
+    class analysis_sessions analysisLayer
+    class analysis_results analysisLayer
+    class issue_definitions analysisLayer
+    class comments analysisLayer
+    class comment_likes analysisLayer
+
+    %% ------------------------------
+    %% 4. 雑談掲示板 (Casual Board)
+    %% ------------------------------
+    namespace Casual_Board {
+        class casual_posts {
+            int id PK
+            int organization_id FK
+            int user_id FK
+            int parent_id FK
+        }
+        class casual_post_likes {
+            int id PK
+            int post_id FK
+            int user_id FK
+        }
+        class casual_analyses {
+            int id PK
+            int organization_id FK
+            boolean is_published
+        }
+    }
+    class casual_posts casualLayer
+    class casual_post_likes casualLayer
+    class casual_analyses casualLayer
+
+    %% ------------------------------
+    %% 5. 通知 (Notifications)
+    %% ------------------------------
+    namespace Notification_System {
+        class notifications {
+            int id PK
+            int user_id FK
+            int organization_id FK
+            string type
+        }
+    }
+    class notifications notificationLayer
+
+    %% ------------------------------
+    %% リレーション定義 (Relationships)
+    %% ------------------------------
     
-    %% アンケートシステム
-    organizations ||--o{ surveys : "所有"
-    users ||--o{ surveys : "作成"
-    surveys ||--o{ questions : "質問"
-    surveys ||--o{ answers : "回答"
-    questions ||--o{ answers : "回答"
-    surveys ||--o{ survey_comments : "チャット"
-    users ||--o{ answers : "回答"
-    users ||--o{ survey_comments : "投稿"
-    
-    %% 分析システム
-    organizations ||--o{ analysis_sessions : "所有"
-    analysis_sessions ||--o{ analysis_results : "分析結果"
-    analysis_sessions ||--o{ issue_definitions : "課題レポート"
-    analysis_sessions ||--o{ comments : "ディスカッション"
-    users ||--o{ comments : "投稿"
-    comments ||--o{ comment_likes : "いいね"
-    users ||--o{ comment_likes : "いいね"
-    
-    %% 雑談掲示板
-    organizations ||--o{ casual_posts : "所有"
-    users ||--o{ casual_posts : "投稿"
-    casual_posts ||--o{ casual_post_likes : "いいね"
-    users ||--o{ casual_post_likes : "いいね"
-    organizations ||--o{ casual_analyses : "分析"
-    
-    %% 通知システム
-    users ||--o{ notifications : "受信"
-    organizations ||--o{ notifications : "紐付け"
-    
-    %% その他
-    users ||--o{ sessions : "セッション"
-    comments ||--o{ comments : "返信"
-    casual_posts ||--o{ casual_posts : "返信"
+    %% User & Org Relations
+    users "1" --> "*" organization_members : 所属
+    organizations "1" --> "*" organization_members : メンバー
+    users "1" --> "*" sessions : ログイン
 
-    users {
-        int id PK
-        string email
-        string username
-        string role
-    }
+    %% User -> Other Modules
+    users "1" --> "*" surveys : 作成
+    users "1" --> "*" answers : 回答
+    users "1" --> "*" survey_comments : 申請チャット
+    users "1" --> "*" comments : 議論投稿
+    users "1" --> "*" comment_likes : いいね
+    users "1" --> "*" casual_posts : 雑談投稿
+    users "1" --> "*" casual_post_likes : いいね
+    users "1" --> "*" notifications : 受信
 
-    organizations {
-        int id PK
-        string name
-    }
+    %% Org -> Other Modules
+    organizations "1" --> "*" surveys : 保有
+    organizations "1" --> "*" analysis_sessions : 保有
+    organizations "1" --> "*" casual_posts : 保有
+    organizations "1" --> "*" casual_analyses : 保有
+    organizations "1" --> "*" notifications : 関連
 
-    organization_members {
-        int id PK
-        int user_id FK
-        int organization_id FK
-        string role
-    }
+    %% Survey Internal
+    surveys "1" --> "*" questions : 構成
+    surveys "1" --> "*" answers : 回答
+    questions "1" --> "*" answers : 回答詳細
+    surveys "1" --> "*" survey_comments : チャット
 
-    surveys {
-        int id PK
-        string uuid
-        string title
-        int organization_id FK
-        int created_by FK
-        string approval_status
-    }
+    %% Analysis Internal
+    analysis_sessions "1" --> "*" analysis_results : 詳細
+    analysis_sessions "1" --> "*" issue_definitions : 課題
+    analysis_sessions "1" --> "*" comments : 議論
+    comments "1" --> "*" comment_likes : いいね
+    comments "1" --> "*" comments : 返信
 
-    questions {
-        int id PK
-        int survey_id FK
-        string text
-    }
+    %% Casual Internal
+    casual_posts "1" --> "*" casual_post_likes : いいね
+    casual_posts "1" --> "*" casual_posts : 返信
 
-    answers {
-        int id PK
-        int survey_id FK
-        int question_id FK
-        int user_id FK
-    }
+    %% Notification Internal
+    %% (Linked via User/Org already)
 
-    analysis_sessions {
-        int id PK
-        string title
-        int organization_id FK
-        boolean is_published
-    }
-
-    analysis_results {
-        int id PK
-        int session_id FK
-        int cluster_id
-    }
-
-    issue_definitions {
-        int id PK
-        int session_id FK
-    }
-
-    comments {
-        int id PK
-        int session_id FK
-        int user_id FK
-        int parent_id FK
-    }
-
-    comment_likes {
-        int id PK
-        int comment_id FK
-        int user_id FK
-    }
-
-    casual_posts {
-        int id PK
-        int organization_id FK
-        int user_id FK
-        int parent_id FK
-    }
-
-    casual_post_likes {
-        int id PK
-        int post_id FK
-        int user_id FK
-    }
-
-    casual_analyses {
-        int id PK
-        int organization_id FK
-        boolean is_published
-    }
-
-    survey_comments {
-        int id PK
-        int survey_id FK
-        int user_id FK
-    }
-
-    notifications {
-        int id PK
-        int user_id FK
-        int organization_id FK
-        string type
-        boolean is_read
-    }
-
-    sessions {
-        string id PK
-        int user_id FK
-    }
 ```
-
-</details>
 
 ## リレーション一覧表
 
