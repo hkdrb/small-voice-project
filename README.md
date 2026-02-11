@@ -44,7 +44,7 @@
 ## 📚 ドキュメント
 - [システムアーキテクチャ詳細](docs/architecture.md)
 - [データベース設計](docs/database.md)
-- [セットアップガイド (Local Development)](docs/local_development_setup.md)： ローカル開発環境の構築手順
-- [デプロイメントガイド (Production/Demo)](docs/production_deployment_guide.md)： 本番サーバーへのデプロイ・運用手順 (GCE)
-- [本番DB接続ガイド](docs/db_connection_guide.md)： ローカルのDBクライアントツールから本番DBに接続する手順
+- [ローカル開発環境セットアップガイド](docs/local_development_setup.md)
+- [本番環境デプロイ・運用手順ガイド](docs/production_deployment_guide.md)
+- [本番環境DB接続ガイド](docs/db_connection_guide.md)
 - [ユーザー利用マニュアル](docs/user_manual.md)
