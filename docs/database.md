@@ -5,6 +5,11 @@
 
 ## ER図 (Entity Relationship Diagram)
 
+![データベースER図](images/database_er_diagram.png)
+
+<details>
+<summary>Mermaidコード（参考）</summary>
+
 ```mermaid
 erDiagram
     %% ユーザーと組織の基本関係
@@ -155,6 +160,8 @@ erDiagram
         int user_id FK
     }
 ```
+
+</details>
 
 ## 1. ユーザー管理
 
