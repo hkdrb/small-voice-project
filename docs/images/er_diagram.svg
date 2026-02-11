@@ -1,14 +1,5 @@
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="1120" height="950" viewBox="0 0 1120 950">
   <defs>
-    <style>
-      .group-rect { stroke-width: 2; rx: 10; ry: 10; fill-opacity: 0.2; }
-      .group-title { font-family: sans-serif; font-weight: bold; font-size: 16px; text-anchor: middle; }
-      .table-rect { fill: #ffffff; stroke: #333333; stroke-width: 1; rx: 4; ry: 4; filter: drop-shadow(2px 2px 2px #ddd); }
-      .table-header { font-family: monospace; font-weight: bold; font-size: 14px; text-anchor: middle; fill: #000; }
-      .field-text { font-family: monospace; font-size: 12px; fill: #333; }
-      .separator { stroke: #ccc; stroke-width: 1; }
-      .connector { fill: none; stroke: #666; stroke-width: 1.5; marker-end: url(#arrow); opacity: 0.6; }
-    </style>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#666" />
     </marker>
@@ -16,210 +7,210 @@
 
   <!-- GROUP 1: User & Organization (Blue) -->
   <g transform="translate(20, 20)">
-    <rect x="0" y="0" width="300" height="420" class="group-rect" style="fill: #E1F5FE; stroke: #01579B;" />
-    <text x="150" y="25" class="group-title" fill="#01579B">User & Org Management</text>
+    <rect x="0" y="0" width="300" height="420" fill="#E1F5FE" stroke="#01579B" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
+    <text x="150" y="25" fill="#01579B" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">User & Org Management</text>
 
     <!-- users -->
     <g transform="translate(20, 45)">
-      <rect x="0" y="0" width="260" height="50" class="table-rect" />
-      <text x="130" y="18" class="table-header">users</text>
-      <line x1="0" y1="24" x2="260" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
+      <rect x="0" y="0" width="260" height="50" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">users</text>
+      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
     </g>
 
     <!-- organizations -->
     <g transform="translate(20, 115)">
-      <rect x="0" y="0" width="260" height="50" class="table-rect" />
-      <text x="130" y="18" class="table-header">organizations</text>
-      <line x1="0" y1="24" x2="260" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
+      <rect x="0" y="0" width="260" height="50" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">organizations</text>
+      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
     </g>
 
     <!-- organization_members -->
     <g transform="translate(20, 185)">
-      <rect x="0" y="0" width="260" height="85" class="table-rect" />
-      <text x="130" y="18" class="table-header">organization_members</text>
-      <line x1="0" y1="24" x2="260" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK user_id</text>
-      <text x="10" y="70" class="field-text">FK organization_id</text>
+      <rect x="0" y="0" width="260" height="85" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">organization_members</text>
+      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
+      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
     </g>
 
     <!-- sessions -->
     <g transform="translate(20, 290)">
-      <rect x="0" y="0" width="260" height="65" class="table-rect" />
-      <text x="130" y="18" class="table-header">sessions</text>
-      <line x1="0" y1="24" x2="260" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK user_id</text>
+      <rect x="0" y="0" width="260" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">sessions</text>
+      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
     </g>
   </g>
 
   <!-- GROUP 2: Survey System (Green) -->
   <g transform="translate(360, 20)">
-    <rect x="0" y="0" width="340" height="420" class="group-rect" style="fill: #E8F5E9; stroke: #2E7D32;" />
-    <text x="170" y="25" class="group-title" fill="#2E7D32">Survey System</text>
+    <rect x="0" y="0" width="340" height="420" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
+    <text x="170" y="25" fill="#2E7D32" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">Survey System</text>
 
     <!-- surveys -->
     <g transform="translate(20, 45)">
-      <rect x="0" y="0" width="300" height="85" class="table-rect" />
-      <text x="150" y="18" class="table-header">surveys</text>
-      <line x1="0" y1="24" x2="300" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK organization_id</text>
-      <text x="10" y="70" class="field-text">FK created_by (user)</text>
+      <rect x="0" y="0" width="300" height="85" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">surveys</text>
+      <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
+      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK created_by (user)</text>
     </g>
 
     <!-- questions -->
     <g transform="translate(20, 145)">
-      <rect x="0" y="0" width="300" height="65" class="table-rect" />
-      <text x="150" y="18" class="table-header">questions</text>
-      <line x1="0" y1="24" x2="300" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK survey_id</text>
+      <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">questions</text>
+      <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK survey_id</text>
     </g>
 
     <!-- answers -->
     <g transform="translate(20, 225)">
-      <rect x="0" y="0" width="300" height="100" class="table-rect" />
-      <text x="150" y="18" class="table-header">answers</text>
-      <line x1="0" y1="24" x2="300" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK survey_id</text>
-      <text x="10" y="70" class="field-text">FK question_id</text>
-      <text x="10" y="86" class="field-text">FK user_id</text>
+      <rect x="0" y="0" width="300" height="100" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">answers</text>
+      <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK survey_id</text>
+      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK question_id</text>
+      <text x="10" y="86" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
     </g>
     
     <!-- survey_comments -->
     <g transform="translate(20, 340)">
-      <rect x="0" y="0" width="300" height="65" class="table-rect" />
-      <text x="150" y="18" class="table-header">survey_comments</text>
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK survey_id, user_id</text>
+      <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">survey_comments</text>
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK survey_id, user_id</text>
     </g>
   </g>
   
   <!-- GROUP 5: Notifications (Red) - Positioned Top Right -->
   <g transform="translate(740, 20)">
-    <rect x="0" y="0" width="340" height="150" class="group-rect" style="fill: #FFEBEE; stroke: #C62828;" />
-    <text x="170" y="25" class="group-title" fill="#C62828">Notifications</text>
+    <rect x="0" y="0" width="340" height="150" fill="#FFEBEE" stroke="#C62828" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
+    <text x="170" y="25" fill="#C62828" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">Notifications</text>
     
     <!-- notifications -->
     <g transform="translate(20, 45)">
-       <rect x="0" y="0" width="300" height="85" class="table-rect" />
-       <text x="150" y="18" class="table-header">notifications</text>
-       <line x1="0" y1="24" x2="300" y2="24" class="separator" />
-       <text x="10" y="38" class="field-text">PK id</text>
-       <text x="10" y="54" class="field-text">FK user_id</text>
-       <text x="10" y="70" class="field-text">FK organization_id</text>
+       <rect x="0" y="0" width="300" height="85" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+       <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">notifications</text>
+       <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
+       <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+       <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
+       <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
     </g>
   </g>
 
   <!-- GROUP 4: Casual Board (Purple) - Positioned Bottom Left -->
   <g transform="translate(20, 480)">
-    <rect x="0" y="0" width="340" height="420" class="group-rect" style="fill: #F3E5F5; stroke: #7B1FA2;" />
-    <text x="170" y="25" class="group-title" fill="#7B1FA2">Casual Board</text>
+    <rect x="0" y="0" width="340" height="420" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
+    <text x="170" y="25" fill="#7B1FA2" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">Casual Board</text>
 
     <!-- casual_posts -->
     <g transform="translate(20, 45)">
-      <rect x="0" y="0" width="300" height="100" class="table-rect" />
-      <text x="150" y="18" class="table-header">casual_posts</text>
-      <line x1="0" y1="24" x2="300" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK organization_id</text>
-      <text x="10" y="70" class="field-text">FK user_id</text>
-      <text x="10" y="86" class="field-text">FK parent_id</text>
+      <rect x="0" y="0" width="300" height="100" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">casual_posts</text>
+      <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
+      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
+      <text x="10" y="86" fill="#333" font-family="monospace" font-size="12px">FK parent_id</text>
     </g>
 
     <!-- casual_post_likes -->
     <g transform="translate(20, 165)">
-      <rect x="0" y="0" width="300" height="85" class="table-rect" />
-      <text x="150" y="18" class="table-header">casual_post_likes</text>
-      <line x1="0" y1="24" x2="300" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK post_id</text>
-      <text x="10" y="70" class="field-text">FK user_id</text>
+      <rect x="0" y="0" width="300" height="85" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">casual_post_likes</text>
+      <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK post_id</text>
+      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
     </g>
 
     <!-- casual_analyses -->
     <g transform="translate(20, 270)">
-      <rect x="0" y="0" width="300" height="65" class="table-rect" />
-      <text x="150" y="18" class="table-header">casual_analyses</text>
-      <line x1="0" y1="24" x2="300" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK organization_id</text>
+      <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">casual_analyses</text>
+      <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
     </g>
   </g>
 
   <!-- GROUP 3: Analysis System (Orange) - Positioned Bottom Right -->
   <g transform="translate(400, 480)">
-    <rect x="0" y="0" width="340" height="420" class="group-rect" style="fill: #FFF3E0; stroke: #EF6C00;" />
-    <text x="170" y="25" class="group-title" fill="#EF6C00">Analysis & Discussion</text>
+    <rect x="0" y="0" width="340" height="420" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
+    <text x="170" y="25" fill="#EF6C00" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">Analysis & Discussion</text>
 
     <!-- analysis_sessions -->
     <g transform="translate(20, 45)">
-      <rect x="0" y="0" width="300" height="65" class="table-rect" />
-      <text x="150" y="18" class="table-header">analysis_sessions</text>
-      <line x1="0" y1="24" x2="300" y2="24" class="separator" />
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK organization_id</text>
+      <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">analysis_sessions</text>
+      <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
     </g>
     
     <!-- analysis_results & issue_definitions (Stacked side by side or vertically) -->
     <g transform="translate(20, 125)">
-      <rect x="0" y="0" width="300" height="65" class="table-rect" />
-      <text x="150" y="18" class="table-header">analysis_results</text>
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK session_id</text>
+      <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">analysis_results</text>
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK session_id</text>
     </g>
 
     <g transform="translate(20, 200)">
-        <rect x="0" y="0" width="300" height="65" class="table-rect" />
-        <text x="150" y="18" class="table-header">issue_definitions</text>
-        <text x="10" y="38" class="field-text">PK id</text>
-        <text x="10" y="54" class="field-text">FK session_id</text>
+        <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+        <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">issue_definitions</text>
+        <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+        <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK session_id</text>
     </g>
 
     <!-- comments -->
     <g transform="translate(20, 275)">
-      <rect x="0" y="0" width="300" height="85" class="table-rect" />
-      <text x="150" y="18" class="table-header">comments</text>
-      <text x="10" y="38" class="field-text">PK id</text>
-      <text x="10" y="54" class="field-text">FK session_id, user_id</text>
-      <text x="10" y="70" class="field-text">FK parent_id</text>
+      <rect x="0" y="0" width="300" height="85" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">comments</text>
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK session_id, user_id</text>
+      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK parent_id</text>
     </g>
   </g>
   
   <!-- CONNECTORS (Simplified Layout Lines) -->
   
   <!-- User/Org Internal -->
-  <path d="M150,95 L150,115" class="connector" transform="translate(20,20)"/> <!-- users -> organizations (no relation) -->
+  <path d="M150,95 L150,115" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(20,20)"/> <!-- users -> organizations (no relation) -->
   <!-- users -> org_members -->
-  <path d="M150,95 L150,185" class="connector" transform="translate(20,20)"/>
+  <path d="M150,95 L150,185" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(20,20)"/>
   <!-- orgs -> org_members -->
-  <path d="M150,165 L150,185" class="connector" transform="translate(20,20)"/>
+  <path d="M150,165 L150,185" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(20,20)"/>
   
   <!-- User/Org -> Survey -->
   <!-- organizations (20,115 + 20 = 155centerY) -> surveys (360+20=380, 45+40=85centerY) -->
   <!-- orgs (center 170, 160) -> surveys (center 530, 90) -->
-  <path d="M300,140 L380,90" class="connector" />
+  <path d="M300,140 L380,90" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" />
   <!-- users -> surveys -->
-  <path d="M300,70 L380,90" class="connector" />
+  <path d="M300,70 L380,90" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" />
   
   <!-- Survey Internal -->
-  <path d="M170,130 L170,145" class="connector" transform="translate(360,20)"/> <!-- surveys -> questions -->
-  <path d="M170,210 L170,225" class="connector" transform="translate(360,20)"/> <!-- questions -> answers -->
+  <path d="M170,130 L170,145" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(360,20)"/> <!-- surveys -> questions -->
+  <path d="M170,210 L170,225" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(360,20)"/> <!-- questions -> answers -->
   
   <!-- User -> Answers -->
-  <path d="M280,90 C320,90 320,290 380,290" class="connector" fill="none"/>
+  <path d="M280,90 C320,90 320,290 380,290" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" />
   
   <!-- User/Org -> Casual -->
-  <path d="M150,440 L150,525" class="connector" stroke-dasharray="4"/>
+  <path d="M150,440 L150,525" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" stroke-dasharray="4"/>
   
   <!-- User/Org -> Analysis -->
-  <path d="M320,140 L420,525" class="connector" stroke-dasharray="4"/>
+  <path d="M320,140 L420,525" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" stroke-dasharray="4"/>
   
   <!-- User/Org -> Notification -->
-  <path d="M320,70 L760,65" class="connector" />
+  <path d="M320,70 L760,65" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" />
 
 </svg>
