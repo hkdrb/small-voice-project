@@ -74,15 +74,13 @@ function DashboardContent() {
           setSessions(sessionRes.data);
         }
 
-        // 4. Fetch Active Surveys (for Answering) - User only
-        if (!isAdmin) {
-          const surveyRes = await axios.get('/api/dashboard/surveys', {
-            withCredentials: true
-          }).catch(() => ({ data: [] }));
-          if (surveyRes.data && Array.isArray(surveyRes.data)) {
-            // Filter for active only
-            setActiveSurveys(surveyRes.data.filter((s: any) => s.is_active));
-          }
+        // 4. Fetch Active Surveys (for Answering) - All users including admins
+        const surveyRes = await axios.get('/api/dashboard/surveys', {
+          withCredentials: true
+        }).catch(() => ({ data: [] }));
+        if (surveyRes.data && Array.isArray(surveyRes.data)) {
+          // Filter for active only
+          setActiveSurveys(surveyRes.data.filter((s: any) => s.is_active));
         }
 
       } catch (error: any) {
@@ -180,8 +178,8 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* 3. Answers (User) */}
-          {activeTab === 'answers' && !isAdmin && (
+          {/* 3. Answers (All users) */}
+          {activeTab === 'answers' && (
             <div className="glass-card p-6 rounded-xl">
               <h2 className="text-lg font-bold text-gray-800 mb-4">📢 回答受付中のアンケート</h2>
               {activeSurveys.length > 0 ? (

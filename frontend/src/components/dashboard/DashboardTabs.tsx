@@ -48,18 +48,16 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
         レポート閲覧
       </TabsTrigger>
 
-      {/* User Specific Tabs */}
-      {!isAdmin && (
-        <TabsTrigger
-          value="answers"
-          activeTab={activeTab}
-          onClick={() => handleTabClick('answers')}
-          className="flex items-center px-4 py-2 cursor-pointer"
-        >
-          <Folder className="w-4 h-4 mr-2" />
-          アンケート回答
-        </TabsTrigger>
-      )}
+      {/* Shared Tabs - Survey Answers */}
+      <TabsTrigger
+        value="answers"
+        activeTab={activeTab}
+        onClick={() => handleTabClick('answers')}
+        className="flex items-center px-4 py-2 cursor-pointer"
+      >
+        <Folder className="w-4 h-4 mr-2" />
+        アンケート回答
+      </TabsTrigger>
 
       {/* Everyone's Voices (Casual Chat) */}
       <TabsTrigger
