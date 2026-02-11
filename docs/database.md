@@ -7,43 +7,49 @@
 
 ```mermaid
 erDiagram
-    %% User Management
-    users ||--o{ organization_members : "belongs to"
-    users ||--o{ surveys : "creates"
-    users ||--o{ answers : "submits"
-    users ||--o{ comments : "posts"
-    users ||--o{ comment_likes : "likes"
-    users ||--o{ sessions : "has"
-
-    %% Organization
-    organizations ||--o{ organization_members : "has members"
-    organizations ||--o{ surveys : "owns"
-    organizations ||--o{ analysis_sessions : "owns"
-
-    %% Survey System
-    surveys ||--o{ questions : "contains"
-    surveys ||--o{ answers : "receives"
-    questions ||--o{ answers : "receives"
-
-    %% Analysis System
-    analysis_sessions ||--o{ analysis_results : "contains"
-    analysis_sessions ||--o{ issue_definitions : "generates"
-    analysis_sessions ||--o{ comments : "has discussion"
-
-    %% Comment System
-    comments ||--o{ comment_likes : "receives"
-    comments ||--o{ comments : "replies to"
+    %% ユーザーと組織の基本関係
+    users ||--o{ organization_members : "所属"
+    organizations ||--o{ organization_members : "メンバー管理"
+    
+    %% アンケートシステム
+    organizations ||--o{ surveys : "所有"
+    users ||--o{ surveys : "作成"
+    surveys ||--o{ questions : "質問"
+    surveys ||--o{ answers : "回答"
+    surveys ||--o{ survey_comments : "チャット"
+    users ||--o{ answers : "回答"
+    users ||--o{ survey_comments : "投稿"
+    
+    %% 分析システム
+    organizations ||--o{ analysis_sessions : "所有"
+    analysis_sessions ||--o{ analysis_results : "分析結果"
+    analysis_sessions ||--o{ issue_definitions : "課題レポート"
+    analysis_sessions ||--o{ comments : "ディスカッション"
+    users ||--o{ comments : "投稿"
+    comments ||--o{ comment_likes : "いいね"
+    users ||--o{ comment_likes : "いいね"
+    
+    %% 雑談掲示板
+    organizations ||--o{ casual_posts : "所有"
+    users ||--o{ casual_posts : "投稿"
+    casual_posts ||--o{ casual_post_likes : "いいね"
+    users ||--o{ casual_post_likes : "いいね"
+    organizations ||--o{ casual_analyses : "分析"
+    
+    %% 通知システム
+    users ||--o{ notifications : "受信"
+    organizations ||--o{ notifications : "紐付け"
+    
+    %% その他
+    users ||--o{ sessions : "セッション"
+    comments ||--o{ comments : "返信"
+    casual_posts ||--o{ casual_posts : "返信"
 
     users {
         int id PK
         string email
         string username
         string role
-    }
-    
-    sessions {
-        string id PK
-        int user_id FK
     }
 
     organizations {
@@ -60,9 +66,11 @@ erDiagram
 
     surveys {
         int id PK
+        string uuid
         string title
         int organization_id FK
         int created_by FK
+        string approval_status
     }
 
     questions {
@@ -76,19 +84,19 @@ erDiagram
         int survey_id FK
         int question_id FK
         int user_id FK
-        string content
     }
 
     analysis_sessions {
         int id PK
         string title
         int organization_id FK
+        boolean is_published
     }
 
     analysis_results {
         int id PK
         int session_id FK
-        string summary
+        int cluster_id
     }
 
     issue_definitions {
@@ -106,6 +114,44 @@ erDiagram
     comment_likes {
         int id PK
         int comment_id FK
+        int user_id FK
+    }
+
+    casual_posts {
+        int id PK
+        int organization_id FK
+        int user_id FK
+        int parent_id FK
+    }
+
+    casual_post_likes {
+        int id PK
+        int post_id FK
+        int user_id FK
+    }
+
+    casual_analyses {
+        int id PK
+        int organization_id FK
+        boolean is_published
+    }
+
+    survey_comments {
+        int id PK
+        int survey_id FK
+        int user_id FK
+    }
+
+    notifications {
+        int id PK
+        int user_id FK
+        int organization_id FK
+        string type
+        boolean is_read
+    }
+
+    sessions {
+        string id PK
         int user_id FK
     }
 ```
@@ -192,12 +238,11 @@ AI分析の実行単位（セッション）を管理します。
 | `session_id` | Integer | 紐付く分析セッションID (外部キー)。 |
 | `original_text` | Text | 分析元のテキストデータ。 |
 | `sub_topic` | String | AIが判定したカテゴリ/サブトピック。 |
-| `sentiment` | Float | 感情スコア (-1.0 〜 1.0)。 |
 | `summary` | String | テキストの要約。 |
 | `x_coordinate` | Float | クラスタリング可視化用のX座標。 |
 | `y_coordinate` | Float | クラスタリング可視化用のY座標。 |
 | `cluster_id` | Integer | 所属するクラスタID（-1はノイズ）。 |
-| `session` | relationship | 紐付く分析セッション。 |
+
 ### 課題定義レポート (`issue_definitions`)
 セッション全体を通してAIが生成した課題レポートを格納します。
 
@@ -273,3 +318,69 @@ AI分析の実行単位（セッション）を管理します。
 | `user_id` | Integer | 回答者ID (外部キー)。未ログイン時はNULL。 |
 | `content` | Text | 回答内容。 |
 | `created_at` | DateTime | 回答日時。 |
+
+### アンケートコメント (`survey_comments`)
+アンケート申請フォームに対するチャットコメントを管理します。
+
+| カラム名 | 型 | 説明 |
+| :--- | :--- | :--- |
+| `id` | Integer | ID (主キー)。 |
+| `survey_id` | Integer | 紐付くアンケートID (外部キー)。 |
+| `user_id` | Integer | 投稿者ID (外部キー)。 |
+| `content` | Text | コメント内容。 |
+| `created_at` | DateTime | 投稿日時。 |
+
+## 5. 雑談掲示板機能
+
+### 雑談投稿 (`casual_posts`)
+みんなの雑談掲示板への投稿を管理します。返信機能（スレッド形式）もサポートしています。
+
+| カラム名 | 型 | 説明 |
+| :--- | :--- | :--- |
+| `id` | Integer | ID (主キー)。 |
+| `organization_id` | Integer | 紐付く組織ID (外部キー)。 |
+| `user_id` | Integer | 投稿者ID (外部キー)。削除時はNULL。 |
+| `parent_id` | Integer | 親投稿ID (外部キー)。返信時に使用。 |
+| `content` | Text | 投稿内容。 |
+| `created_at` | DateTime | 投稿日時。 |
+| `likes_count` | Integer | いいね数（キャッシュフィールド）。 |
+
+### 雑談いいね (`casual_post_likes`)
+雑談投稿に対する「いいね」データを管理します。
+
+| カラム名 | 型 | 説明 |
+| :--- | :--- | :--- |
+| `id` | Integer | ID (主キー)。 |
+| `post_id` | Integer | 紐付く投稿ID (外部キー)。 |
+| `user_id` | Integer | いいねしたユーザーID (外部キー)。 |
+| `created_at` | DateTime | 作成日時。 |
+
+### 雑談分析結果 (`casual_analyses`)
+雑談掲示板の投稿内容から生成されるAI分析・推奨レポートです。
+
+| カラム名 | 型 | 説明 |
+| :--- | :--- | :--- |
+| `id` | Integer | ID (主キー)。 |
+| `organization_id` | Integer | 紐付く組織ID (外部キー)。 |
+| `created_at` | DateTime | 作成日時。 |
+| `start_date` | DateTime | 分析対象期間の開始日時。 |
+| `end_date` | DateTime | 分析対象期間の終了日時。 |
+| `result_json` | Text | 分析結果のJSON文字列。 |
+| `is_published` | Boolean | 一般ユーザーへの公開状態。 |
+
+## 6. 通知機能
+
+### 通知 (`notifications`)
+ユーザーへの通知を管理します。
+
+| カラム名 | 型 | 説明 |
+| :--- | :--- | :--- |
+| `id` | Integer | ID (主キー)。 |
+| `user_id` | Integer | 通知先ユーザーID (外部キー)。 |
+| `organization_id` | Integer | 紐付く組織ID (外部キー)。NULL可。 |
+| `type` | String | 通知タイプ ('survey_released', 'report_published', 'casual_suggestion', 'chat_new', 'form_rejected', 'form_applied')。 |
+| `title` | String | 通知のタイトル。 |
+| `content` | Text | 通知の本文。 |
+| `link` | String | 通知から遷移するリンクURL。 |
+| `is_read` | Boolean | 既読フラグ。 |
+| `created_at` | DateTime | 作成日時。 |
