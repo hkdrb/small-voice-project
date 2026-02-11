@@ -7,7 +7,7 @@ from datetime import datetime
 import csv
 import io
 
-from backend.database import SessionLocal, Survey, Question, Answer, User, OrganizationMember, get_db
+from backend.database import SessionLocal, Survey, Question, Answer, User, OrganizationMember, SurveyComment, get_db
 from backend.api.auth import get_current_user, UserResponse
 
 router = APIRouter()
@@ -51,6 +51,19 @@ class AnswerSubmit(BaseModel):
 
 class SurveySubmit(BaseModel):
     answers: List[AnswerSubmit]
+
+class CommentCreate(BaseModel):
+    content: str
+
+class CommentResponse(BaseModel):
+    id: int
+    content: str
+    user_id: int
+    username: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
 
 # --- Endpoints ---
 
@@ -357,8 +370,10 @@ def update_survey(
         survey.rejection_reason = None
 
     # Sync Questions
-    # 1. Delete old
-    db.query(Question).filter(Question.survey_id == survey_id).delete()
+    # 1. Delete old (use ORM delete to trigger cascades)
+    existing_questions = db.query(Question).filter(Question.survey_id == survey_id).all()
+    for q in existing_questions:
+        db.delete(q)
     # 2. Add new
     for idx, q_data in enumerate(data.questions):
         db.add(Question(
@@ -462,3 +477,68 @@ def reject_survey(
     
     db.commit()
     return {"message": "Survey rejected", "approval_status": survey.approval_status}
+
+@router.get("/{survey_id}/comments", response_model=List[CommentResponse])
+def get_survey_comments(
+    survey_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+        
+    # Permission check: Admin or Creator
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    if not is_admin and survey.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Permission denied")
+        
+    comments = db.query(SurveyComment).options(joinedload(SurveyComment.user)).filter(
+        SurveyComment.survey_id == survey_id
+    ).order_by(SurveyComment.created_at).all()
+    
+    return [
+        CommentResponse(
+            id=c.id,
+            content=c.content,
+            user_id=c.user_id,
+            username=c.user.username or c.user.email if c.user else "Unknown",
+            created_at=c.created_at
+        ) for c in comments
+    ]
+
+@router.post("/{survey_id}/comments", response_model=CommentResponse)
+def create_survey_comment(
+    survey_id: int,
+    comment: CommentCreate,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+        
+    # Permission check: Admin or Creator
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    if not is_admin and survey.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Permission denied")
+        
+    new_comment = SurveyComment(
+        survey_id=survey_id,
+        user_id=current_user.id,
+        content=comment.content
+    )
+    db.add(new_comment)
+    db.commit()
+    db.refresh(new_comment)
+    
+    # Reload user for response
+    db.refresh(new_comment, attribute_names=['user'])
+    
+    return CommentResponse(
+        id=new_comment.id,
+        content=new_comment.content,
+        user_id=new_comment.user_id,
+        username=current_user.username or current_user.email,
+        created_at=new_comment.created_at
+    )

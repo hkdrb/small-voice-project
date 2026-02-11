@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Plus, Trash2, Edit, Check, Eye, EyeOff, BarChart2, Save, X, FileDown } from 'lucide-react';
 import { SurveySummary } from '@/types/dashboard';
 import { Tooltip } from '@/components/ui/Tooltip';
+import SurveyChat from './SurveyChat';
 
 interface QuestionDraft {
   id?: number;
@@ -30,6 +31,7 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [questions, setQuestions] = useState<QuestionDraft[]>([{ text: '', is_required: false, order: 1 }]);
+  const [pendingComment, setPendingComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -93,10 +95,33 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
         await axios.put(`/api/surveys/${editingSurveyId}`, payload, { withCredentials: true });
         alert("送信しました");
       } else {
-        await axios.post('/api/surveys', payload, { withCredentials: true });
-        alert("申請を送信しました");
+        const res = await axios.post('/api/surveys', payload, { withCredentials: true });
+
+        // 申請時のドラフトコメントがあれば送信
+        if (pendingComment.trim()) {
+          try {
+            await axios.post(`/api/surveys/${res.data.id}/comments`, { content: pendingComment }, { withCredentials: true });
+          } catch (ignore) {
+            console.error("Initial comment failed", ignore);
+          }
+        }
+
+        if (isAdmin) {
+          alert("フォーム作成をしました");
+        } else {
+          alert("フォーム申請をしました");
+        }
+        // 新規作成後は編集画面（チャット画面）に遷移
+        setEditingSurveyId(res.data.id);
+        setView('edit');
       }
-      resetForm();
+
+      // 管理者の場合は一覧に戻る
+      if (isAdmin) {
+        resetForm();
+      }
+      // 申請者の場合は編集画面（チャット画面）に留まるため resetForm しない
+
       fetchSurveys();
     } catch (e) {
       console.error(e);
@@ -176,6 +201,7 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
     setTitle('');
     setDescription('');
     setQuestions([{ text: '', is_required: false, order: 1 }]);
+    setPendingComment('');
     setEditingSurveyId(null);
   };
 
@@ -270,7 +296,7 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
                               <Edit className="h-4 w-4" />
                             </button>
                           </Tooltip>
-                          <Tooltip text="削除/取り下げ">
+                          <Tooltip text="削除">
                             <button onClick={() => handleDelete(survey.id)} className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors">
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -396,8 +422,46 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
               </button>
             </div>
 
+            {view === 'edit' && editingSurveyId && (() => {
+              const currentSurvey = surveys.find(s => s.id === editingSurveyId);
+              // チャットは申請中または却下時のみ表示（公開中・停止中は非表示）
+              if (currentSurvey && ['pending', 'rejected'].includes(currentSurvey.approval_status)) {
+                return (
+                  <div className="pt-8 mt-8 border-t border-slate-200">
+                    <SurveyChat surveyId={editingSurveyId} currentUser={user} />
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            {view === 'create' && (
+              <div className="pt-8 mt-8 border-t border-slate-200">
+                {isAdmin ? (
+                  <div className="flex flex-col h-[150px] border border-sage-200 rounded-xl bg-slate-50 overflow-hidden opacity-70">
+                    <div className="bg-sage-50 px-4 py-3 border-b border-sage-100 flex items-center justify-between">
+                      <h4 className="font-bold text-sage-700 flex items-center gap-2">
+                        申請に関するチャット
+                      </h4>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+                      （管理者のため、申請時のチャット入力は不要です）
+                    </div>
+                  </div>
+                ) : (
+                  <SurveyChat
+                    surveyId={null}
+                    currentUser={user}
+                    isDraft={true}
+                    draftText={pendingComment}
+                    onDraftChange={setPendingComment}
+                  />
+                )}
+              </div>
+            )}
+
             <div className="pt-4 flex justify-end gap-4">
-              <button onClick={resetForm} className="px-6 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">キャンセル</button>
+              <button onClick={resetForm} className="px-6 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">戻る</button>
               <button onClick={handleSave} disabled={submitting} className="btn-primary px-8 py-2 flex items-center gap-2">
                 {submitting ? '保存中...' : (
                   <>

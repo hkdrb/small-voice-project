@@ -75,6 +75,7 @@ class User(Base):
     # Sessions
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     created_surveys = relationship("Survey", back_populates="creator")
+    survey_comments = relationship("SurveyComment", back_populates="user")
 
 class UserSession(Base):
     __tablename__ = "sessions"
@@ -133,6 +134,7 @@ class Survey(Base):
     answers = relationship("Answer", back_populates="survey", cascade="all, delete-orphan")
     organization = relationship("Organization", back_populates="surveys")
     creator = relationship("User", back_populates="created_surveys")
+    comments = relationship("SurveyComment", back_populates="survey", cascade="all, delete-orphan")
 
 class Question(Base):
     """アンケートの設問"""
@@ -278,6 +280,18 @@ class CasualAnalysis(Base):
     is_published = Column(Boolean, default=False) # 公開/非公開
     
     organization = relationship("Organization")
+
+class SurveyComment(Base):
+    """申請フォーム上のチャットコメント"""
+    __tablename__ = "survey_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(Text)
+    created_at = Column(DateTime, default=datetime.now)
+    
+    survey = relationship("Survey", back_populates="comments")
+    user = relationship("User", back_populates="survey_comments")
 
 # --- 初期化 ---
 def init_db():
