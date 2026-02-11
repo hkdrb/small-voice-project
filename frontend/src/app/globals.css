@@ -15,7 +15,7 @@
   --image-sage-gradient: linear-gradient(135deg, #F1F4F2 0%, #E0E8E4 100%);
   --image-sage-btn: linear-gradient(135deg, #7E948B 0%, #5C7066 100%);
   --image-gray-btn: linear-gradient(135deg, #7F8C8D 0%, #616A6B 100%);
-  
+
   /* Sage color scale for Tailwind utilities */
   --color-sage-50: #F1F4F2;
   --color-sage-100: #E0E8E4;
@@ -40,6 +40,21 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   min-height: 100vh;
+}
+
+/* Apply pointer cursor only to clickable elements */
+button,
+a,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+select,
+.cursor-pointer,
+[onclick] {
+  cursor: pointer !important;
 }
 
 /* Custom Glass Utilities */
