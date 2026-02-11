@@ -5,7 +5,7 @@
 
 ## ER図 (Entity Relationship Diagram)
 
-![ER Diagram](images/er_diagram.svg)
+![ER Diagram](images/er_diagram.png)
 
 ## リレーション一覧表
 

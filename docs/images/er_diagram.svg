@@ -1,53 +1,12 @@
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="1120" height="950" viewBox="0 0 1120 950">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="1300" height="1450" viewBox="0 0 1300 1450">
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#666" />
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#000" />
     </marker>
   </defs>
 
-  <!-- GROUP 1: User & Organization (Blue) -->
-  <g transform="translate(20, 20)">
-    <rect x="0" y="0" width="300" height="420" fill="#E1F5FE" stroke="#01579B" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
-    <text x="150" y="25" fill="#01579B" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">User & Org Management</text>
-
-    <!-- users -->
-    <g transform="translate(20, 45)">
-      <rect x="0" y="0" width="260" height="50" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
-      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">users</text>
-      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
-      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
-    </g>
-
-    <!-- organizations -->
-    <g transform="translate(20, 115)">
-      <rect x="0" y="0" width="260" height="50" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
-      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">organizations</text>
-      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
-      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
-    </g>
-
-    <!-- organization_members -->
-    <g transform="translate(20, 185)">
-      <rect x="0" y="0" width="260" height="85" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
-      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">organization_members</text>
-      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
-      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
-      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
-      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
-    </g>
-
-    <!-- sessions -->
-    <g transform="translate(20, 290)">
-      <rect x="0" y="0" width="260" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
-      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">sessions</text>
-      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
-      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
-      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
-    </g>
-  </g>
-
-  <!-- GROUP 2: Survey System (Green) -->
-  <g transform="translate(360, 20)">
+  <!-- GROUP 2: Survey System (Top) -->
+  <g transform="translate(480, 20)">
     <rect x="0" y="0" width="340" height="420" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
     <text x="170" y="25" fill="#2E7D32" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">Survey System</text>
 
@@ -89,9 +48,9 @@
       <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK survey_id, user_id</text>
     </g>
   </g>
-  
-  <!-- GROUP 5: Notifications (Red) - Positioned Top Right -->
-  <g transform="translate(740, 20)">
+
+  <!-- GROUP 5: Notifications (Left) -->
+  <g transform="translate(50, 600)">
     <rect x="0" y="0" width="340" height="150" fill="#FFEBEE" stroke="#C62828" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
     <text x="170" y="25" fill="#C62828" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">Notifications</text>
     
@@ -106,8 +65,88 @@
     </g>
   </g>
 
-  <!-- GROUP 4: Casual Board (Purple) - Positioned Bottom Left -->
-  <g transform="translate(20, 480)">
+  <!-- GROUP 1: User & Organization (Center) -->
+  <g transform="translate(500, 500)">
+    <rect x="0" y="0" width="300" height="420" fill="#E1F5FE" stroke="#01579B" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
+    <text x="150" y="25" fill="#01579B" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">User & Org Management</text>
+
+    <!-- users -->
+    <g transform="translate(20, 45)">
+      <rect x="0" y="0" width="260" height="50" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">users</text>
+      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+    </g>
+
+    <!-- organizations -->
+    <g transform="translate(20, 115)">
+      <rect x="0" y="0" width="260" height="50" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">organizations</text>
+      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+    </g>
+
+    <!-- organization_members -->
+    <g transform="translate(20, 185)">
+      <rect x="0" y="0" width="260" height="85" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">organization_members</text>
+      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
+      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
+    </g>
+
+    <!-- sessions -->
+    <g transform="translate(20, 290)">
+      <rect x="0" y="0" width="260" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="130" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">sessions</text>
+      <line x1="0" y1="24" x2="260" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK user_id</text>
+    </g>
+  </g>
+
+  <!-- GROUP 3: Analysis System (Right) -->
+  <g transform="translate(900, 500)">
+    <rect x="0" y="0" width="340" height="420" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
+    <text x="170" y="25" fill="#EF6C00" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">Analysis & Discussion</text>
+
+    <!-- analysis_sessions -->
+    <g transform="translate(20, 45)">
+      <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">analysis_sessions</text>
+      <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
+    </g>
+    
+    <!-- analysis_results -->
+    <g transform="translate(20, 125)">
+      <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">analysis_results</text>
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK session_id</text>
+    </g>
+
+    <g transform="translate(20, 200)">
+        <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+        <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">issue_definitions</text>
+        <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+        <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK session_id</text>
+    </g>
+
+    <!-- comments -->
+    <g transform="translate(20, 275)">
+      <rect x="0" y="0" width="300" height="85" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
+      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">comments</text>
+      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
+      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK session_id, user_id</text>
+      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK parent_id</text>
+    </g>
+  </g>
+
+  <!-- GROUP 4: Casual Board (Bottom) -->
+  <g transform="translate(480, 980)">
     <rect x="0" y="0" width="340" height="420" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
     <text x="170" y="25" fill="#7B1FA2" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">Casual Board</text>
 
@@ -141,76 +180,41 @@
       <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
     </g>
   </g>
-
-  <!-- GROUP 3: Analysis System (Orange) - Positioned Bottom Right -->
-  <g transform="translate(400, 480)">
-    <rect x="0" y="0" width="340" height="420" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2" rx="10" ry="10" fill-opacity="0.2" />
-    <text x="170" y="25" fill="#EF6C00" font-family="sans-serif" font-weight="bold" font-size="16px" text-anchor="middle">Analysis & Discussion</text>
-
-    <!-- analysis_sessions -->
-    <g transform="translate(20, 45)">
-      <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
-      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">analysis_sessions</text>
-      <line x1="0" y1="24" x2="300" y2="24" stroke="#ccc" stroke-width="1" />
-      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
-      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK organization_id</text>
-    </g>
-    
-    <!-- analysis_results & issue_definitions (Stacked side by side or vertically) -->
-    <g transform="translate(20, 125)">
-      <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
-      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">analysis_results</text>
-      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
-      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK session_id</text>
-    </g>
-
-    <g transform="translate(20, 200)">
-        <rect x="0" y="0" width="300" height="65" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
-        <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">issue_definitions</text>
-        <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
-        <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK session_id</text>
-    </g>
-
-    <!-- comments -->
-    <g transform="translate(20, 275)">
-      <rect x="0" y="0" width="300" height="85" fill="#ffffff" stroke="#333333" stroke-width="1" rx="4" ry="4" />
-      <text x="150" y="18" fill="#000" font-family="monospace" font-weight="bold" font-size="14px" text-anchor="middle">comments</text>
-      <text x="10" y="38" fill="#333" font-family="monospace" font-size="12px">PK id</text>
-      <text x="10" y="54" fill="#333" font-family="monospace" font-size="12px">FK session_id, user_id</text>
-      <text x="10" y="70" fill="#333" font-family="monospace" font-size="12px">FK parent_id</text>
-    </g>
-  </g>
   
-  <!-- CONNECTORS (Simplified Layout Lines) -->
+  <!-- CONNECTORS -->
+  <!-- Center (User/Org) is at 500,500. Users table 520,545. Orgs table 520,615. -->
   
   <!-- User/Org Internal -->
-  <path d="M150,95 L150,115" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(20,20)"/> <!-- users -> organizations (no relation) -->
-  <!-- users -> org_members -->
-  <path d="M150,95 L150,185" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(20,20)"/>
-  <!-- orgs -> org_members -->
-  <path d="M150,165 L150,185" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(20,20)"/>
-  
-  <!-- User/Org -> Survey -->
-  <!-- organizations (20,115 + 20 = 155centerY) -> surveys (360+20=380, 45+40=85centerY) -->
-  <!-- orgs (center 170, 160) -> surveys (center 530, 90) -->
-  <path d="M300,140 L380,90" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" />
-  <!-- users -> surveys -->
-  <path d="M300,70 L380,90" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" />
+  <!-- users(520+130=650, 545+25=570) -> org_members(650, 685+42=727) -->
+  <path d="M650,595 L650,685" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" />
+  <!-- orgs(650, 615+25=640) -> org_members -->
+  <path d="M650,665 L650,685" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" />
+
+  <!-- Center UP to Survey -->
+  <!-- surveys (480+20=500, 20+45=65). CenterX=650, Y=65+42=107. -->
+  <!-- orgs (650, 615) -->
+  <path d="M650,615 L650,150" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" />
+  <!-- users (650, 545) -->
+  <path d="M630,545 L630,225" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="5,5" />
   
   <!-- Survey Internal -->
-  <path d="M170,130 L170,145" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(360,20)"/> <!-- surveys -> questions -->
-  <path d="M170,210 L170,225" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" transform="translate(360,20)"/> <!-- questions -> answers -->
-  
-  <!-- User -> Answers -->
-  <path d="M280,90 C320,90 320,290 380,290" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" />
-  
-  <!-- User/Org -> Casual -->
-  <path d="M150,440 L150,525" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" stroke-dasharray="4"/>
-  
-  <!-- User/Org -> Analysis -->
-  <path d="M320,140 L420,525" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" stroke-dasharray="4"/>
-  
-  <!-- User/Org -> Notification -->
-  <path d="M320,70 L760,65" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6" />
+  <path d="M650,150 L650,165" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" transform="translate(480,20)"/> 
+  <path d="M650,210 L650,225" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" transform="translate(480,20)"/>
 
+  <!-- Center RIGHT to Analysis -->
+  <!-- orgs (650, 640) -> analysis_sessions (900+20=920, 500+45=545). CenterX=1070. -->
+  <path d="M780,640 L920,565" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" />
+  <!-- users (650, 570) -->
+  <path d="M780,570 L920,775" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="5,5" />
+
+  <!-- Center DOWN to Casual -->
+  <!-- orgs (650, 665) -> casual_posts (480+20=500, 980+45=1025). CenterX=650. -->
+  <path d="M650,665 L650,1025" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" />
+  <!-- users (650, 595) -->
+  <path d="M670,595 L670,1025" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="5,5" />
+
+  <!-- Center LEFT to Notifications -->
+  <!-- users (520, 570) -> notifications (50+20=70, 600+45=645). CenterX=220. -->
+  <path d="M520,570 L370,645" fill="none" stroke="#000" stroke-width="2.5" marker-end="url(#arrow)" />
+  
 </svg>
