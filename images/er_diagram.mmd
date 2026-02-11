@@ -7,16 +7,16 @@ erDiagram
     classDef notif fill:#FFEBEE,stroke:#C62828,stroke-width:2px;
 
     %% --- Tier 1: Core (Top) ---
-    users {
+    users["users (ユーザー)"] {
         int id PK
         string name
         string role
     }
-    organizations {
+    organizations["organizations (組織)"] {
         int id PK
         string name
     }
-    organization_members {
+    organization_members["organization_members (組織メンバー)"] {
         int user_id FK
         int org_id FK
         string role
@@ -30,7 +30,7 @@ erDiagram
     class organization_members userOrg
 
     %% --- Tier 2: Notifications (Side/Top) ---
-    notifications {
+    notifications["notifications (通知)"] {
         int u_id FK
         string type
         string title
@@ -42,15 +42,15 @@ erDiagram
     %% --- Tier 3: Modules (Middle) ---
     
     %% Module A: Surveys
-    surveys {
+    surveys["surveys (アンケート)"] {
         int id PK
         string title
     }
-    questions {
+    questions["questions (設問)"] {
         int id PK
         string content
     }
-    answers {
+    answers["answers (回答)"] {
         int survey_id FK
         int question_id FK
         int user_id FK
@@ -67,20 +67,20 @@ erDiagram
     class answers survey
 
     %% Module B: Analysis
-    analysis_sessions {
+    analysis_sessions["analysis_sessions (分析セッション)"] {
         int id PK
         string title
         string status
     }
-    analysis_results {
+    analysis_results["analysis_results (分析結果)"] {
         int session_id FK
         string summary
     }
-    issue_definitions {
+    issue_definitions["issue_definitions (課題定義)"] {
         int session_id FK
         string description
     }
-    comments {
+    comments["comments (コメント)"] {
         int session_id FK
         int user_id FK
         string content
@@ -98,11 +98,11 @@ erDiagram
     class comments analysis
 
     %% Module C: Casual Board
-    casual_posts {
+    casual_posts["casual_posts (雑談投稿)"] {
         int id PK
         string content
     }
-    casual_analyses {
+    casual_analyses["casual_analyses (雑談分析)"] {
         int org_id FK
         json result
     }

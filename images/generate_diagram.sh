@@ -7,4 +7,4 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
 # Run mermaid-cli
-npx -p @mermaid-js/mermaid-cli mmdc -i er_diagram.mmd -o er_diagram.png -b transparent -s 3
+npx -p @mermaid-js/mermaid-cli mmdc -i er_diagram.mmd -o er_diagram.png -b transparent -s 5
