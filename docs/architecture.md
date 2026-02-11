@@ -1,126 +1,773 @@
 # システムアーキテクチャ
 
-## 概要
-本プロジェクト "Small Voice" は、組織内の様々な「小さな声」データを収集・分析し、改善アクションを促進するための **AI搭載型社内ブロードリスニングシステム** です。
+## 📖 ドキュメント概要
 
-開発プロジェクトの振り返り、技術的負債やコード品質に関するフィードバック、開発環境への要望アンケートなどのテキストデータを入力とし、Google Gemini APIを活用して自動的に分類・感情分析・課題抽出を行い、組織が次の一手を打つためのインサイトを提供します。
+本ドキュメントは、Small Voice（ブロードリスニングシステム）の技術アーキテクチャを包括的に説明します。システムの設計思想、機能詳細、技術スタック、実装の詳細まで網羅しています。
+
+**対象読者**: 開発者、システムアーキテクト、技術リード
+
+**読み方ガイド**:
+- **全体像を把握したい**: 「主な機能」「技術スタック」セクションを参照
+- **AI分析の仕組みを理解したい**: 「AI分析・アルゴリズム詳細」セクションを参照
+- **実装を詳しく知りたい**: 「ディレクトリ構造」「コンポーネント詳細」セクションを参照
+
+---
+
+## 📋 目次
+
+1. [主な機能](#主な機能)
+   - データ収集方法（雑談掲示板、メンバー申請、CSV、管理者作成）
+   - 雑談掲示板
+   - AI分析とクラスタリング
+   - 分析セッション管理
+   - 課題リスト生成
+   - 議論チャット
+   - AIファシリテーター
+   - マルチテナント構成
+   - ユーザー管理
+   - 認証・セキュリティ
+
+2. [技術スタック](#技術スタック)
+   - Frontend: Next.js, React, TypeScript, Tailwind CSS
+   - Backend: FastAPI, PostgreSQL, Gemini API
+   - AI/ML: Sentence Transformers, scikit-learn
+
+3. [AI分析・アルゴリズム詳細](#ai分析アルゴリズム詳細)
+   - 掲示板分析（雑談→フォーム推奨）
+   - クラスタリング分析（回答→クラスタ）
+   - 課題リスト生成（クラスタ→アジェンダ）
+   - AIファシリテーター（議論→アクション）
+
+4. [ディレクトリ構造](#ディレクトリ構造)
+   - プロジェクト全体のファイル・フォルダ構成
+
+5. [コンポーネント詳細](#コンポーネント詳細)
+   - Backend API、Service、データベース
+   - Frontend ページ、コンポーネント
+
+---
 
 ## 主な機能
-1.  **AI分析レポート生成**:
-    *   大量のテキストデータを自動分類し、意味的な類似度マップを生成。
-    *   全体傾向の要約、解決すべき重要課題、アクションプランを自動生成。
-2.  **インタラクティブ・ダッシュボード**:
-    *   プロット図（散布図）による意見の全体像の把握。
-    *   Google Plotlyを用いたズーム・パン操作。
-3.  **アンケート作成・収集**:
-    *   **フォーム作成申請 (Workflow)**:
-        一般メンバーが組織改善のためのアンケート案を管理者に提案できるボトムアップ機能です。
 
-        | 物理状態 (`approval_status` / `is_active`) | 管理者表示 | 申請者表示 | 詳細説明 |
-        | :--- | :--- | :--- | :--- |
-        | `pending` / `False` | **申請中** | **申請中** | 申請直後の初期状態。管理者が内容を審査します。 |
-        | `approved` / `False` | **停止中** | **承認済み** | 承認されたが非公開。管理者が公開操作を行うまでこの状態です。 |
-        | `approved` / `True` | **公開中** | (非表示*) | 全ユーザーへ公開中。*申請者は「回答」タブで確認可能になります。 |
-        | `rejected` / `False` | **却下** | **却下** | 差し戻し状態。申請者が内容を修正して「再申請」することが可能です。 |
+### 1. 多様なデータ収集方法
+本システムは、組織内の声を様々な経路で収集し、一元的に分析できるように設計されています。
 
-    *   **承認フローのライフサイクル**:
-        1.  **申請**: 一般ユーザーがフォームを作成して送信。
-        2.  **承認/却下**: 管理者が `Check`（承認）か `X`（却下）を選択。承認時は一度「停止中」に入ります。
-        3.  **公開管理**: 承認済みのフォームに対し、管理者が `Eye`（公開）アイコンを押すことで全体公開が始まります。
-    *   システム内でアンケートフォームを作成・公開し、回答データを直接蓄積・分析可能。
-    *   **CSVインポート**: 外部CSVデータを「フォーム」として取り込み、統一的な分析フローで処理。
-4.  **解決策チャットボード**:
-    *   分析結果に対してメンバーがコメントや解決策を投稿・議論するフォーラム機能。
-    *   **スレッド形式のリプライ**や**いいネ機能**により、活発な議論を促進。
-    *   AIによる「議論のまとめ」機能。
-5.  **マルチテナント (組織管理)**:
-    *   ユーザーとデータを「組織」単位で分離。
-    *   システム全体管理者と各組織管理者の階層的な権限モデル。
+#### 1.1 雑談掲示板からのフォーム作成
+- **実装**: `backend/api/casual_chat.py` でCRUD操作を提供
+- **データモデル**: `CasualPost` (投稿), `CasualReply` (返信)
+- **AI分析機能**: 
+  - `backend/services/analysis.py::analyze_casual_posts_logic()` により、投稿内容を分析
+  - Gemini APIを使用して、組織的な課題として取り上げるべきトピックを自動抽出
+  - 抽出されたトピックから、フォームのタイトル・説明・質問案を自動生成
+- **アーキテクチャ特性**: 日常的な会話データを構造化されたアンケートへ昇華させることで、潜在的な課題の早期発見を実現
+
+#### 1.2 メンバーからのフォーム申請（ボトムアップ）
+- **実装**: `backend/api/survey.py` の承認フローシステム
+- **ワークフロー**:
+  
+  | 物理状態 (`approval_status` / `is_active`) | 管理者表示 | 申請者表示 | 詳細説明 |
+  | :--- | :--- | :--- | :--- |
+  | `pending` / `False` | **申請中** | **申請中** | 申請直後の初期状態。管理者が内容を審査します。 |
+  | `approved` / `False` | **停止中** | **承認済み** | 承認されたが非公開。管理者が公開操作を行うまでこの状態です。 |
+  | `approved` / `True` | **公開中** | (非表示*) | 全ユーザーへ公開中。*申請者は「回答」タブで確認可能になります。 |
+  | `rejected` / `False` | **却下** | **却下** | 差し戻し状態。申請者が内容を修正して「再申請」することが可能です。 |
+
+- **承認フローAPI**:
+  - `PUT /api/surveys/{survey_id}/approve` - 承認
+  - `PUT /api/surveys/{survey_id}/reject` - 却下
+  - `PATCH /api/surveys/{survey_id}/toggle` - 公開/停止切り替え
+- **データモデル**: `Survey` テーブルに `approval_status`, `is_active` カラムでステート管理
+- **通知システム**: 承認・却下時に `backend/services/notification_service.py` を通じてユーザーに通知
+
+#### 1.3 外部フォームのCSVインポート
+- **実装**: `backend/api/dashboard.py::import_csv()` エンドポイント（システム管理者のみ）
+- **処理フロー**:
+  1. CSVファイルをアップロード
+  2. 既存セッション選択、または新規セッション作成
+  3. CSVの各行を `SurveyComment` として組織スコープ内に格納
+  4. 既存の分析パイプラインで処理可能
+- **セキュリティ**: `is_system_admin` デコレータによるアクセス制御
+
+#### 1.4 管理者によるフォーム作成
+- **実装**: `backend/api/survey.py::create_survey()` 
+- **AIアシスト機能**: フォーム作成時に、質問案を自動生成する機能を提供（雑談掲示板分析結果を活用）
+
+#### 1.5 フォーム回答のCSVエクスポート
+- **実装**: `GET /api/surveys/{survey_id}/responses/csv`
+- **機能**: フォームに対する全回答をCSV形式でダウンロード
+- **用途**: 外部ツールでの分析、バックアップ、レポート作成
+- **権限**: 組織管理者のみ
+
+#### 1.6 フォームへのコメント・議論
+- **実装**: `backend/api/survey.py`
+  - `POST /api/surveys/{survey_id}/comments` - コメント投稿
+  - `GET /api/surveys/{survey_id}/comments` - コメント一覧取得
+- **データモデル**: `SurveyComment` 
+- **用途**: フォーム自体に対する質問や議論（回答とは別）
+- **機能**: 組織メンバー間で、フォームの内容や結果について議論可能
+
+### 2. 雑談掲示板（日常的なコミュニケーション）
+組織メンバーが自由に意見を投稿し、議論できる場を提供します。この掲示板の投稿は、AI分析によってフォーム作成の素材として活用されます（1.1参照）。
+
+#### 2.1 基本機能
+- **実装**: `backend/api/casual_chat.py`
+- **API**:
+  - `POST /api/casual/posts` - 投稿作成
+  - `GET /api/casual/posts` - 投稿一覧取得（組織スコープ）
+  - `POST /api/casual/posts/{post_id}/replies` - 返信投稿（ネストしたスレッド）
+  - `POST /api/casual/posts/{post_id}/like` - いいね
+- **データモデル**: 
+  - `CasualPost` (投稿・返信を統合。parent_idで自己参照し、階層構造を実現)
+  - `CasualPostLike` (いいね)
+- **用途**: 
+  - 日常的な業務の悩みや気づきの共有
+  - 組織内の雰囲気醸成
+  - フォーム化する前の「声」の収集
+
+#### 2.2 AI分析結果の管理
+- **実装**: `backend/api/casual_chat.py`
+- **API**:
+  - `POST /api/casual/analyze` - AI分析実行（フォーム推奨リスト生成）
+  - `GET /api/casual/analyses` - 過去の分析結果一覧
+  - `PATCH /api/casual/analyses/{analysis_id}/visibility` - 分析結果の表示/非表示切り替え
+  - `DELETE /api/casual/analyses/{analysis_id}` - 分析結果削除
+- **データモデル**: `CasualAnalysis` (分析結果、推奨フォーム案を保存)
+- **機能**: 
+  - 分析結果を保存し、後から参照可能
+  - 管理者が分析結果の公開状態を制御
+  - 不要な分析結果を削除
+
+### 3. AI分析とクラスタリング
+収集されたテキストデータを構造化し、視覚的に理解しやすい形に変換します。
+
+#### 3.1 意味ベクトル化
+- **実装**: `backend/services/analysis.py::get_vectors_semantic()`
+- **手法**: 
+  - **Sentence Transformers** (`paraphrase-multilingual-MiniLM-L12-v2`) をローカルで使用
+  - 多言語対応の軽量モデルで、日本語テキストを高次元ベクトル空間に埋め込み
+  - フォールバック: 失敗時はTF-IDF (文字n-gram) に自動切り替え
+
+#### 3.2 外れ値検出（Small Voice）
+- **実装**: `backend/services/analysis.py::detect_outliers()`
+- **手法**:
+  - **Isolation Forest** と **Local Outlier Factor (LOF)** を併用
+  - 両者のスコアを正規化・平均化して `small_voice_score` を算出
+  - 動的閾値調整: データ分布に応じて外れ値判定を適応的に変更
+- **目的**: 少数意見を統計的に「ノイズ」として除外せず、重要な兆候として保持
+
+#### 3.3 クラスタリング
+- **実装**: `backend/services/analysis.py::analyze_clusters_logic()`
+- **手法**:
+  - **K-Means** によるクラスタリング（外れ値を除いた主要意見のみ対象）
+  - **シルエットスコア** による最適クラスタ数の自動決定 (`get_optimal_k()`)
+  - 並列処理: ThreadPoolExecutorによる高速化
+- **クラスタ命名**: 
+  - Gemini 2.0 Flash API を使用して、各クラスタの代表的なテキストから簡潔なラベルを生成
+  - バッチ処理（5クラスタごと）で並列実行し、レイテンシを削減
+
+#### 3.4 2次元可視化
+- **実装**: `backend/services/analysis.py::analyze_clusters_logic()` 内でPCA実行
+- **手法**: 
+  - **PCA (主成分分析)** による2次元座標の算出（高速処理のためUMAPから変更）
+  - フロントエンドで `react-plotly.js` を使用してインタラクティブな散布図を表示
+  - 各点をクリックすると元のテキストを表示可能
+
+### 4. 分析セッション管理
+フォームやCSVから収集したデータを分析するためのセッション（分析プロジェクト）を管理します。
+
+#### 4.1 基本機能
+- **実装**: `backend/api/dashboard.py`
+- **API**:
+  - `POST /api/dashboard/sessions/analyze` - 新規分析セッション作成＋分析実行
+  - `GET /api/dashboard/sessions` - セッション一覧取得
+  - `GET /api/dashboard/sessions/{session_id}` - セッション詳細取得
+  - `DELETE /api/dashboard/sessions/{session_id}` - セッション削除
+  - `PUT /api/dashboard/sessions/{session_id}/publish` - セッション公開/非公開切り替え
+- **データモデル**: `AnalysisSession` (テーマ、タイトル、作成日時、組織ID、公開フラグ)
+- **機能**:
+  - 1つのセッションに、フォームの回答データまたはCSVデータを紐付け
+  - クラスタリング結果、課題リスト、議論を一元管理
+  - 公開設定により、一般メンバーへの表示/非表示を制御
+
+#### 4.2 CSVインポート（補足）
+- **API**: `POST /api/dashboard/sessions/{session_id}/comments/import`
+- **パラメータ**: `session_id` (既存セッションID), `issue_title` (課題タイトル), `file` (CSVファイル)
+- **機能**: 既存セッションに追加でCSVデータを取り込み、指定した課題に紐付けてコメントとして格納
+
+### 5. 課題リスト生成
+クラスタリング結果から、議論すべきアジェンダを自動生成します。
+
+#### 5.1 実装
+- **関数**: `backend/services/analysis.py::generate_issue_logic_from_clusters()`
+- **API**: `GET /api/dashboard/sessions/{session_id}/issues` - 課題一覧取得
+- **処理フロー**:
+  1. 通常クラスタとSmall Voiceクラスタを分離
+  2. Gemini 2.0 Flash Thinking API に以下を依頼:
+     - マジョリティの課題 4つ（多数派の意見から）
+     - Small Voiceの課題 1つ（少数意見の具体的な紹介）
+  3. Small Voiceが存在しない場合は、「検出されませんでした」として空の項目を生成
+
+#### 5.2 プロンプトエンジニアリング
+- **マジョリティ課題**: 「〜の問題」ではなく「〜をどう乗り越えるか」といった建設的なタイトルを生成
+- **Small Voice課題**: 
+  - 分析や解釈を加えず、具体的な意見を列挙する形式
+  - 背景の推測や過度な一般化を禁止（プロンプトで明示）
+
+#### 5.3 データモデル
+- **DiscussionIssue**: 課題タイトル、関連トピック、洞察、ソースタイプ (`majority` | `small_voice`) を保持
+
+### 6. 課題ごとの議論チャット
+各課題に対して、メンバーが意見を投稿し、議論を深める空間を提供します。
+
+#### 6.1 コメント機能
+- **API**: `backend/api/dashboard.py`
+  - `POST /api/dashboard/sessions/{session_id}/comments` - コメント投稿
+  - `GET /api/dashboard/sessions/{session_id}/comments` - コメント一覧取得（課題IDでフィルタ可能）
+  - `PUT /api/dashboard/comments/{comment_id}` - コメント編集
+  - `POST /api/dashboard/comments/{comment_id}/like` - いいね
+- **データモデル**: 
+  - `Comment` (親コメント) ↔ `CommentReply` (子コメント) の階層構造
+  - `CommentLike` による「いいね」機能
+- **機能**:
+  - スレッド形式のリプライ
+  - リアルタイム更新（ポーリング方式）
+  - いいね数の表示
+  - コメント編集（投稿者のみ）
+
+#### 6.2 通知システム
+- **実装**: `backend/services/notification_service.py`, `backend/api/notifications.py`
+- **トリガー**:
+  - 自分のコメントへのリプライ
+  - 課題への新規コメント（課題作成者への通知）
+  - フォーム承認・却下（申請者への通知）
+- **データモデル**: `Notification` テーブルに `type`, `issue_id`, `comment_id`, `is_read`, `link` を保持
+- **API**: 
+  - `GET /api/notifications` - 通知一覧取得
+  - `POST /api/notifications/{id}/read` - 個別既読マーク
+  - `POST /api/notifications/read-all` - 一括既読
+
+### 7. AIファシリテーター
+議論の内容を分析し、次のアクションを提案します。
+
+#### 7.1 実装
+- **関数**: `backend/services/analysis.py::analyze_thread_logic()`
+- **API**: `POST /api/dashboard/sessions/{session_id}/analyze-thread`
+- **処理フロー**:
+  1. 課題に紐づくコメント（親+子）をすべて取得
+  2. Gemini 2.0 Flash API に議論の流れを渡す
+  3. AIが以下を生成:
+     - **next_steps**: 次にとるべき具体的なアクション（最大3つ）
+       - `title`: アクションの見出し（20文字以内）
+       - `detail`: 具体的な内容、担当者、期限の目安、背景説明
+
+#### 7.2 プロンプト設計
+- **中立的なファシリテーター**: 参加者の意見を尊重しつつ、建設的な解決策を提示
+- **実行可能性**: 抽象的な提案ではなく、具体的な次のステップを明示
+
+### 8. マルチテナント構成（組織管理）
+複数の組織が同一システムを利用し、データが論理的に分離される設計です。
+
+#### 8.1 権限モデル
+| 役割 | 権限範囲 | データモデル |
+| :--- | :--- | :--- |
+| **システム管理者** | 全組織の管理、ユーザー作成、組織作成 | `User.role = "system_admin"` |
+| **組織管理者** | 所属組織内のフォーム管理、分析実行 | `OrganizationMember.role = "admin"` |
+| **一般ユーザー** | フォーム回答、申請、議論参加 | `OrganizationMember.role = "general"` |
+
+#### 8.2 多重所属
+- **実装**: `OrganizationMember` テーブルで `user_id` と `organization_id` の複数組み合わせを許可
+- **データ分離**: 
+  - すべてのデータモデル (`Survey`, `AnalysisSession`, `CasualPost` 等) に `organization_id` カラム
+  - API層で `current_org_id` を検証し、クエリにフィルタを適用
+
+#### 8.3 組織切り替え
+- **API**: `POST /api/auth/switch-org` - ユーザーが所属する組織を切り替え
+- **実装**: セッションに `last_org_id` を保存し、ログイン時に自動復元
+- **フロントエンド**: サイドバーの組織セレクターで切り替え可能
+
+#### 8.4 組織管理機能（システム管理者）
+- **実装**: `backend/api/organization.py`
+- **API**:
+  - `GET /api/organizations` - 組織一覧取得
+  - `POST /api/organizations` - 組織作成（システム管理者のみ）
+  - `PUT /api/organizations/{org_id}` - 組織編集（システム管理者のみ）
+  - `DELETE /api/organizations/{org_id}` - 組織削除（システム管理者のみ）
+  - `GET /api/organizations/{org_id}/members` - メンバー一覧取得
+  - `POST /api/organizations/{org_id}/members` - メンバー追加
+- **データモデル**: `Organization`, `OrganizationMember`
+- **機能**: 
+  - 組織の作成・編集・削除
+  - メンバーの追加・削除
+  - 組織内ロール設定（管理者/一般）
+
+### 9. ユーザー管理機能
+システム管理者がユーザーを作成・管理する機能です。
+
+#### 9.1 ユーザーCRUD
+- **実装**: `backend/api/users.py`
+- **API**:
+  - `GET /api/users` - ユーザー一覧取得（システム管理者のみ）
+  - `POST /api/users` - ユーザー作成（システム管理者のみ）
+  - `PUT /api/users/{user_id}` - ユーザー情報更新（システム管理者のみ）
+  - `DELETE /api/users/{user_id}` - ユーザー削除（システム管理者のみ）
+- **データモデル**: `User`
+- **機能**: 
+  - emailアドレスでユーザーを一意に識別
+  - パスワードはBcryptでハッシュ化
+  - システム全体のロール設定（`system_admin`, `admin`, `general`）
+  - 所属組織の一括設定
+
+#### 9.2 プロフィール編集
+- **API**: `PUT /api/auth/me` - 自分のプロフィール更新
+- **機能**: ユーザー名、パスワード変更
+
+### 10. 認証・セキュリティ
+ユーザー認証とセッション管理を提供します。
+
+#### 10.1 認証機能
+- **実装**: `backend/api/auth.py`, `backend/security_utils.py`
+- **API**:
+  - `POST /api/auth/login` - ログイン（メール・パスワード）
+  - `POST /api/auth/logout` - ログアウト
+  - `GET /api/auth/me` - 現在のユーザー情報取得
+  - `GET /api/auth/my-orgs` - 自分が所属する組織一覧
+- **セッション管理**: 
+  - データベースバックエンドのセッション（`UserSession` テーブル）
+  - Cookieでセッショントークンを保持
+  - 有効期限: デフォルト30日
+- **セキュリティ**: 
+  - パスワードはBcryptでハッシュ化
+  - セッショントークンは `secrets.token_urlsafe(32)` で生成
+
+#### 10.2 招待リンク機能
+- **実装**: `backend/api/auth.py`（詳細はauth.pyに実装）
+- **機能**: 
+  - 管理者が招待リンクを生成
+  - ユーザーがリンク経由でアカウント作成
+  - 招待時に組織とロールを事前設定
+
+#### 10.3 パスワードリセット
+- **実装**: `backend/api/auth.py`（詳細はauth.pyに実装）
+- **機能**: 
+  - メールアドレスでリセットリンクを送信
+  - リンク経由で新しいパスワードを設定
+- **メール送信**: `backend/services/email_service.py` を使用
+
 
 ## 技術スタック
-- **Frontend**: [Next.js](https://nextjs.org/) (App Router, React 19)
-- **Styling**: Tailwind CSS, Lucide React
-- **Backend / API**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.10+)
-- **Database**: PostgreSQL
+
+本システムは、モダンなWebアプリケーションフレームワークと最新のAI技術を組み合わせた構成となっています。フロントエンドはNext.js（App Router）、バックエンドはFastAPI、データベースはPostgreSQLを採用し、AI分析にはGoogle Gemini APIとSentence Transformersを活用しています。
+
+### Frontend
+- **フレームワーク**: Next.js 16.1.1 (App Router)
+- **言語**: TypeScript 5
+- **UIライブラリ**: React 19.2.3
+- **スタイリング**: Tailwind CSS 4, Lucide React 0.562.0
+- **データ可視化**: 
+  - Plotly.js 3.3.1
+  - react-plotly.js 2.6.0
+- **リッチテキストエディタ**: 
+  - TipTap 3.14.0 (React, Starter Kit, Extensions)
+  - tiptap-markdown 0.9.0
+- **マークダウン表示**: 
+  - react-markdown 10.1.0
+  - remark-gfm 4.0.1 (GitHub Flavored Markdown)
+  - remark-breaks 4.0.0
+- **HTTP通信**: axios 1.13.2
+- **日付処理**: date-fns 4.1.0
+- **ビルドツール**: @tailwindcss/postcss 4
+- **Lint**: ESLint 9, eslint-config-next 16.1.1
+
+### Backend
+- **フレームワーク**: FastAPI (Python 3.10+)
+- **Webサーバー**: Uvicorn
 - **ORM**: SQLAlchemy
+- **データベース**: PostgreSQL (psycopg2-binary)
+- **マイグレーション**: Alembic
+- **認証**: 
+  - Bcrypt (パスワードハッシュ化)
+  - データベースバックエンドのセッション管理
 - **AI/LLM**: 
-    - **Google Gemini 2.0 Flash Thinking Exp**: 複雑な分析タスク（課題抽出、深層分析）に使用。推論特化モデル。
-    - **Google Gemini 2.0 Flash Exp**: 軽量タスク（クラスター命名、要約）に使用。高速処理。
-- **機械学習・分析**:
-    - **Gemini Embeddings API**: `models/text-embedding-004` を使用した、高速・軽量かつ高性能な多言語対応の意味ベクトル化。サーバーリソース（メモリ）を大幅に削減。
-    - **HDBSCAN**: 密度ベースのクラスタリングによる、自然なグルーピングとノイズ分離。
-    - **UMAP**: 非線形次元削減による高精度な2次元マップ座標の算出。
-- **認証**: Cookieベースのセッション管理 (Database-backed), Bcryptハッシュ化
+  - **Google Gemini 2.0 Flash Thinking Exp**: 課題抽出、深層分析、ファシリテーション
+  - **Google Gemini 2.0 Flash Exp**: クラスタ命名、要約生成
+  - ※ APIキーは環境変数 `GEMINI_API_KEY` で管理
+- **機械学習**: 
+  - **Sentence Transformers** (`paraphrase-multilingual-MiniLM-L12-v2`): 意味ベクトル化
+  - **scikit-learn**: K-Means, PCA, Isolation Forest, LOF, Silhouette Score
+  - **HDBSCAN** 0.8.33+: 密度ベースクラスタリング（コード内で定義済みだがPCAに切り替え）
+  - **UMAP** 0.5.0+: 非線形次元削減（コード内で定義済みだがPCAに切り替え）
+- **データ処理**: Pandas, NumPy
+- **その他**: 
+  - python-multipart (ファイルアップロード)
+  - python-dotenv (環境変数管理)
+  - Plotly (グラフ生成補助)
+
+### インフラ
+- **コンテナ**: Docker, Docker Compose
+- **開発環境**: `docker-compose.dev.yml`
+- **本番環境**: `docker-compose.prod.yml`
+- **Webサーバー（本番）**: Nginx (リバースプロキシ)
 
 ## AI分析・アルゴリズム詳細
 
-本システムでは、「多数決で埋もれる意見」を救い上げるために、独自のプロンプトエンジニアリングと数理的手法を組み合わせています。
+本セクションでは、Small Voiceの核心機能である4つのAI分析の具体的なアルゴリズムと実装詳細を説明します。各分析の入力・出力・処理ステップ・プロンプト戦略を詳しく記載しています。
 
-### 1. 意見の深層分析ロジック
-単なるアンケート集計（平均値）ではなく、**「定性的な意味内容」**を重視し、AIが多角的に分析します。
+### 1. 掲示板分析（雑談掲示板→フォーム推奨）
+- **関数**: `backend/services/analysis.py::analyze_casual_posts_logic()`
+- **入力**: `CasualPost` オブジェクトのリスト
+- **出力**: 
+  ```json
+  {
+    "recommendations": [
+      {
+        "title": "アンケートのタイトル案",
+        "reason": "なぜいまアンケートをとるべきかの理由（管理者向け）",
+        "survey_description": "回答者に表示する説明文",
+        "suggested_questions": ["質問案1", "質問案2"]
+      }
+    ]
+  }
+  ```
+- **プロンプト戦略**:
+  - 個人の愚痴ではなく、組織全体の課題として扱うべきテーマを抽出
+  - 潜在的な不満や新しいアイデアの芽を見つけ出す
+  - 全ての質問は自由記述形式（回答形式の指定を禁止）
+- **API実装**: `POST /api/casual/analyze` (`backend/api/casual_chat.py`)
 
-*   **ユニークな提案の抽出**:
-    *   分析プロンプト内で、全体の傾向（Key Trends）とは別に、**`notable_ideas`（具体的でユニークな提案）**という枠を設け、独自性のある意見を抽出します。
-*   **リスク情報の強制昇格**:
-    *   「バグ」「重い」「エラー」といったシステム品質に関わるキーワードが含まれる場合、**件数に関わらず**「システム品質リスク」として重要課題リストに掲載するよう、プロンプトで制御しています。
-*   **可視化による発見**:
-    *   HDBSCANとUMAPにより、意見の分布を2次元マップ化します。似た意見は近くに配置され、全体像を直感的に把握できます。
+### 2. クラスタリング分析（アンケート回答→クラスタ）
+- **関数**: `backend/services/analysis.py::analyze_clusters_logic()`
+- **処理ステップ**:
+  1. **意味ベクトル化**: 
+     - Sentence Transformers でテキストを384次元ベクトルに変換
+     - フォールバック: TF-IDF (文字1-3gram)
+  2. **外れ値検出**: 
+     - Isolation Forest (汚染度10%)
+     - Local Outlier Factor (k=20, 汚染度10%)
+     - スコア平均化 → 閾値0.65以上を外れ値とマーク
+     - 動的調整: 外れ値が30%超の場合は閾値を0.9に引き上げ
+  3. **クラスタリング**: 
+     - 外れ値を除いたデータに対してK-Meansを実行
+     - 最適K: シルエットスコアで自動決定（範囲: 2～min(√N, 20)）
+     - 並列処理: ThreadPoolExecutor (最大8ワーカー)
+  4. **2次元投影**: 
+     - PCA (n_components=2) で2次元座標を算出
+     - 微小なジッター追加で重複点を視覚的に分離
+  5. **クラスタ命名**: 
+     - 各クラスタの重心から最も近い5サンプルを抽出
+     - Gemini 2.0 Flash に渡し、10文字以内の体言止めラベルを生成
+     - バッチサイズ5、並列ワーカー3で効率化
+- **出力**: 各テキストに対して以下を付与
+  - `sub_topic`: クラスタ名
+  - `x_coordinate`, `y_coordinate`: 2D座標
+  - `cluster_id`: クラスタID (-1は外れ値)
+  - `is_noise`: 外れ値フラグ
+  - `summary`: テキスト要約（60文字）
 
-### 2. 日本語のニュアンスと感情分析
-日本企業特有の「控えめな表現」を正しく解釈するためのルールを定めています。
+### 3. 課題リスト生成（クラスタ→議論アジェンダ）
+- **関数**: `backend/services/analysis.py::generate_issue_logic_from_clusters()`
+- **入力**: クラスタリング結果のDataFrame
+- **処理ステップ**:
+  1. 通常クラスタ (`cluster_id != -1`) と Small Voice (`cluster_id == -1`) を分離
+  2. 各クラスタの代表サンプルを抽出（30%、最小10件、最大100件）
+  3. Gemini 2.0 Flash Thinking に以下を依頼:
+     - **マジョリティ課題**: 4つ（多数派の意見から組織的課題を抽出）
+     - **Small Voice課題**: 1つ（具体的な意見を列挙、解釈を加えない）
+  4. Small Voiceが存在しない場合は、「検出されませんでした」として空項目を生成
+- **プロンプト戦略**:
+  - マジョリティ課題: 「〜の問題」ではなく「〜をどう乗り越えるか」形式
+  - Small Voice課題: 
+    - タイトル固定: 「Small Voice」
+    - `related_topics`: `["Small Voice (特異点)"]`
+    - `insight`: 「以下のような意見がありました」+ 具体的意見の列挙
+    - 禁止事項: 背景推測、過度な一般化、元発言にない解釈
+- **出力**: 
+  ```json
+  {
+    "issues": [
+      {
+        "title": "議題タイトル",
+        "related_topics": ["カテゴリ名"],
+        "insight": "なぜこれを議論すべきか...",
+        "source_type": "majority" | "small_voice"
+      }
+    ]
+  }
+  ```
 
-*   **「丁寧な不満」の検知**:
-    *   「〜してほしいのですが」「〜だと助かります」といった表現は、ポジティブではなく**ネガティブ**な意図（未充足のニーズ）として解釈し、適切に課題分類します。
-
-### 3. 分析プロセスフロー
-1.  **意味ベクトル化 (Gemini Embeddings API)**: Gemini API (`models/text-embedding-004`) により、テキストを高次元の意味ベクトルに変換。API利用によりサーバー負荷を最小化。
-2.  **クラスタリング (HDBSCAN)**: 密度ベースで自然なまとまりを抽出。無理な分類を行わず、ノイズを分離します。
-3.  **次元削減 (UMAP)**: 高次元の意味空間を2次元に投影し、散布図にプロット。PCAより意味的な配置精度が高く、類似した意見が近くに配置されます。
-4.  **LLMによる深層解釈**:
-    *   **軽量タスク (Gemini 2.0 Flash)**: 各クラスタの内容を要約し、具体的で分かりやすいカテゴリ名を付与。
-    *   **深層分析 (Gemini 2.0 Flash Thinking)**: Chain of Thought推論により、クラスタ間の関係性や重要課題を言語化。全体の傾向とユニークなアイデアを抽出。
+### 4. AIファシリテーター（議論スレッド→次のアクション）
+- **関数**: `backend/services/analysis.py::analyze_thread_logic()`
+- **入力**: コメントリスト（親+子、各要素に `content`, `user_name`, `created_at`）
+- **処理ステップ**:
+  1. コメントをフォーマット化: `[ユーザー名] コメント内容\n`
+  2. Gemini 2.0 Flash に議論の流れを渡す
+  3. AIが以下を生成:
+     - `next_steps`: 次にとるべき具体的なアクション（最大3つ）
+       - `title`: アクションの見出し（20文字以内）
+       - `detail`: 具体的な内容、担当者、期限の目安、背景説明
+- **プロンプト設計**:
+  - 役割: 中立的かつ理性的なプロのファシリテーター
+  - 目的: 議論を停滞させず、具体的かつ実行可能な解決策を提示
+  - 出力要件: なぜそのアクションが必要なのかという背景（論点）を含める
+- **出力**: 
+  ```json
+  {
+    "next_steps": [
+      {"title": "見出し...", "detail": "詳細..."}
+    ]
+  }
+  ```
 
 ## ディレクトリ構造
+
+プロジェクト全体のファイル・フォルダ構成を示します。Backend（FastAPI）、Frontend（Next.js）、データベースマイグレーション（Alembic）、運用スクリプト、ドキュメントなど、主要なディレクトリとファイルを記載しています。
+
 ```
 small-voice-project/
-├── backend/                # Backend Application (FastAPI)
-│   ├── api/                # API Endpoints (Routers)
-│   │   ├── auth.py         # 認証関連
-│   │   ├── survey.py       # アンケート管理
-│   │   ├── dashboard.py    # ダッシュボードデータ
-│   │   └── ...
-│   ├── database.py         # DBモデル定義 & 接続
-│   ├── services/           # ビジネスロジック・AI分析
-│   │   ├── analysis.py
-│   │   └── email_service.py
-│   └── main.py             # Entry Point
-├── frontend/               # Frontend Application (Next.js)
+├── backend/                    # Backend Application (FastAPI)
+│   ├── api/                    # API Endpoints (Routers)
+│   │   ├── auth.py             # 認証・セッション管理
+│   │   ├── survey.py           # アンケート管理・承認フロー
+│   │   ├── dashboard.py        # ダッシュボード、分析セッション、課題、コメント、CSVインポート
+│   │   ├── casual_chat.py      # 雑談掲示板（投稿・返信・いいね・AI分析）
+│   │   ├── organization.py     # 組織管理
+│   │   ├── users.py            # ユーザー管理
+│   │   └── notifications.py    # 通知API
+│   ├── services/               # ビジネスロジック層
+│   │   ├── analysis.py         # AI分析のコアロジック（クラスタリング、課題抽出、ファシリテーター）
+│   │   ├── email_service.py    # メール送信サービス
+│   │   ├── notification_service.py  # 通知作成ロジック
+│   │   └── mock_generator.py   # テストデータ生成（モック）
+│   ├── database.py             # SQLAlchemyモデル定義とDBセッション管理
+│   ├── security_utils.py       # パスワードハッシュ化、セッション検証
+│   ├── utils.py                # 共通ユーティリティ（モデル名、APIキー読み込み）
+│   ├── main.py                 # FastAPIアプリのエントリーポイント
+│   └── Dockerfile              # Backendコンテナイメージ
+├── frontend/                   # Frontend Application (Next.js)
 │   ├── src/
-│   │   ├── app/            # App Router Pages
-│   │   ├── components/     # UI Components
-│   │   └── lib/            # Utility functions (API client, etc.)
-│   └── package.json
-├── alembic/                # DBマイグレーション設定
-├── docs/                   # プロジェクトドキュメント
-└── outputs/                # 生成データ出力先
+│   │   ├── app/                # App Router Pages
+│   │   │   ├── login/          # ログインページ
+│   │   │   ├── dashboard/      # メインダッシュボード
+│   │   │   │   ├── surveys/    # アンケート管理ページ
+│   │   │   │   ├── sessions/   # 分析セッション一覧・詳細
+│   │   │   │   └── page.tsx    # ダッシュボードホーム
+│   │   │   ├── admin/          # システム管理者ページ（組織管理、CSVインポート）
+│   │   │   ├── survey/         # フォーム回答ページ（公開フォーム）
+│   │   │   ├── invite/         # 招待リンク受付
+│   │   │   └── forgot-password/ # パスワードリセット
+│   │   ├── components/         # 再利用可能なUIコンポーネント
+│   │   │   ├── dashboard/      # ダッシュボード専用コンポーネント
+│   │   │   │   ├── PlotChart.tsx        # Plotlyグラフ（クラスタ可視化）
+│   │   │   │   ├── IssueList.tsx        # 課題リスト表示
+│   │   │   │   ├── CommentSection.tsx   # コメント・リプライUI
+│   │   │   │   ├── AIFacilitatorPanel.tsx # AIファシリテーター結果表示
+│   │   │   │   ├── SurveyFormModal.tsx  # フォーム作成・編集モーダル
+│   │   │   │   └── ...
+│   │   │   ├── admin/          # 管理者用コンポーネント
+│   │   │   │   ├── OrganizationManagement.tsx
+│   │   │   │   └── CSVImport.tsx
+│   │   │   ├── ui/             # 汎用UIコンポーネント（ボタン、モーダル等）
+│   │   │   └── Sidebar.tsx     # グローバルサイドバー
+│   │   └── types/              # TypeScript型定義
+│   ├── middleware.ts           # Next.js認証ミドルウェア
+│   ├── package.json
+│   └── Dockerfile              # Frontendコンテナイメージ
+├── alembic/                    # DBマイグレーション管理
+│   ├── versions/               # マイグレーションスクリプト
+│   ├── env.py
+│   └── alembic.ini
+├── scripts/                    # 運用スクリプト
+│   ├── seed_db.py              # 初期データ投入（組織、ユーザー、テストデータ）
+│   ├── generate_test_data.py   # テストデータ生成（CSV出力）
+│   ├── generate_new_forms_test_data.py  # 新フォーム形式のテストデータ生成
+│   ├── reset_db_clean.py       # DB初期化
+│   └── deploy_prod.sh          # 本番デプロイスクリプト
+├── nginx/                      # 本番環境のNginx設定
+├── docs/                       # プロジェクトドキュメント
+│   ├── architecture.md         # 本ドキュメント
+│   ├── database.md             # データベース設計
+│   ├── local_development_setup.md  # ローカル開発環境構築
+│   ├── production_deployment_guide.md  # 本番デプロイ手順
+│   ├── db_connection_guide.md  # 本番DB接続手順
+│   └── user_manual.md          # ユーザー利用マニュアル
+├── outputs/                    # 分析結果出力（CSV、レポート等）
+├── docker-compose.yml          # 基本構成
+├── docker-compose.dev.yml      # 開発環境
+├── docker-compose.prod.yml     # 本番環境
+├── alembic.ini                 # Alembic設定
+├── requirements.txt            # Python依存パッケージ
+├── .env                        # 環境変数（Gitignore対象）
+└── README.md                   # プロジェクト概要
 ```
 
 ## コンポーネント詳細
 
+本セクションでは、BackendとFrontendの各コンポーネントの役割と実装詳細を説明します。APIエンドポイント、Service層の関数、データベースモデル、Reactコンポーネントなど、実装に直結する情報を提供します。
+
 ### Backend (`backend/`)
-- **`main.py`**: アプリケーションのエントリーポイント。CORS設定やルーターの登録を行います。
-- **`api/`**: RESTful APIのエンドポイントを定義します。Frontendからのリクエストを受け付け、Service層やDatabase層を呼び出します。
-- **`services/`**: AI分析ロジック (Gemini Embeddings API, K-Means, UMAP, Isolation Forest/LOF, Gemini Generative API) やメール機能等のビジネスロジックを集約しています。
+
+#### API層 (`backend/api/`)
+各ルーターは、認証・権限チェックを行った上で、Service層やDatabase層を呼び出します。
+
+- **`auth.py`**: 
+  - `POST /api/auth/login` - ログイン、セッション作成
+  - `POST /api/auth/logout` - ログアウト、セッション削除
+  - `GET /api/auth/me` - 現在のユーザー情報取得
+  - `POST /api/auth/switch-org` - 組織切り替え
+  - `GET /api/auth/my-orgs` - 自分が所属する組織一覧
+  - パスワードリセット、招待リンク生成/検証
+- **`survey.py`**: 
+  - `POST /api/surveys` - フォーム作成（一般ユーザー: 申請、管理者: 直接作成）
+  - `GET /api/surveys` - フォーム一覧（状態フィルタ: 申請中/承認済み/却下/公開中）
+  - `PUT /api/surveys/{id}/approve` - 承認（組織管理者のみ）
+  - `PUT /api/surveys/{id}/reject` - 却下（組織管理者のみ）
+  - `PATCH /api/surveys/{id}/toggle` - 公開/停止切り替え（組織管理者のみ）
+  - `POST /api/surveys/{id}/response` - フォーム回答送信
+  - `GET /api/surveys/{id}/responses/csv` - フォーム回答CSVエクスポート（組織管理者のみ）
+  - `GET /api/surveys/{uuid}` - 公開フォームの取得（UUID指定、認証不要）
+- **`dashboard.py`**: 
+  - **分析セッション管理**:
+    - `POST /api/dashboard/sessions/analyze` - 新規分析セッション作成＋AI分析実行
+    - `GET /api/dashboard/sessions` - セッション一覧取得
+    - `GET /api/dashboard/sessions/{session_id}` - セッション詳細取得
+    - `DELETE /api/dashboard/sessions/{session_id}` - セッション削除
+    - `PUT /api/dashboard/sessions/{session_id}/publish` - セッション公開/非公開切り替え
+  - **課題生成・取得**:
+    - `GET /api/dashboard/sessions/{session_id}/issues` - 課題一覧取得
+  - **コメント・議論**:
+    - `POST /api/dashboard/sessions/{session_id}/comments` - コメント投稿
+    - `PUT /api/dashboard/comments/{comment_id}` - コメント編集
+    - `POST /api/dashboard/comments/{comment_id}/like` - いいね
+  - **AIファシリテーター**:
+    - `POST /api/dashboard/sessions/{session_id}/analyze-thread` - 議論スレッド分析、次のアクション提案
+  - **CSVインポート**:
+    - `POST /api/dashboard/sessions/{session_id}/comments/import` - 既存セッションへCSVデータ取り込み
+- **`casual_chat.py`**: 
+  - `POST /api/casual/posts` - 投稿作成
+  - `GET /api/casual/posts` - 投稿一覧取得
+  - `POST /api/casual/posts/{id}/replies` - 返信投稿
+  - `POST /api/casual/posts/{id}/like` - いいね
+  - `POST /api/casual/analyze` - AI分析、フォーム推奨リスト生成
+  - `GET /api/casual/analyses` - 過去の分析結果一覧
+  - `PATCH /api/casual/analyses/{analysis_id}/visibility` - 分析結果表示/非表示切り替え
+  - `DELETE /api/casual/analyses/{analysis_id}` - 分析結果削除
+- **`organization.py`**: 
+  - `POST /api/organizations` - 組織作成（システム管理者のみ）
+  - `GET /api/organizations` - 組織一覧
+  - `POST /api/organizations/{id}/members` - メンバー追加
+  - `GET /api/organizations/{id}/members` - メンバー一覧
+- **`users.py`**: 
+  - `POST /api/users` - ユーザー作成（システム管理者のみ）
+  - `GET /api/users` - ユーザー一覧
+  - `PUT /api/users/{id}` - ユーザー情報更新
+- **`notifications.py`**: 
+  - `GET /api/notifications` - 通知一覧取得
+  - `PUT /api/notifications/{id}/read` - 既読マーク
+
+#### Service層 (`backend/services/`)
+ビジネスロジックとAI処理を担当します。
+
+- **`analysis.py`**: 
+  - `analyze_clusters_logic()` - クラスタリング分析の中核
+  - `generate_issue_logic_from_clusters()` - 課題リスト生成
+  - `analyze_thread_logic()` - 議論スレッドのAI分析
+  - `analyze_casual_posts_logic()` - 雑談掲示板のAI分析
+  - `get_vectors_semantic()` - Sentence Transformersによるベクトル化
+  - `detect_outliers()` - Isolation Forest + LOFによる外れ値検出
+  - `get_optimal_k()` - シルエットスコアによる最適クラスタ数決定
+- **`email_service.py`**: 
+  - `send_email()` - SMTP経由でメール送信
+  - パスワードリセット、招待リンクの送信に使用
+- **`notification_service.py`**: 
+  - `create_notification()` - 通知レコード作成
+  - コメント、リプライ時に自動実行
+- **`mock_generator.py`**: 
+  - テストデータ生成用のモックテキスト生成
+
+#### データベース (`database.py`)
+SQLAlchemyモデル定義とDB接続管理。
+
+**主要モデル**:
+- **User**: ユーザー情報、パスワードハッシュ、ロール (`system_admin`, `admin`, `general`)
+- **UserSession**: セッショントークン、有効期限
+- **Organization**: 組織情報
+- **OrganizationMember**: ユーザー↔組織の多対多関係、組織内ロール
+- **Survey**: アンケートフォーム（タイトル、説明、質問、承認ステータス、公開フラグ）
+- **Question**: フォームの質問
+- **Answer**: ユーザーの回答
+- **AnalysisSession**: 分析セッション（テーマ、作成日時、組織ID）
+- **AnalysisResult**: クラスタリング結果（元テキスト、クラスタID、座標、サブトピック）
+- **IssueDefinition**: 分析セッションの課題定義レポート（JSON形式で課題リストを保存）
+- **Comment**: 課題へのコメント（親コメント、階層構造でリプライをサポート）
+- **CommentLike**: コメントへのいいね
+- **SurveyComment**: アンケート回答に紐づくコメント（CSVインポート時にも使用）
+- **CasualPost**: 雑談掲示板の投稿（parent_idで自己参照、返信も同じモデルで扱う）
+- **CasualPostLike**: 投稿へのいいね
+- **CasualAnalysis**: 雑談掲示板のAI分析結果（推奨フォーム案を保存）
+- **Notification**: 通知（タイプ、リンク、既読フラグ）
+
+#### セキュリティ (`security_utils.py`)
+- `verify_password()` - Bcryptによるパスワード検証
+- `hash_password()` - パスワードハッシュ化
+- `get_current_user()` - セッショントークンからユーザー取得
+- `is_org_admin()` - 組織管理者権限チェック
+- `is_system_admin()` - システム管理者権限チェック
 
 ### Frontend (`frontend/`)
-- **`src/app/`**: ページルーティングを担当します。
-    - `/login`: ログインページ
-    - `/dashboard`: メインダッシュボード
-    - `/surveys`: アンケート管理
-- **`src/components/`**: 再利用可能なUIコンポーネント。グラフ描画には `react-plotly.js` を使用しています。
+
+#### App Router (`src/app/`)
+Next.js 13+ のApp Routerを使用したページ構成。
+
+- **`/login`**: ログインページ
+- **`/dashboard`**: メインダッシュボード（ホーム）
+  - **`/dashboard/surveys`**: アンケート管理（作成・編集・承認・公開）
+  - **`/dashboard/sessions`**: 分析セッション一覧
+    - **`/dashboard/sessions/[id]`**: 分析詳細（クラスタ可視化・課題リスト・議論）
+  - **`/dashboard/casual-chat`**: 雑談掲示板
+  - **`/dashboard/notifications`**: 通知一覧
+- **`/admin`**: システム管理者専用
+  - 組織管理、ユーザー管理、CSVインポート
+- **`/survey/[uuid]`**: 公開フォーム回答ページ（認証不要）
+- **`/invite/[token]`**: 招待リンク受付
+- **`/forgot-password`**: パスワードリセット
+
+#### Components (`src/components/`)
+再利用可能なReactコンポーネント。
+
+**ダッシュボード関連** (`dashboard/`):
+- **`PlotChart.tsx`**: Plotly.jsを使用したインタラクティブな散布図
+- **`IssueList.tsx`**: 課題リスト表示、Small Voiceの特別表示
+- **`CommentSection.tsx`**: コメント・リプライのスレッド表示、いいね機能
+- **`AIFacilitatorPanel.tsx`**: AIファシリテーターの分析結果表示（アコーディオン形式）
+- **`SurveyFormModal.tsx`**: フォーム作成・編集モーダル、AI質問案生成
+- **`AnalysisSessionList.tsx`**: 分析セッション一覧カード表示
+- **`CasualChatBoard.tsx`**: 雑談掲示板UI、投稿・返信・いいね
+- **`NotificationBell.tsx`**: 通知ベルアイコン、未読数表示
+
+**管理者関連** (`admin/`):
+- **`OrganizationManagement.tsx`**: 組織CRUD、メンバー管理
+- **`CSVImport.tsx`**: CSVアップロード、セッション選択UI
+
+**汎用UI** (`ui/`):
+- **`Button.tsx`**: 共通ボタンコンポーネント
+- **`Modal.tsx`**: モーダルダイアログ
+- **`LoadingSpinner.tsx`**: ローディング表示
+
+**グローバル**:
+- **`Sidebar.tsx`**: サイドバーナビゲーション、組織切り替え、ロール別メニュー表示
 
 ### Database
-- **`database.py`**: SQLAlchemyモデル (`User`, `Organization`, `Survey` 等) の定義と、DBセッション管理を提供します。
+- **PostgreSQL**: 本番環境で使用
+- **SQLite**: 開発環境でも使用可能（`database.py` でURI切り替え）
+- **Alembic**: マイグレーション管理（`alembic/versions/` にバージョン履歴）
 
-### Generate Test Data
-- **`scripts/generate_test_data.py`**: デモ用のCSVデータを生成します。エンジニア組織を想定したデータ（価値観、プロジェクト管理、開発環境、技術品質）が生成されます。生成されたデータは `outputs/test_data/` に保存され、API経由でインポート可能です。
+### Scripts (`scripts/`)
+- **`seed_db.py`**: 
+  - 初期データ投入（組織、ユーザー、テストアンケート、雑談投稿）
+  - 複雑な組織階層（部署・プロジェクト）とユーザーの多重所属シナリオ
+- **`generate_test_data.py`**: 
+  - CSV形式のテストデータ生成（エンジニア組織向け）
+  - `outputs/test_data/` に保存
+- **`reset_db_clean.py`**: 
+  - データベース全削除、再初期化
+- **`deploy_prod.sh`**: 
+  - 本番環境へのデプロイスクリプト（Docker imageビルド、GCEアップロード）
