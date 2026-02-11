@@ -491,15 +491,16 @@ def analyze_thread_logic(comments):
 {formatted_thread}
 
 ### 指示:
-1. **要約 (summary)**: 議論の現在の状況を3行以内で、何について話し合われているかが一目でわかるように簡潔にまとめてください。
-2. **論点 (points)**: 議論の中で出た重要な視点、合意が得られた事項、あるいは対立している懸念点を最大3つ抽出してリスト形式で出力してください。
-3. **次のアクション (next_steps)**: 議論を停滞させず、具体的かつ実行可能な解決策や次にとるべきステップを提示してください。
+議論を停滞させず、具体的かつ実行可能な解決策や次にとるべきステップを最大3つ提示してください。
+   - **title**: アクションを一言で表す見出し（20文字以内）。
+   - **detail**: そのアクションの具体的な内容、担当者（もし特定できれば）、期限の目安などを説明した文章。なぜそのアクションが必要なのかという背景（論点）も簡潔に含めてください。
 
 ### 出力フォーマット(JSON):
 {{
-    "summary": "要約文...",
-    "points": ["ポイント1", "ポイント2", ...],
-    "next_steps": "提案される具体的なアクションや解決策の記述..."
+    "next_steps": [
+        {{ "title": "見出し...", "detail": "詳細..." }},
+        ...
+    ]
 }}
 """
         logger.info("Generating Thread Analysis with Gemini...")
@@ -510,9 +511,7 @@ def analyze_thread_logic(comments):
     except Exception as e:
         logger.error(f"Thread analysis logic failed: {e}")
         return {
-            "summary": "分析中にエラーが発生しました。",
-            "points": [str(e)],
-            "next_steps": "時間を置いて再試行してください。"
+            "next_steps": [{"title": "エラー", "detail": f"分析中にエラーが発生しました: {str(e)}"}]
         }
 
 

@@ -10,7 +10,7 @@ import remarkBreaks from 'remark-breaks';
 // import Tabs from '@/components/ui/Tabs';
 import CommentTree from '@/components/dashboard/CommentTree';
 import { SessionDetail } from '@/types/dashboard';
-import { Map as MapIcon, FileText, MessageCircle, ArrowLeft, Sparkles, Users, ChevronDown, User as UserIcon } from 'lucide-react';
+import { Map as MapIcon, FileText, MessageCircle, ArrowLeft, Sparkles, Users, ChevronDown, User as UserIcon, CheckCircle, ListTodo, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 
@@ -716,23 +716,39 @@ export default function SessionDetailPage() {
                 </div>
 
                 {currentAnalysis ? (
-                  <div className="bg-white rounded-lg p-3 border border-amber-100 shadow-sm text-xs space-y-3">
-                    <div>
-                      <h5 className="font-bold text-amber-800/80 mb-1 flex items-center gap-1">📝 要約</h5>
-                      <p className="text-slate-700 leading-relaxed">{currentAnalysis.summary}</p>
-                    </div>
-                    {currentAnalysis.points?.length > 0 && (
-                      <div>
-                        <h5 className="font-bold text-amber-800/80 mb-1 flex items-center gap-1">📌 論点</h5>
-                        <ul className="list-disc list-inside text-slate-700 space-y-0.5 pl-1">
-                          {currentAnalysis.points.map((p: string, i: number) => <li key={i}>{p}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                    {currentAnalysis.next_steps && (
-                      <div>
-                        <h5 className="font-bold text-amber-800/80 mb-1 flex items-center gap-1">🚀 次のアクション</h5>
-                        <p className="text-slate-700 leading-relaxed">{currentAnalysis.next_steps}</p>
+                  <div className="space-y-4">
+                    {/* Next Actions (Directly displayed) */}
+                    {currentAnalysis.next_steps?.length > 0 && (
+                      <div className="bg-white rounded-lg border border-amber-100 shadow-sm overflow-hidden">
+                        <div className="divide-y divide-amber-50/50">
+                          {Array.isArray(currentAnalysis.next_steps) ? (
+                            currentAnalysis.next_steps.map((step: any, i: number) => {
+                              const isObject = typeof step === 'object' && step !== null && 'title' in step;
+                              const title = isObject ? step.title : step;
+                              const detail = isObject ? step.detail : null;
+
+                              return (
+                                <details key={i} className="group open:bg-amber-50/30 transition-colors">
+                                  <summary className="px-4 py-3 cursor-pointer flex items-start gap-2 list-none outline-none">
+                                    <CheckCircle className="w-4 h-4 text-sage-500 shrink-0 mt-0.5" />
+                                    <span className="text-xs text-slate-700 font-bold leading-relaxed flex-1">{title}</span>
+                                    {detail && (
+                                      <ChevronDown className="w-4 h-4 text-amber-400 group-open:rotate-180 transition-transform shrink-0" />
+                                    )}
+                                  </summary>
+                                  {detail && (
+                                    <div className="px-4 pb-3 pl-10 text-xs text-slate-600 leading-relaxed">
+                                      {detail}
+                                    </div>
+                                  )}
+                                </details>
+                              );
+                            })
+                          ) : (
+                            // Fallback for legacy string next_steps
+                            <p className="p-4 text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{currentAnalysis.next_steps}</p>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
