@@ -9,7 +9,7 @@ erDiagram
     %% --- Tier 1: Core (Top) ---
     users["<center><b>users</b><br><b>(ユーザー)</b></center>"] {
         int id PK
-        string name
+        string username
         string role
     }
     organizations["<center><b>organizations</b><br><b>(組織)</b></center>"] {
@@ -17,8 +17,9 @@ erDiagram
         string name
     }
     organization_members["<center><b>organization_members</b><br><b>(組織メンバー)</b></center>"] {
+        int id PK
         int user_id FK
-        int org_id FK
+        int organization_id FK
         string role
     }
 
@@ -31,11 +32,14 @@ erDiagram
 
     %% --- Tier 2: Notifications (Side/Top) ---
     notifications["<center><b>notifications</b><br><b>(通知)</b></center>"] {
+        int id PK
         int user_id FK
+        int organization_id FK
         string type
         string title
     }
     users ||--o{ notifications : ""
+    organizations ||--o{ notifications : ""
 
     class notifications notif
 
@@ -44,13 +48,16 @@ erDiagram
     %% Module A: Surveys
     surveys["<center><b>surveys</b><br><b>(アンケート)</b></center>"] {
         int id PK
+        int organization_id FK
+        int created_by FK
         string title
     }
     questions["<center><b>questions</b><br><b>(設問)</b></center>"] {
         int id PK
-        string content
+        string text
     }
     answers["<center><b>answers</b><br><b>(回答)</b></center>"] {
+        int id PK
         int survey_id FK
         int question_id FK
         int user_id FK
@@ -58,6 +65,7 @@ erDiagram
     }
 
     organizations ||--o{ surveys : ""
+    users ||--o{ surveys : ""
     surveys ||--o{ questions : ""
     questions ||--o{ answers : ""
     users ||--o{ answers : ""
@@ -69,20 +77,26 @@ erDiagram
     %% Module B: Analysis
     analysis_sessions["<center><b>analysis_sessions</b><br><b>(分析セッション)</b></center>"] {
         int id PK
+        int organization_id FK
         string title
-        string status
+        string theme
     }
     analysis_results["<center><b>analysis_results</b><br><b>(分析結果)</b></center>"] {
+        int id PK
         int session_id FK
+        string sub_topic
         string summary
     }
     issue_definitions["<center><b>issue_definitions</b><br><b>(課題定義)</b></center>"] {
+        int id PK
         int session_id FK
-        string description
+        string content
     }
     comments["<center><b>comments</b><br><b>(コメント)</b></center>"] {
+        int id PK
         int session_id FK
         int user_id FK
+        int parent_id FK
         string content
     }
 
@@ -100,11 +114,15 @@ erDiagram
     %% Module C: Casual Board
     casual_posts["<center><b>casual_posts</b><br><b>(雑談投稿)</b></center>"] {
         int id PK
+        int organization_id FK
+        int user_id FK
+        int parent_id FK
         string content
     }
     casual_analyses["<center><b>casual_analyses</b><br><b>(雑談分析)</b></center>"] {
-        int org_id FK
-        json result
+        int id PK
+        int organization_id FK
+        text result_json
     }
 
     organizations ||--o{ casual_posts : ""
