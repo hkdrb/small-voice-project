@@ -8,7 +8,7 @@ import secrets
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backend.database import SessionLocal, User, Comment, AnalysisSession, AnalysisResult, IssueDefinition, Organization, OrganizationMember, CasualPost, init_db
+from backend.database import SessionLocal, User, Comment, AnalysisSession, AnalysisResult, IssueDefinition, Organization, OrganizationMember, CasualPost, CasualPostLike, init_db
 from backend.security_utils import hash_pass
 from backend.services.mock_generator import (
     generate_mock_analysis_data,
@@ -456,84 +456,109 @@ def create_casual_posts(db, users, num_posts=100):
         "参考になりました、ありがとうございます",
     ]
     
-    # 組織を取得
-    org = db.query(Organization).first()
-    if not org:
+    # 全ての組織を取得
+    orgs = db.query(Organization).all()
+    if not orgs:
         print("エラー: 組織が見つかりません。")
         return
-    
-    print(f"組織: {org.name}")
-    print(f"ユーザー数: {len(users)}")
-    
-    # 既存の投稿を削除
-    deleted_count = db.query(CasualPost).filter(CasualPost.organization_id == org.id).delete()
-    db.commit()
-    print(f"既存の投稿を削除しました: {deleted_count}件")
-    
-    # 投稿を生成
-    posts = []
-    now = datetime.now()
-    
-    # 過去30日間に分散して投稿を作成
-    for i in range(num_posts):
-        user = random.choice(users)
-        content = random.choice(CASUAL_POST_TEMPLATES)
+
+    total_posts_created = 0
+    total_replies_created = 0
+
+    for org in orgs:
+        users = db.query(User).join(OrganizationMember).filter(
+            OrganizationMember.organization_id == org.id
+        ).all()
         
-        # ランダムな日時（過去30日間）
-        days_ago = random.randint(0, 30)
-        hours_ago = random.randint(0, 23)
-        minutes_ago = random.randint(0, 59)
-        created_at = now - timedelta(days=days_ago, hours=hours_ago, minutes=minutes_ago)
+        if not users:
+            print(f"スキップ: 組織 '{org.name}' にユーザーがいません。")
+            continue
         
-        post = CasualPost(
-            organization_id=org.id,
-            user_id=user.id,
-            content=content,
-            created_at=created_at,
-            likes_count=random.randint(0, 10)
-        )
-        db.add(post)
-        posts.append(post)
-    
-    db.commit()
-    print(f"投稿を作成しました: {num_posts}件")
-    
-    # 投稿のIDを取得するためにリフレッシュ
-    for post in posts:
-        db.refresh(post)
-    
-    # 返信を生成（投稿の約30%に1-3件の返信を追加）
-    reply_count = 0
-    for post in posts:
-        if random.random() < 0.3:  # 30%の確率で返信を追加
-            num_replies = random.randint(1, 3)
-            for _ in range(num_replies):
-                user = random.choice(users)
-                reply_content = random.choice(REPLY_TEMPLATES)
-                
-                # 元の投稿より後の日時
-                hours_after = random.randint(1, 48)
-                minutes_after = random.randint(0, 59)
-                reply_created_at = post.created_at + timedelta(hours=hours_after, minutes=minutes_after)
-                
-                # 未来の日時にならないようにチェック
-                if reply_created_at > now:
-                    reply_created_at = now - timedelta(minutes=random.randint(1, 60))
-                
-                reply = CasualPost(
-                    organization_id=org.id,
-                    user_id=user.id,
-                    parent_id=post.id,
-                    content=reply_content,
-                    created_at=reply_created_at,
-                    likes_count=random.randint(0, 5)
-                )
-                db.add(reply)
-                reply_count += 1
-    
-    db.commit()
-    print(f"返信を作成しました: {reply_count}件")
-    print(f"✅ 合計: {num_posts + reply_count}件の投稿・返信を作成しました")
+        print(f"\n--- 組織: {org.name} ---")
+        print(f"ユーザー数: {len(users)}")
+        
+        # 既存の投稿を削除
+        # まず関連するいいねを削除（外部キー制約回避）
+        existing_posts = db.query(CasualPost).filter(CasualPost.organization_id == org.id).all()
+        existing_post_ids = [p.id for p in existing_posts]
+        
+        if existing_post_ids:
+            db.query(CasualPostLike).filter(CasualPostLike.post_id.in_(existing_post_ids)).delete(synchronize_session=False)
+            # 自己参照（返信）の制約回避のため、返信（parent_idがあるもの）を先に削除（念のため）
+            db.query(CasualPost).filter(CasualPost.organization_id == org.id, CasualPost.parent_id.isnot(None)).delete(synchronize_session=False)
+
+        deleted_count = db.query(CasualPost).filter(CasualPost.organization_id == org.id).delete(synchronize_session=False)
+        db.commit()
+        print(f"既存の投稿を削除しました: {deleted_count}件 (関連データ含む)")
+        
+        # 投稿を生成
+        posts = []
+        now = datetime.now()
+        
+        # 過去30日間に分散して投稿を作成
+        for i in range(num_posts):
+            user = random.choice(users)
+            content = random.choice(CASUAL_POST_TEMPLATES)
+            
+            # ランダムな日時（過去30日間）
+            days_ago = random.randint(0, 30)
+            hours_ago = random.randint(0, 23)
+            minutes_ago = random.randint(0, 59)
+            created_at = now - timedelta(days=days_ago, hours=hours_ago, minutes=minutes_ago)
+            
+            post = CasualPost(
+                organization_id=org.id,
+                user_id=user.id,
+                content=content,
+                created_at=created_at,
+                likes_count=random.randint(0, 10)
+            )
+            db.add(post)
+            posts.append(post)
+        
+        db.commit()
+        print(f"投稿を作成しました: {num_posts}件")
+        total_posts_created += num_posts
+        
+        # 投稿のIDを取得するためにリフレッシュ
+        for post in posts:
+            db.refresh(post)
+        
+        # 返信を生成（投稿の約30%に1-3件の返信を追加）
+        reply_count = 0
+        for post in posts:
+            if random.random() < 0.3:  # 30%の確率で返信を追加
+                num_replies = random.randint(1, 3)
+                for _ in range(num_replies):
+                    user = random.choice(users)
+                    reply_content = random.choice(REPLY_TEMPLATES)
+                    
+                    # 元の投稿より後の日時
+                    hours_after = random.randint(1, 48)
+                    minutes_after = random.randint(0, 59)
+                    reply_created_at = post.created_at + timedelta(hours=hours_after, minutes=minutes_after)
+                    
+                    # 未来の日時にならないようにチェック
+                    if reply_created_at > now:
+                        reply_created_at = now - timedelta(minutes=random.randint(1, 60))
+                    
+                    reply = CasualPost(
+                        organization_id=org.id,
+                        user_id=user.id,
+                        parent_id=post.id,
+                        content=reply_content,
+                        created_at=reply_created_at,
+                        likes_count=random.randint(0, 5)
+                    )
+                    db.add(reply)
+                    reply_count += 1
+        
+        db.commit()
+        print(f"返信を作成しました: {reply_count}件")
+        total_replies_created += reply_count
+
+    print(f"\n=== 完了 ===")
+    print(f"全組織合計: {total_posts_created + total_replies_created}件の投稿・返信を作成しました")
 
 
 
