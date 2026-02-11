@@ -49,6 +49,8 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
   const [loading, setLoading] = useState(true);
   const [newPostContent, setNewPostContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
 
   // Analysis State
   const [analyses, setAnalyses] = useState<AnalysisReport[]>([]);
@@ -81,6 +83,7 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
 
   const fetchPosts = async () => {
     try {
+      if (!loading) setRefreshing(true);
       const res = await axios.get('/api/casual/posts');
       const allPosts = res.data;
 
@@ -106,6 +109,7 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
       console.error(e);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -125,6 +129,7 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
     try {
       await axios.post('/api/casual/posts', { content: newPostContent });
       setNewPostContent('');
+      setIsComposerOpen(false); // Close modal
       fetchPosts(); // Refresh
     } catch (e) {
       alert('投稿に失敗しました');
@@ -225,9 +230,9 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
   };
 
   return (
-    <div className="flex h-full gap-6">
+    <div className="flex h-[calc(100vh-220px)] min-h-[500px] gap-6">
       {/* Main Board Area */}
-      <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-amber-50/30 via-white to-blue-50/20 rounded-2xl border-2 border-amber-200/40 shadow-lg overflow-hidden">
+      <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-amber-50/30 via-white to-blue-50/20 rounded-2xl border-2 border-amber-200/40 shadow-lg overflow-hidden relative">
         {/* Board Header - Bulletin Board Style */}
         <div className="shrink-0 bg-gradient-to-r from-amber-100 to-orange-100 border-b-4 border-amber-300 shadow-md">
           <div className="p-4 flex items-center justify-between">
@@ -242,10 +247,11 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
             </div>
             <button
               onClick={fetchPosts}
-              className="p-2 hover:bg-white/60 rounded-lg transition-all text-amber-600 hover:text-amber-800 hover:shadow-sm"
+              disabled={refreshing}
+              className={`p-2 hover:bg-white/60 rounded-lg transition-all text-amber-600 hover:text-amber-800 hover:shadow-sm ${refreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
               title="更新"
             >
-              <RefreshCw className="w-5 h-5" />
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
 
@@ -258,6 +264,8 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
             </div>
           </div>
         </div>
+
+
 
         {/* Posts Area (Scrollable) */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTEsMTkxLDM2LDAuMDUpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] custom-scrollbar">
@@ -291,43 +299,77 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
           )}
         </div>
 
-        {/* Input Area (Fixed at Bottom) */}
-        <div className="shrink-0 bg-gradient-to-r from-slate-50 to-blue-50/30 border-t-4 border-amber-300 shadow-2xl p-5">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-start gap-3">
-              <div className="pt-1">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sage-400 to-sage-600 flex items-center justify-center text-white font-bold ring-4 ring-white shadow-lg">
-                  <User className="w-5 h-5" />
-                </div>
+
+        {/* Floating Action Button (FAB) for New Post */}
+        <button
+          onClick={() => setIsComposerOpen(true)}
+          className="absolute bottom-8 right-8 z-30 w-14 h-14 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center group"
+          title="新規投稿"
+        >
+          <MessageSquare className="w-7 h-7 fill-current" />
+          <span className="absolute -top-10 right-0 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            投稿する
+          </span>
+        </button>
+
+        {/* Post Composer Modal */}
+        {isComposerOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsComposerOpen(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden ring-1 ring-amber-200" onClick={e => e.stopPropagation()}>
+              <div className="p-4 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-white flex justify-between items-center">
+                <h3 className="font-bold text-amber-900 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-amber-500" />
+                  新しい投稿を作成
+                </h3>
+                <button
+                  onClick={() => setIsComposerOpen(false)}
+                  className="w-8 h-8 rounded-full hover:bg-amber-100 flex items-center justify-center text-amber-500 transition-colors"
+                >
+                  ×
+                </button>
               </div>
-              <div className="flex-1">
-                <div className="bg-white rounded-xl shadow-lg border-2 border-amber-200/50 overflow-hidden">
-                  <RichTextEditor
-                    content={newPostContent}
-                    onChange={setNewPostContent}
-                    placeholder="あなたの声を聞かせてください..."
-                    className="min-h-[100px]"
-                    minHeight="100px"
-                  />
-                  <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-amber-50/50 to-blue-50/30 border-t border-amber-100">
-                    <p className="text-xs text-slate-500">
-                      思ったこと、気づいたことを自由に共有しましょう
-                    </p>
+              <div className="p-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sage-400 to-sage-600 flex items-center justify-center text-white font-bold ring-2 ring-white shadow-md shrink-0">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-slate-700 mb-1">{user?.name || user?.username || 'あなた'}</p>
+                    <p className="text-xs text-slate-400">@みんなの声</p>
+                  </div>
+                </div>
+
+                <RichTextEditor
+                  content={newPostContent}
+                  onChange={setNewPostContent}
+                  placeholder="最近どうですか？思ったこと、気づいたことを自由に書いてみましょう..."
+                  className="min-h-[150px] mb-4 text-base"
+                  minHeight="150px"
+                />
+
+                <div className="flex justify-end items-center pt-2">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setIsComposerOpen(false)}
+                      className="px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 rounded-lg transition-colors font-bold"
+                    >
+                      キャンセル
+                    </button>
                     <button
                       onClick={handleSubmit}
                       disabled={submitting || !newPostContent.trim()}
-                      className="btn-primary py-2 px-8 text-sm font-bold disabled:opacity-50 shadow-md hover:shadow-xl transition-all transform hover:scale-105 disabled:transform-none"
+                      className="btn-primary py-2 px-6 text-sm font-bold disabled:opacity-50 shadow-md hover:shadow-lg transition-all transform hover:scale-105 disabled:transform-none flex items-center gap-2"
                     >
                       {submitting ? (
-                        <span className="flex items-center gap-2">
+                        <>
                           <RefreshCw className="w-4 h-4 animate-spin" />
                           送信中...
-                        </span>
+                        </>
                       ) : (
-                        <span className="flex items-center gap-2">
+                        <>
                           <MessageSquare className="w-4 h-4" />
                           投稿する
-                        </span>
+                        </>
                       )}
                     </button>
                   </div>
@@ -335,7 +377,7 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Analysis Sidebar (Admin Only) */}
