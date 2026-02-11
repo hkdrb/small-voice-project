@@ -5,7 +5,9 @@
 
 ## ER図 (Entity Relationship Diagram)
 
-![データベースER図](images/database_er_diagram.png)
+![データベースER図](images/database_er_diagram_mermaid.png)
+
+
 
 <details>
 <summary>Mermaidコード（参考）</summary>
