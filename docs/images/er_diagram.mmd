@@ -1,0 +1,115 @@
+erDiagram
+    %% Styles
+    classDef userOrg fill:#E1F5FE,stroke:#01579B,stroke-width:2px;
+    classDef survey fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px;
+    classDef analysis fill:#FFF3E0,stroke:#EF6C00,stroke-width:2px;
+    classDef casual fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px;
+    classDef notif fill:#FFEBEE,stroke:#C62828,stroke-width:2px;
+
+    %% --- Tier 1: Core (Top) ---
+    users {
+        int id PK
+        string name
+        string role
+    }
+    organizations {
+        int id PK
+        string name
+    }
+    organization_members {
+        int user_id FK
+        int org_id FK
+        string role
+    }
+
+    organizations ||--o{ organization_members : "has"
+    users ||--o{ organization_members : "belongs"
+
+    class users userOrg
+    class organizations userOrg
+    class organization_members userOrg
+
+    %% --- Tier 2: Notifications (Side/Top) ---
+    notifications {
+        int u_id FK
+        string type
+        string title
+    }
+    users ||--o{ notifications : "receives"
+
+    class notifications notif
+
+    %% --- Tier 3: Modules (Middle) ---
+    
+    %% Module A: Surveys
+    surveys {
+        int id PK
+        string title
+    }
+    questions {
+        int id PK
+        string content
+    }
+    answers {
+        int survey_id FK
+        int question_id FK
+        int user_id FK
+        string content
+    }
+
+    organizations ||--o{ surveys : "manages"
+    surveys ||--o{ questions : "contains"
+    questions ||--o{ answers : "has"
+    users ||--o{ answers : "submits"
+
+    class surveys survey
+    class questions survey
+    class answers survey
+
+    %% Module B: Analysis
+    analysis_sessions {
+        int id PK
+        string title
+        string status
+    }
+    analysis_results {
+        int session_id FK
+        string summary
+    }
+    issue_definitions {
+        int session_id FK
+        string description
+    }
+    comments {
+        int session_id FK
+        int user_id FK
+        string content
+    }
+
+    organizations ||--o{ analysis_sessions : "runs"
+    analysis_sessions ||--o{ analysis_results : "generates"
+    analysis_sessions ||--o{ issue_definitions : "identifies"
+    analysis_sessions ||--o{ comments : "discusses"
+    users ||--o{ comments : "posts"
+
+    class analysis_sessions analysis
+    class analysis_results analysis
+    class issue_definitions analysis
+    class comments analysis
+
+    %% Module C: Casual Board
+    casual_posts {
+        int id PK
+        string content
+    }
+    casual_analyses {
+        int org_id FK
+        json result
+    }
+
+    organizations ||--o{ casual_posts : "hosts"
+    organizations ||--o{ casual_analyses : "analyzes"
+    users ||--o{ casual_posts : "writes"
+
+    class casual_posts casual
+    class casual_analyses casual
