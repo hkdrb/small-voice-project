@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 
 interface SessionSummary {
   id: number;
-  title: str;
-  theme: str;
+  title: string;
+  theme: string;
 }
 
 export default function CsvImportPage() {
