@@ -534,55 +534,53 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
                   <div className="grid gap-5">
                     {selectedAnalysis.result.recommendations.map((rec, idx) => (
                       <div key={idx} className="group bg-sage-50/40 hover:bg-sage-50/70 border border-sage-100 p-5 rounded-2xl transition-colors">
-                        <div className="flex items-start gap-4 mb-3">
-                          <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center shrink-0 text-sage-600 mt-0.5">
+                        <div className="mb-4 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center shrink-0 text-sage-600">
                             <span className="font-bold text-sm">{idx + 1}</span>
                           </div>
-                          <div className="flex-1">
-                            <h5 className="font-bold text-sage-900 text-lg mb-2">{rec.title}</h5>
+                          <h5 className="font-bold text-sage-900 text-lg">{rec.title}</h5>
+                        </div>
 
-                            {/* Admin Reason */}
-                            <div className="bg-white/80 p-3 rounded-lg border border-sage-100 mb-3">
-                              <p className="text-[10px] font-bold text-sage-600 mb-1 flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                管理者向け：分析背景
-                              </p>
-                              <p className="text-sm text-slate-700 leading-relaxed">{rec.reason}</p>
-                            </div>
-
-                            {/* Survey Description for Respondents */}
-                            {rec.survey_description && (
-                              <div className="bg-gradient-to-br from-sage-50 to-white p-3 rounded-lg border border-sage-200 mb-3">
-                                <p className="text-[10px] font-bold text-sage-700 mb-1 flex items-center gap-1">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                  </svg>
-                                  回答者向け：フォーム説明文
-                                </p>
-                                <p className="text-sm text-sage-800 leading-relaxed font-medium">{rec.survey_description}</p>
-                              </div>
-                            )}
-
-                            {rec.suggested_questions && rec.suggested_questions.length > 0 && (
-                              <div className="bg-white rounded-xl p-4 border border-sage-100 shadow-sm mb-4">
-                                <p className="text-xs font-bold text-sage-600 mb-2 flex items-center gap-1">
-                                  <MessageSquare className="w-3 h-3" /> 具体的な質問案
-                                </p>
-                                <ul className="space-y-2">
-                                  {rec.suggested_questions.map((q, qIdx) => (
-                                    <li key={qIdx} className="text-sm text-gray-600 flex items-start gap-2">
-                                      <span className="text-sage-400 mt-1">•</span>
-                                      {q}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {/* Form Creation Button was here */}
+                        <div className="space-y-4">
+                          {/* Admin Reason */}
+                          <div className="bg-white/80 p-3 rounded-lg border border-sage-100 mb-3">
+                            <p className="text-[10px] font-bold text-sage-600 mb-1 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              管理者向け：分析背景
+                            </p>
+                            <p className="text-sm text-slate-700 leading-relaxed">{rec.reason}</p>
                           </div>
+
+                          {/* Survey Description for Respondents */}
+                          {rec.survey_description && (
+                            <div className="bg-gradient-to-br from-sage-50 to-white p-3 rounded-lg border border-sage-200 mb-3">
+                              <p className="text-[10px] font-bold text-sage-700 mb-1 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                回答者向け：フォーム説明文
+                              </p>
+                              <p className="text-sm text-sage-800 leading-relaxed font-medium">{rec.survey_description}</p>
+                            </div>
+                          )}
+
+                          {rec.suggested_questions && rec.suggested_questions.length > 0 && (
+                            <div className="bg-white rounded-xl p-4 border border-sage-100 shadow-sm mb-4">
+                              <p className="text-xs font-bold text-sage-600 mb-2 flex items-center gap-1">
+                                <MessageSquare className="w-3 h-3" /> 具体的な質問案
+                              </p>
+                              <ul className="space-y-2">
+                                {rec.suggested_questions.map((q, qIdx) => (
+                                  <li key={qIdx} className="text-sm text-gray-600 flex items-start gap-2">
+                                    <span className="text-sage-400 mt-1">•</span>
+                                    {q}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
 
                         {/* Form Creation Button - Moved to span full width */}

@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Small Voice Project",
 };
 
+import { Suspense } from 'react';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -17,7 +19,9 @@ export default function RootLayout({
     <html lang="ja">
       <body className="flex h-screen overflow-hidden bg-slate-50">
         <SidebarProvider>
-          <SidebarWrapper />
+          <Suspense fallback={<div className="hidden md:block w-64 bg-slate-50 shrink-0" />}>
+            <SidebarWrapper />
+          </Suspense>
           <main className="flex-1 overflow-y-auto relative">
             {children}
           </main>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
@@ -56,7 +56,7 @@ const wrapText = (text: string, maxLen: number = 30) => {
   }).join('<br>');
 };
 
-export default function SessionDetailPage() {
+function SessionDetailContent() {
   const params = useParams();
   const id = params?.id;
   const router = useRouter();
@@ -79,10 +79,12 @@ export default function SessionDetailPage() {
   // Auto-open issue from query param
   useEffect(() => {
     if (data && targetTitle && !activeIssue) {
-      let issues = [];
+      let issues: any[] = [];
       try {
-        const parsed = JSON.parse(data.report_content);
-        if (Array.isArray(parsed)) issues = parsed;
+        if (data && data.report_content) {
+          const parsed = JSON.parse(data.report_content as string);
+          if (Array.isArray(parsed)) issues = parsed;
+        }
       } catch (e) { }
 
       const tTitle = targetTitle as string;
@@ -298,9 +300,9 @@ export default function SessionDetailPage() {
   const [threadAnalysisResults, setThreadAnalysisResults] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    if (data?.comment_analysis) {
+    if (data && data.comment_analysis) {
       try {
-        const parsed = JSON.parse(data.comment_analysis);
+        const parsed = JSON.parse(data.comment_analysis as string);
         if (parsed.threads) {
           setThreadAnalysisResults(parsed.threads);
         }
@@ -617,10 +619,12 @@ export default function SessionDetailPage() {
 
                 let issues = [];
                 try {
-                  const parsed = JSON.parse(data.report_content);
-                  if (Array.isArray(parsed)) issues = parsed;
+                  if (data && data.report_content) {
+                    const parsed = JSON.parse(data.report_content as string);
+                    if (Array.isArray(parsed)) issues = parsed;
+                  }
                 } catch (e) {
-                  if (data.report_content.trim() === '[]') issues = [];
+                  if (data.report_content && data.report_content.trim() === '[]') issues = [];
                 }
 
                 if (issues.length > 0) {
@@ -856,61 +860,48 @@ export default function SessionDetailPage() {
                 <CommentTree
                   comments={data.comments || []}
                   rootCid={activeThreadRootId || -1}
-                  user={user}
-                  session_id={data.id}
+                  currentUserId={user?.id}
+                  sessionId={data.id}
                   onRefresh={async () => {
                     const res = await axios.get(`/api/dashboard/sessions/${id}`, { withCredentials: true });
                     setData(res.data);
                   }}
-                  isRoot={true}
                 />
               </div>
             </div>
 
             {/* Input Area (Fixed Bottom of Panel) */}
             <div className="bg-white border-t border-slate-100 p-4 sticky bottom-0 z-30">
-              {isCreatingPost ? (
-                /* Create Post Mode */
-                <div className="animate-in slide-in-from-bottom-2 fade-in">
-                  <h4 className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
-                    <MessageCircle className="h-3 w-3" /> 新しいディスカッションを開始
-                  </h4>
-                  <RichTextEditor
-                    content={postContent}
-                    onChange={setPostContent}
-                    placeholder="この課題について意見やアイデアを投稿しましょう..."
-                    className="min-h-[100px] mb-2 text-sm"
-                    minHeight="100px"
-                  />
-                  <div className="flex items-center justify-between mt-2">
-                    <label className="flex items-center text-xs text-slate-500 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={isAnonymous}
-                        onChange={(e) => setIsAnonymous(e.target.checked)}
-                        className="mr-1.5 rounded text-sage-600 focus:ring-sage-500"
-                      />
-                      匿名で投稿する
-                    </label>
-                    <button
-                      onClick={handleCreatePost}
-                      disabled={!postContent.trim()}
-                      className="btn-primary px-4 py-2 text-xs font-bold disabled:opacity-50"
-                    >
-                      投稿する
-                    </button>
-                  </div>
+              <div className="animate-in slide-in-from-bottom-2 fade-in">
+                <h4 className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
+                  <MessageCircle className="h-3 w-3" /> {isCreatingPost ? "新しいディスカッションを開始" : "コメントを投稿"}
+                </h4>
+                <RichTextEditor
+                  content={postContent}
+                  onChange={setPostContent}
+                  placeholder="この課題について意見やアイデアを投稿しましょう..."
+                  className="min-h-[100px] mb-2 text-sm"
+                  minHeight="100px"
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <label className="flex items-center text-xs text-slate-500 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isAnonymous}
+                      onChange={(e) => setIsAnonymous(e.target.checked)}
+                      className="mr-1.5 rounded text-sage-600 focus:ring-sage-500"
+                    />
+                    匿名で投稿する
+                  </label>
+                  <button
+                    onClick={handleCreatePost}
+                    disabled={!postContent.trim()}
+                    className="btn-primary px-4 py-2 text-xs font-bold disabled:opacity-50"
+                  >
+                    投稿する
+                  </button>
                 </div>
-              ) : (
-                /* Existing Thread Mode - handled by CommentTree but maybe we want a clear main reply button?
-                   Actually CommentTree handles reply buttons.
-                   If thread exists, we don't need a main input down here unless we want to reply to root.
-                   Let's leave it to CommentTree for now or add a "Reply to Thread" button if needed.
-                */
-                <div className="text-center text-xs text-slate-400 py-2">
-                  <p>スレッド内のコメントに返信してください</p>
-                </div>
-              )}
+              </div>
             </div>
 
           </div>
@@ -918,5 +909,20 @@ export default function SessionDetailPage() {
 
       </div>
     </div >
+  );
+}
+
+export default function SessionDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sage-primary mb-4"></div>
+          <p className="text-slate-500 font-medium">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SessionDetailContent />
+    </Suspense>
   );
 }

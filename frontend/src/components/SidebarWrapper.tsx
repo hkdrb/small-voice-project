@@ -10,7 +10,6 @@ export default function SidebarWrapper() {
   return (
     <Sidebar
       user={null}
-      onLogout={() => { }} // Internal logout logic in Sidebar is used if it's dummy
       isMobileOpen={isMobileOpen}
       setIsMobileOpen={setIsMobileOpen}
       onMobileClose={closeMobileMenu}

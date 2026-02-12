@@ -1,0 +1,25 @@
+
+> frontend@0.1.0 build
+> next build
+
+▲ Next.js 16.1.1 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 11.5s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/12) ...
+⨯ useSearchParams() should be wrapped in a suspense boundary at page "/404". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at Q (/Users/koderahayato/small-voice-project/frontend/.next/server/chunks/ssr/[root-of-the-server]__b9a435e4._.js:2:2111)
+    at o (/Users/koderahayato/small-voice-project/frontend/.next/server/chunks/ssr/[root-of-the-server]__b9a435e4._.js:4:5284)
+    at x (/Users/koderahayato/small-voice-project/frontend/.next/server/chunks/ssr/src_components_SidebarWrapper_tsx_6deab636._.js:4:188)
+    at an (/Users/koderahayato/small-voice-project/frontend/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:84360)
+    at ai (/Users/koderahayato/small-voice-project/frontend/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:86179)
+    at al (/Users/koderahayato/small-voice-project/frontend/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:107953)
+    at as (/Users/koderahayato/small-voice-project/frontend/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:105368)
+    at aa (/Users/koderahayato/small-voice-project/frontend/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:84712)
+    at ai (/Users/koderahayato/small-voice-project/frontend/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:86228)
+    at ai (/Users/koderahayato/small-voice-project/frontend/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:104708)
+Error occurred prerendering page "/_not-found". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /_not-found/page: /_not-found, exiting the build.
+⨯ Next.js build worker exited with code: 1 and signal: null

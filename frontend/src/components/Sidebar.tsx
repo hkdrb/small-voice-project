@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { LayoutDashboard, FileText, Key, LogOut, Menu, BarChart2, Folder, Upload, Users, ClipboardList, ChevronDown, User as UserIcon, Settings, UserCircle } from "lucide-react";
+import { LayoutDashboard, FileText, Key, LogOut, Menu, BarChart2, Folder, Upload, Users, ClipboardList, ChevronDown, User as UserIcon, Settings, UserCircle, Building, MessageSquare, Home } from "lucide-react";
 import axios from 'axios';
 import ProfileSettingsModal from './ProfileSettingsModal';
 
@@ -16,7 +16,7 @@ interface SidebarProps {
     username?: string;
     email?: string;
   } | null;
-  onLogout: () => void;
+  onLogout?: () => void;
   isMobileOpen: boolean;
   setIsMobileOpen: (isOpen: boolean) => void;
   onMobileClose: () => void;
@@ -41,18 +41,32 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
       return;
     }
 
-    if (!user) {
-      axios.get('/api/auth/me', { withCredentials: true })
-        .then(res => setInternalUser(res.data))
-        .catch(e => {
-          // Silence 401 errors as they are handled by page-level redirection or expected for guests
+    const fetchUser = async () => {
+      if (!user) {
+        try {
+          const res = await axios.get('/api/auth/me', { withCredentials: true });
+          setInternalUser(res.data);
+        } catch (e: any) {
           if (e.response?.status !== 401) {
             console.error("Failed to fetch user in Sidebar", e);
           }
-        });
-    } else {
-      setInternalUser(user);
-    }
+        }
+      } else {
+        setInternalUser(user);
+      }
+    };
+
+    const fetchOrgs = async () => {
+      try {
+        const res = await axios.get('/api/auth/my-orgs', { withCredentials: true });
+        setAvailableOrgs(res.data);
+      } catch (e) {
+        console.error("Failed to fetch organizations", e);
+      }
+    };
+
+    fetchUser();
+    fetchOrgs();
   }, [user, pathname]);
 
   const handleOrgChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -68,23 +82,43 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
 
   const navItems = [
     { href: '/dashboard?tab=analysis', label: 'データ分析実行', icon: <BarChart2 className="h-5 w-5" />, tab: 'analysis', adminOnly: true },
-    { href: '/dashboard', label: 'レポート閲覧', icon: <FileText className="h-5 w-5" />, tab: null },
+    { href: '/dashboard?tab=reports', label: 'レポート閲覧', icon: <FileText className="h-5 w-5" />, tab: 'reports' },
     { href: '/dashboard?tab=answers', label: 'アンケート回答', icon: <Folder className="h-5 w-5" />, tab: 'answers' },
     { href: '/dashboard?tab=casual', label: '雑談掲示板', icon: <MessageSquare className="h-5 w-5" />, tab: 'casual' },
     { href: '/dashboard?tab=surveys', label: 'フォーム作成・管理', icon: <ClipboardList className="h-5 w-5" />, tab: 'surveys', adminOnly: true },
     { href: '/dashboard?tab=requests', label: 'フォーム申請', icon: <Upload className="h-5 w-5" />, tab: 'requests', userOnly: true },
     { href: '/dashboard?tab=import', label: 'CSVインポート', icon: <Upload className="h-5 w-5" />, tab: 'import', adminOnly: true },
     { href: '/dashboard?tab=members', label: 'メンバーリスト', icon: <Users className="h-5 w-5" />, tab: 'members', adminOnly: true },
-    { href: '/admin/system', label: 'システム管理', icon: <Settings className="h-5 w-5" />, tab: 'system_admin', systemAdminOnly: true },
+    {
+      href: pathname === '/admin/system' ? '/dashboard' : '/admin/system',
+      label: pathname === '/admin/system' ? 'ホーム' : 'システム管理',
+      icon: pathname === '/admin/system' ? <LayoutDashboard className="h-5 w-5" /> : <Settings className="h-5 w-5" />,
+      tab: pathname === '/admin/system' ? 'dashboard' : 'system_admin',
+      systemAdminOnly: true
+    },
   ];
 
   // Helper to determine if link is active
   const isActive = (itemHref: string, itemTab: string | null) => {
     const currentTab = searchParams.get('tab');
-    if (itemTab === null) {
-      return pathname === '/dashboard' && !currentTab;
+    const currentPath = pathname;
+
+    // For /admin/system, check path directly
+    if (itemHref.startsWith('/admin/system')) {
+      return currentPath === itemHref;
     }
-    return pathname === '/dashboard' && currentTab === itemTab;
+
+    // For dashboard items, check path and tab
+    if (itemHref.startsWith('/dashboard')) {
+      // If itemTab is null, it means it's the default dashboard without a tab
+      if (itemTab === null) {
+        return currentPath === '/dashboard' && !currentTab;
+      }
+      // Otherwise, check if the current tab matches the item's tab
+      return currentPath === '/dashboard' && currentTab === itemTab;
+    }
+
+    return false;
   };
 
   // State for profile menu toggle - REMOVED
@@ -106,8 +140,9 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
     }
   };
 
-  // Hide sidebar on login/register pages
-  if (pathname === '/login' || pathname === '/register' || pathname === '/') {
+  // Hide sidebar on auth/public pages
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password' || pathname === '/invite' || pathname === '/' || pathname.startsWith('/survey');
+  if (isAuthPage) {
     return null;
   }
 
@@ -183,13 +218,13 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
               onClick={onMobileClose}
               className={`
                 flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
-                ${isActive(item.href, item.tab || (item.href.includes('system') ? 'system' : ''))
+                ${isActive(item.href.split('?')[0], item.tab)
                   ? 'bg-sage-primary text-white shadow-md'
                   : 'text-slate-600 hover:bg-white/50 hover:text-sage-dark'
                 }
               `}
             >
-              <div className={`transition-transform duration-200 ${isActive(item.href, item.tab || (item.href.includes('system') ? 'system' : '')) ? 'scale-110' : 'group-hover:scale-110'}`}>
+              <div className={`transition-transform duration-200 ${isActive(item.href.split('?')[0], item.tab) ? 'scale-110' : 'group-hover:scale-110'}`}>
                 {item.icon}
               </div>
               <span className="font-medium text-sm">{item.label}</span>
@@ -260,8 +295,11 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
               if (item.adminOnly && !isAdmin) return false;
               if (item.userOnly && isAdmin) return false;
               if (item.systemAdminOnly && !isSystemAdmin) return false;
-              // Hide items that are already present as tabs in the dashboard on PC
-              if (item.href.includes('/dashboard')) return false;
+
+              // Hide dashboard session/tab items on PC (they are shown as tabs in the content area)
+              // Only top-level links like /dashboard (Home) or /admin/system should remain.
+              if (item.href.includes('/dashboard') && item.href.includes('?tab=')) return false;
+
               return true;
             })
             .map((item) => (
@@ -269,14 +307,14 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
                 key={item.href}
                 href={item.href}
                 className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
-                  ${isActive(item.href, item.tab || (item.href.includes('system') ? 'system' : ''))
+                    flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
+                    ${isActive(item.href.split('?')[0], item.tab)
                     ? 'bg-sage-100 text-sage-900 font-bold'
                     : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                   }
                 `}
               >
-                <div className={`transition-transform duration-200 ${isActive(item.href, item.tab || (item.href.includes('system') ? 'system' : '')) ? 'scale-110' : 'group-hover:scale-110'}`}>
+                <div className={`transition-transform duration-200 ${isActive(item.href.split('?')[0], item.tab) ? 'scale-110' : 'group-hover:scale-110'}`}>
                   {item.icon}
                 </div>
                 <span className="text-sm font-medium">{item.label}</span>
@@ -330,6 +368,3 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
     </>
   );
 }
-
-// Simple icon wrapper if needed, or import from lucide-react directly above
-import { MessageSquare } from 'lucide-react';
