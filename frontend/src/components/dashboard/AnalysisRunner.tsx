@@ -87,7 +87,7 @@ export default function AnalysisRunner({ onSuccess }: AnalysisRunnerProps) {
 
     // Simulation of progress
     const steps = [
-      { t: 1500, msg: "🔍 回答データを読み込み中..." },
+      { t: 1500, msg: "🔍 回答 데이터를読み込み中..." },
       { t: 3000, msg: "🧠 AIによる意味解析を実行中 (Vectorization)..." },
       { t: 6000, msg: "📊 トピックの自動クラスタリング中 (K-Means)..." },
       { t: 12000, msg: "🗺️ 2次元マップへの配置計算中 (PCA)..." },
@@ -134,12 +134,12 @@ export default function AnalysisRunner({ onSuccess }: AnalysisRunnerProps) {
   if (loadingSurveys) return <div className="text-center py-10">読み込み中...</div>;
 
   return (
-    <div className="max-w-xl mx-auto glass-card p-8 animate-in fade-in slide-in-from-bottom-2">
+    <div className="max-w-xl mx-auto glass-card p-4 md:p-8 animate-in fade-in slide-in-from-bottom-2">
       <div className="text-center mb-8">
         <div className="w-16 h-16 bg-sage-100 text-sage-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <BarChart2 className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold text-sage-dark">データ分析を実行</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-sage-dark">データ分析を実行</h2>
         <p className="text-slate-500">収集したアンケート回答をAIで分析します</p>
       </div>
 
@@ -147,7 +147,7 @@ export default function AnalysisRunner({ onSuccess }: AnalysisRunnerProps) {
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-2">1. フォームを選択</label>
           <select
-            className="glass-input w-full p-3"
+            className="glass-input w-full p-3 text-base"
             onChange={handleSurveyChange}
             value={selectedSurveyId || ''}
             disabled={analyzing}
@@ -162,7 +162,7 @@ export default function AnalysisRunner({ onSuccess }: AnalysisRunnerProps) {
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-2">2. 分析する質問を選択</label>
           <select
-            className="glass-input w-full p-3"
+            className="glass-input w-full p-3 text-base"
             onChange={handleQuestionChange}
             value={selectedQuestionId || ''}
             disabled={!selectedSurveyId || analyzing}
@@ -178,7 +178,7 @@ export default function AnalysisRunner({ onSuccess }: AnalysisRunnerProps) {
           <label className="block text-sm font-bold text-gray-700 mb-2">3. レポート名</label>
           <input
             type="text"
-            className="glass-input w-full p-3"
+            className="glass-input w-full p-3 text-base"
             value={reportTitle}
             onChange={(e) => setReportTitle(e.target.value)}
             placeholder="レポートのタイトル"

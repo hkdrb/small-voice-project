@@ -90,7 +90,7 @@ export default function CsvImporter() {
 
   if (success) {
     return (
-      <div className="max-w-xl mx-auto glass-card p-12 text-center animate-in zoom-in-95">
+      <div className="max-w-xl mx-auto glass-card p-6 md:p-12 text-center animate-in zoom-in-95">
         <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="h-8 w-8" />
         </div>
@@ -101,12 +101,12 @@ export default function CsvImporter() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto glass-card p-8 animate-in fade-in slide-in-from-bottom-2">
+    <div className="max-w-2xl mx-auto glass-card p-4 md:p-8 animate-in fade-in slide-in-from-bottom-2">
       <div className="text-center mb-8">
         <div className="w-16 h-16 bg-sage-100 text-sage-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <Upload className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold text-sage-dark">CSVデータをインポート</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-sage-dark">CSVデータをインポート</h2>
         <p className="text-slate-500">外部フォームのアンケート結果などを取り込んで分析できます</p>
       </div>
 
@@ -134,13 +134,13 @@ export default function CsvImporter() {
           <div className="space-y-4 animate-in fade-in">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">フォームタイトル</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="glass-input w-full p-2" />
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="glass-input w-full p-2 text-base" />
             </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">プレビュー (最初の5行)</label>
               <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-sm text-left whitespace-nowrap">
                   <thead className="bg-sage-50 text-sage-700 text-xs uppercase">
                     <tr>
                       {headers.map((h, i) => (
@@ -150,7 +150,7 @@ export default function CsvImporter() {
                               type="checkbox"
                               checked={selectedHeaders.has(h)}
                               onChange={() => toggleHeader(h)}
-                              className="rounded text-sage-600 focus:ring-sage-500 w-4 h-4"
+                              className="rounded text-sage-600 focus:ring-sage-500 w-4 h-4 cursor-pointer"
                             />
                             {h}
                           </label>

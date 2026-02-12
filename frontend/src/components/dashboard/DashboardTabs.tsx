@@ -23,14 +23,14 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
   };
 
   return (
-    <TabsList className="bg-white/50 p-1 rounded-xl border border-white/20 shadow-sm mb-6 w-full flex justify-start overflow-x-auto">
+    <TabsList className="bg-white/50 p-1 rounded-xl border border-white/20 shadow-sm mb-4 md:mb-6 w-full flex justify-start overflow-x-auto">
       {/* Admin Tabs */}
       {isAdmin && (
         <TabsTrigger
           value="analysis"
           activeTab={activeTab}
           onClick={() => handleTabClick('analysis')}
-          className="flex items-center px-4 py-2 cursor-pointer"
+          className="flex items-center px-4 py-2 cursor-pointer shrink-0"
         >
           <BarChart2 className="w-4 h-4 mr-2" />
           データ分析実行
@@ -42,7 +42,7 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
         value="reports"
         activeTab={activeTab}
         onClick={() => handleTabClick('reports')}
-        className="flex items-center px-4 py-2 cursor-pointer"
+        className="flex items-center px-4 py-2 cursor-pointer shrink-0"
       >
         <FileText className="w-4 h-4 mr-2" />
         レポート閲覧
@@ -53,7 +53,7 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
         value="answers"
         activeTab={activeTab}
         onClick={() => handleTabClick('answers')}
-        className="flex items-center px-4 py-2 cursor-pointer"
+        className="flex items-center px-4 py-2 cursor-pointer shrink-0"
       >
         <Folder className="w-4 h-4 mr-2" />
         アンケート回答
@@ -64,7 +64,7 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
         value="casual"
         activeTab={activeTab}
         onClick={() => handleTabClick('casual')}
-        className="flex items-center px-4 py-2 cursor-pointer"
+        className="flex items-center px-4 py-2 cursor-pointer shrink-0"
       >
         <MessageSquare className="w-4 h-4 mr-2" />
         雑談掲示板
@@ -76,7 +76,7 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
           value="surveys"
           activeTab={activeTab}
           onClick={() => handleTabClick('surveys')}
-          className="flex items-center px-4 py-2 cursor-pointer"
+          className="flex items-center px-4 py-2 cursor-pointer shrink-0"
         >
           <ClipboardList className="w-4 h-4 mr-2" />
           フォーム作成・管理
@@ -88,7 +88,7 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
           value="requests"
           activeTab={activeTab}
           onClick={() => handleTabClick('requests')}
-          className="flex items-center px-4 py-2 cursor-pointer"
+          className="flex items-center px-4 py-2 cursor-pointer shrink-0"
         >
           <Upload className="w-4 h-4 mr-2" />
           フォーム申請
@@ -102,7 +102,7 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
             value="import"
             activeTab={activeTab}
             onClick={() => handleTabClick('import')}
-            className="flex items-center px-4 py-2 cursor-pointer"
+            className="flex items-center px-4 py-2 cursor-pointer shrink-0"
           >
             <Upload className="w-4 h-4 mr-2" />
             CSVインポート
@@ -111,7 +111,7 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
             value="members"
             activeTab={activeTab}
             onClick={() => handleTabClick('members')}
-            className="flex items-center px-4 py-2 cursor-pointer"
+            className="flex items-center px-4 py-2 cursor-pointer shrink-0"
           >
             <Users className="w-4 h-4 mr-2" />
             メンバーリスト

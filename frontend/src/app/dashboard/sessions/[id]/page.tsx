@@ -10,7 +10,7 @@ import remarkBreaks from 'remark-breaks';
 // import Tabs from '@/components/ui/Tabs';
 import CommentTree from '@/components/dashboard/CommentTree';
 import { SessionDetail } from '@/types/dashboard';
-import { Map as MapIcon, FileText, MessageCircle, ArrowLeft, Sparkles, Users, ChevronDown, User as UserIcon, CheckCircle, ListTodo, Lightbulb } from 'lucide-react';
+import { Map as MapIcon, FileText, MessageCircle, ArrowLeft, Sparkles, Users, ChevronDown, User as UserIcon, CheckCircle, ListTodo, Lightbulb, MoreHorizontal, FileEdit, Archive, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 
@@ -67,6 +67,7 @@ export default function SessionDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Active Issue/Thread State
   const [activeIssue, setActiveIssue] = useState<any>(null);
@@ -199,6 +200,7 @@ export default function SessionDetailPage() {
       alert("更新に失敗しました");
     } finally {
       setIsUpdating(false);
+      setIsMenuOpen(false);
     }
   };
 
@@ -364,7 +366,6 @@ export default function SessionDetailPage() {
   };
 
   // Filter comments for the active thread
-  // Filter comments for the active thread
   // Return separate root and descendants to render "Flat" thread style
   const { root: activeThreadRoot, descendants: activeThreadDescendants } = useMemo(() => {
     if (!data?.comments || !activeThreadRootId) return { root: null, descendants: [] };
@@ -406,19 +407,19 @@ export default function SessionDetailPage() {
   return (
     <div className="h-full flex flex-col bg-slate-50">
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 border-b border-white/40 shrink-0 bg-white/50 backdrop-blur-sm sticky top-0 z-20">
-        <div className="flex items-center">
-          <Link href="/dashboard" className="mr-4 text-slate-400 hover:text-sage-dark transition-colors">
+      <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-white/40 shrink-0 bg-white/50 backdrop-blur-sm sticky top-0 z-20">
+        <div className="flex items-center flex-1 min-w-0 mr-2">
+          <Link href="/dashboard" className="mr-2 md:mr-4 text-slate-400 hover:text-sage-dark transition-colors shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold text-sage-dark">{data.title}</h1>
-              <span className={`px-2 py-0.5 rounded text-xs font-bold ${data.is_published ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 md:gap-3">
+              <h1 className="text-base md:text-lg font-bold text-sage-dark truncate">{data.title}</h1>
+              <span className={`px-2 py-0.5 rounded text-[10px] md:text-xs font-bold shrink-0 ${data.is_published ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                 {data.is_published ? '公開中' : '下書き'}
               </span>
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500">
+            <div className="hidden sm:flex items-center gap-3 text-xs text-slate-500">
               <p>テーマ: {data.theme}</p>
               <span>•</span>
               <p>{new Date(data.created_at).toLocaleDateString('ja-JP')} 作成</p>
@@ -428,22 +429,58 @@ export default function SessionDetailPage() {
 
         {/* Admin Actions */}
         {isAdmin && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePublishToggle}
-              disabled={isUpdating}
-              className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${data.is_published ? 'bg-slate-200 text-slate-600 hover:bg-slate-300' : 'bg-green-500 text-white hover:bg-green-600'}`}
-            >
-              {data.is_published ? '🔒 非公開にする' : '🟢 公開する'}
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={isUpdating}
-              className="px-3 py-1.5 rounded-lg text-sm font-bold bg-red-100 text-red-600 hover:bg-red-200"
-            >
-              🗑️ 削除
-            </button>
-          </div>
+          <>
+            {/* Desktop Actions */}
+            <div className="hidden md:flex items-center gap-2 shrink-0">
+              <button
+                onClick={handlePublishToggle}
+                disabled={isUpdating}
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${data.is_published ? 'bg-slate-200 text-slate-600 hover:bg-slate-300' : 'bg-green-500 text-white hover:bg-green-600'}`}
+              >
+                {data.is_published ? <><Archive className="w-4 h-4" /> 非公開</> : <><CheckCircle className="w-4 h-4" /> 公開</>}
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isUpdating}
+                className="px-3 py-1.5 rounded-lg text-sm font-bold bg-red-100 text-red-600 hover:bg-red-200 flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> 削除
+              </button>
+            </div>
+
+            {/* Mobile Actions Menu */}
+            <div className="md:hidden relative">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 rounded-lg hover:bg-slate-100"
+              >
+                <MoreHorizontal className="w-6 h-6 text-slate-500" />
+              </button>
+
+              {isMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-slate-100 z-50 overflow-hidden">
+                    <button
+                      onClick={handlePublishToggle}
+                      disabled={isUpdating}
+                      className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 border-b border-slate-50 flex items-center gap-2"
+                    >
+                      {data.is_published ? <><Archive className="w-4 h-4" /> 非公開にする</> : <><CheckCircle className="w-4 h-4 text-green-500" /> 公開する</>}
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={isUpdating}
+                      className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" /> 削除する
+                    </button>
+                  </div>
+                </>
+
+              )}
+            </div>
+          </>
         )}
       </header>
 
@@ -452,12 +489,12 @@ export default function SessionDetailPage() {
 
         {/* Left Column: Input (Map & Issues) */}
         <div className={`
-          h-full overflow-y-auto p-6 space-y-6 custom-scrollbar transition-all ${activeIssue ? 'duration-100' : 'duration-0'} ease-[cubic-bezier(0.23,1,0.32,1)]
-          ${activeIssue ? 'w-[60%] border-r border-slate-200/60' : 'w-full'}
+          h-full overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar transition-all ${activeIssue ? 'duration-100' : 'duration-0'} ease-[cubic-bezier(0.23,1,0.32,1)]
+          ${activeIssue ? 'w-full md:w-[60%] md:border-r md:border-slate-200/60' : 'w-full'}
         `}>
 
           {/* 1. Meaning Map */}
-          <section ref={mapSectionRef} className="glass-card p-4 h-[500px] relative">
+          <section ref={mapSectionRef} className="glass-card p-4 h-[400px] md:h-[500px] relative">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-sage-dark pl-2 border-l-4 border-sage-primary">1. クラスタリング</h3>
               {selectedIssueTopics.length > 0 && (
@@ -555,12 +592,12 @@ export default function SessionDetailPage() {
           </section>
 
           {/* 2. Issue List */}
-          <section className="glass-card p-6">
+          <section className="glass-card p-4 md:p-6 mb-8">
             <div className="mb-4 border-b border-gray-100 pb-2 flex justify-between items-center">
               <h3 className="text-sm font-bold text-sage-dark pl-2 border-l-4 border-sage-primary flex items-center gap-2">
                 <FileText className="h-4 w-4" /> 2. 課題リスト
               </h3>
-              <span className="text-xs text-slate-400">クリックして詳細と関連マップを表示</span>
+              <span className="text-xs text-slate-400 hidden md:inline">クリックして詳細と関連マップを表示</span>
             </div>
 
             <div className="space-y-4">
@@ -602,9 +639,9 @@ export default function SessionDetailPage() {
                             ) : (
                               <Users className="h-5 w-5 text-sage-500 mt-0.5 shrink-0" />
                             )}
-                            <span>{issue.title}</span>
+                            <span className="break-all">{issue.title}</span>
                           </h4>
-                          <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                          <div className={`transition-transform duration-300 shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>
                             <ChevronDown className="h-4 w-4 text-slate-400" />
                           </div>
                         </div>
@@ -681,20 +718,23 @@ export default function SessionDetailPage() {
                 }
               })()}
             </div>
+            <div className="h-10"></div>
           </section>
         </div>
 
         {/* Right Column: Dynamic Panel (Chat & Thread Analysis) */}
         <div className={`
-          h-full bg-white border-l border-slate-200 
+          bg-white md:bg-white md:border-l md:border-slate-200 
           transition-all ${activeIssue ? 'duration-100' : 'duration-0'} ease-[cubic-bezier(0.23,1,0.32,1)] origin-right flex flex-col
-          ${activeIssue ? 'w-[40%] opacity-100 shadow-xl' : 'w-0 opacity-0 overflow-hidden'}
+          ${activeIssue
+            ? 'fixed inset-0 z-50 md:static md:w-[40%] opacity-100 shadow-xl'
+            : 'w-0 opacity-0 overflow-hidden'}
         `}>
           {/* Important: Use min-w to prevent content squashing during transition */}
-          <div className="flex-1 flex flex-col min-w-[400px] h-full overflow-hidden">
+          <div className="flex-1 flex flex-col min-w-full md:min-w-[400px] h-full overflow-hidden bg-white">
 
             {/* Panel Header (Fixed at top) */}
-            <div className="shrink-0 bg-white/95 z-20 px-6 py-4 border-b border-slate-100 shadow-sm flex items-center justify-between">
+            <div className="shrink-0 bg-white/95 z-20 px-4 md:px-6 py-4 border-b border-slate-100 shadow-sm flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <span className="text-[10px] bg-sage-100 text-sage-600 px-2 py-0.5 rounded font-bold mb-1 inline-block">議論中の課題</span>
                 <h3 className="text-sm font-bold text-sage-800 line-clamp-1" title={activeIssue?.title}>{activeIssue?.title}</h3>
@@ -802,132 +842,72 @@ export default function SessionDetailPage() {
                 )}
               </div>
 
-              {/* Main Comment Area */}
-              <div className="p-6">
-
-
-                {activeThreadRootId && activeThreadRoot ? (
-                  <>
-                    {/* Root Comment Display (Thread Starter) - ONLY if NOT System Root */}
-                    {/* System Root is hidden, and its children (user comments) are rendered by CommentTree */}
-                    {!activeThreadRoot.content.includes('<!-- system_root -->') && (
-                      <div className="mb-6 pb-6 border-b border-slate-200">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="bg-sage-100 text-sage-700 p-2 rounded-full">
-                            <UserIcon className="h-5 w-5" />
-                          </span>
-                          <div>
-                            <div className="font-bold text-slate-800 text-sm">{activeThreadRoot.user_name || '名無し'}</div>
-                            <div className="text-xs text-slate-400">
-                              {new Date(activeThreadRoot.created_at).toLocaleString('ja-JP')}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-sm text-slate-700 markdown-body bg-white p-4 rounded-xl border border-sage-200 shadow-sm">
-                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                            {activeThreadRoot.content.replace(/<!-- issue:.*? -->/g, '')}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    )}
-
-                    <h4 className="font-bold text-slate-400 text-xs mb-4 flex items-center gap-2">
-                      <span>コメント ({activeThreadDescendants.length})</span>
-                      <div className="h-[1px] flex-1 bg-slate-200"></div>
-                    </h4>
-
-                    <CommentTree
-                      comments={activeThreadDescendants}
-                      sessionId={data.id}
-                      currentUserId={user?.id}
-                      onRefresh={() => {
-                        axios.get(`/api/dashboard/sessions/${id}`, { withCredentials: true })
-                          .then(res => setData(res.data));
-                      }}
-                      analysisResults={{}}
-                      isAdmin={user?.role === 'system_admin' || user?.org_role === 'admin'}
-                      onQuote={(text) => {
-                        setPostContent((prev: string) => prev ? `${prev}\n${text}\n` : `${text}\n`);
-                      }}
-                    />
-                  </>
-                ) : (
-                  <div className="text-center text-slate-400 py-10">
-                    <div className="mb-2 text-4xl">💬</div>
-                    <p>まだコメントはありません</p>
-                    <p className="text-xs mt-1">最初のコメントを投稿して議論を始めましょう</p>
-                  </div>
-                )}
+              {/* Chat Thread */}
+              <div className="flex-1 p-4 md:p-6 pb-32">
+                <CommentTree
+                  comments={data.comments || []}
+                  rootCid={activeThreadRootId || -1}
+                  user={user}
+                  session_id={data.id}
+                  onRefresh={async () => {
+                    const res = await axios.get(`/api/dashboard/sessions/${id}`, { withCredentials: true });
+                    setData(res.data);
+                  }}
+                  isRoot={true}
+                />
               </div>
             </div>
 
-            {/* Persistent Input Footer (Always Visible) */}
-            <div className="shrink-0 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-bold text-sage-800 text-xs flex items-center gap-1.5">
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  コメントを投稿
-                </h4>
-              </div>
-              <RichTextEditor
-                content={postContent}
-                onChange={(content) => setPostContent(content)}
-                placeholder="コメントを入力... (Shift+Enterで改行)"
-                className="mb-3 min-h-[80px]"
-                minHeight="80px"
-              />
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isAnonymous}
-                    onChange={(e) => setIsAnonymous(e.target.checked)}
-                    className="w-4 h-4 text-sage-600 rounded"
+            {/* Input Area (Fixed Bottom of Panel) */}
+            <div className="bg-white border-t border-slate-100 p-4 sticky bottom-0 z-30">
+              {isCreatingPost ? (
+                /* Create Post Mode */
+                <div className="animate-in slide-in-from-bottom-2 fade-in">
+                  <h4 className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
+                    <MessageCircle className="h-3 w-3" /> 新しいディスカッションを開始
+                  </h4>
+                  <RichTextEditor
+                    content={postContent}
+                    onChange={setPostContent}
+                    placeholder="この課題について意見やアイデアを投稿しましょう..."
+                    className="min-h-[100px] mb-2 text-sm"
+                    minHeight="100px"
                   />
-                  <span className="text-xs text-gray-600">匿名で投稿</span>
-                </label>
-                <button
-                  onClick={async () => {
-                    if (!postContent.trim()) return;
-
-                    try {
-                      if (activeThreadRootId) {
-                        await axios.post(`/api/dashboard/sessions/${data.id}/comments`, {
-                          content: postContent,
-                          is_anonymous: isAnonymous,
-                          parent_id: activeThreadRootId
-                        }, { withCredentials: true });
-                      } else {
-                        // Create New Thread (System Root + Comment)
-                        await handleCreatePost();
-                        return;
-                      }
-
-                      setPostContent('');
-                      setIsAnonymous(false);
-
-                      // Refresh
-                      const res = await axios.get(`/api/dashboard/sessions/${id}`, { withCredentials: true });
-                      setData(res.data);
-
-                    } catch (e) {
-                      console.error("Failed to post comment", e);
-                      alert("投稿に失敗しました");
-                    }
-                  }}
-                  disabled={!postContent.trim()}
-                  className="btn-primary px-4 py-1.5 text-xs shadow-md"
-                >
-                  送信
-                </button>
-              </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <label className="flex items-center text-xs text-slate-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={isAnonymous}
+                        onChange={(e) => setIsAnonymous(e.target.checked)}
+                        className="mr-1.5 rounded text-sage-600 focus:ring-sage-500"
+                      />
+                      匿名で投稿する
+                    </label>
+                    <button
+                      onClick={handleCreatePost}
+                      disabled={!postContent.trim()}
+                      className="btn-primary px-4 py-2 text-xs font-bold disabled:opacity-50"
+                    >
+                      投稿する
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Existing Thread Mode - handled by CommentTree but maybe we want a clear main reply button?
+                   Actually CommentTree handles reply buttons.
+                   If thread exists, we don't need a main input down here unless we want to reply to root.
+                   Let's leave it to CommentTree for now or add a "Reply to Thread" button if needed.
+                */
+                <div className="text-center text-xs text-slate-400 py-2">
+                  <p>スレッド内のコメントに返信してください</p>
+                </div>
+              )}
             </div>
 
           </div>
         </div>
+
       </div>
-    </div>
+    </div >
   );
 }
-
-

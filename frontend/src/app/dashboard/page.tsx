@@ -117,7 +117,7 @@ function DashboardContent() {
     <div className="h-full flex flex-col">
       <DashboardHeader />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <DashboardTabs
           activeTab={activeTab}
           isAdmin={isAdmin}
@@ -153,10 +153,10 @@ function DashboardContent() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {sessions.map(sess => (
                     <Link href={`/dashboard/sessions/${sess.id}`} key={sess.id}>
-                      <div className="glass-card !p-6 hover:translate-y-[-4px] hover:shadow-lg transition-all cursor-pointer group h-full flex flex-col justify-between">
+                      <div className="glass-card !p-4 md:!p-6 hover:translate-y-[-4px] hover:shadow-lg transition-all cursor-pointer group h-full flex flex-col justify-between">
                         <div>
                           <div className="flex justify-between items-start mb-4">
                             <span className={`px-2 py-1 rounded-md text-xs font-bold ${sess.is_published ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -180,16 +180,16 @@ function DashboardContent() {
 
           {/* 3. Answers (All users) */}
           {activeTab === 'answers' && (
-            <div className="glass-card p-6 rounded-xl">
+            <div className="glass-card p-4 md:p-6 rounded-xl">
               <h2 className="text-lg font-bold text-gray-800 mb-4">📢 回答受付中のアンケート</h2>
               {activeSurveys.length > 0 ? (
                 <div className="space-y-4">
                   {activeSurveys.map(survey => (
-                    <div key={survey.id} className="p-4 border border-gray-100 rounded-lg hover:bg-sage-50/50 transition-colors flex items-center justify-between">
+                    <div key={survey.id} className="p-4 border border-gray-100 rounded-lg hover:bg-sage-50/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
                         <h3 className="font-bold text-gray-800">{survey.title}</h3>
                       </div>
-                      <Link href={`/survey/${survey.uuid}`} className="btn-primary py-2 px-4 text-sm no-underline inline-block">
+                      <Link href={`/survey/${survey.uuid}`} className="btn-primary py-2 px-4 text-sm no-underline inline-block w-full sm:w-auto text-center">
                         回答する
                       </Link>
                     </div>

@@ -35,14 +35,14 @@ export default function MemberList({ user }: { user: any }) {
   if (loading) return <div className="text-center py-12">読み込み中...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto glass-card p-8 animate-in fade-in slide-in-from-bottom-2">
+    <div className="max-w-4xl mx-auto glass-card p-4 md:p-8 animate-in fade-in slide-in-from-bottom-2">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-sage-100 text-sage-600 rounded-full flex items-center justify-center">
             <Users className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-sage-dark">メンバーリスト</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-sage-dark">メンバーリスト</h2>
             <p className="text-slate-500 text-sm">組織に参加しているメンバー一覧</p>
           </div>
         </div>
@@ -53,8 +53,8 @@ export default function MemberList({ user }: { user: any }) {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto rounded-xl border border-gray-200">
+        <table className="w-full text-left text-sm min-w-[600px]">
           <thead className="bg-sage-50 text-sage-700 font-bold uppercase">
             <tr>
               <th className="px-6 py-4">名前</th>

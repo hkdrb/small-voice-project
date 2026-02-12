@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MessageSquare, Heart, RefreshCw, BarChart2, CheckCircle2, User, Sparkles, Reply, ChevronDown, ChevronUp } from 'lucide-react';
@@ -232,9 +234,9 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
   };
 
   return (
-    <div className="flex h-[calc(100vh-220px)] min-h-[500px] gap-6">
+    <div className="flex flex-col md:flex-row md:h-[calc(100vh-220px)] h-auto min-h-[500px] gap-4 md:gap-6">
       {/* Main Board Area */}
-      <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-amber-50/30 via-white to-blue-50/20 rounded-2xl border-2 border-amber-200/40 shadow-lg overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-h-[500px] md:h-full bg-gradient-to-br from-amber-50/30 via-white to-blue-50/20 rounded-2xl border-2 border-amber-200/40 shadow-lg overflow-hidden relative">
         {/* Board Header - Bulletin Board Style */}
         <div className="shrink-0 bg-gradient-to-r from-amber-100 to-orange-100 border-b-4 border-amber-300 shadow-md">
           <div className="p-4 flex items-center justify-between">
@@ -270,7 +272,7 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
 
 
         {/* Posts Area (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTEsMTkxLDM2LDAuMDUpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTEsMTkxLDM2LDAuMDUpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] custom-scrollbar">
           {loading ? (
             <div className="flex justify-center py-16">
               <div className="text-center">
@@ -305,11 +307,11 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
         {/* Floating Action Button (FAB) for New Post */}
         <button
           onClick={() => setIsComposerOpen(true)}
-          className="absolute bottom-8 right-8 z-30 w-14 h-14 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center group"
+          className="fixed bottom-6 right-6 z-30 md:absolute md:bottom-8 md:right-8 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center group"
           title="新規投稿"
         >
-          <MessageSquare className="w-7 h-7 fill-current" />
-          <span className="absolute -top-10 right-0 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <MessageSquare className="w-6 h-6 md:w-7 md:h-7 fill-current" />
+          <span className="absolute -top-10 right-0 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none hidden md:block">
             投稿する
           </span>
         </button>
@@ -384,7 +386,7 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
 
       {/* Analysis Sidebar (Visible to Admin, or to Members if published analyses exist) */}
       {(isAdmin || analyses.length > 0) && (
-        <div className="w-80 flex flex-col h-full bg-white/60 backdrop-blur-md rounded-2xl border border-sage-200/40 shadow-sm overflow-hidden shrink-0">
+        <div className="w-full md:w-80 flex flex-col h-auto max-h-[500px] md:max-h-full md:h-full bg-white rounded-2xl border border-sage-200 shadow-sm overflow-hidden shrink-0">
           <div className="p-4 border-b border-sage-100 bg-gradient-to-br from-sage-50 to-white sticky top-0 z-10">
             <div className="flex items-center mb-2">
               <BarChart2 className="w-5 h-5 text-sage-600 mr-2" />
@@ -443,7 +445,7 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar h-64 md:h-auto">
             {analyses.length === 0 ? (
               <div className="text-center py-10">
                 <div className="w-12 h-12 bg-sage-50 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -579,18 +581,20 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
                               </div>
                             )}
 
-                            {/* Form Creation Button */}
-                            {isAdmin && (
-                              <button
-                                onClick={() => handleCreateForm(rec)}
-                                className="w-full mt-3 px-4 py-2.5 bg-gradient-to-r from-sage-600 to-sage-500 hover:from-sage-700 hover:to-sage-600 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                              >
-                                <Sparkles className="w-4 h-4" />
-                                この提案でフォームを作成
-                              </button>
-                            )}
+                            {/* Form Creation Button was here */}
                           </div>
                         </div>
+
+                        {/* Form Creation Button - Moved to span full width */}
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleCreateForm(rec)}
+                            className="w-full mt-3 px-4 py-3 bg-gradient-to-r from-sage-600 to-sage-500 hover:from-sage-700 hover:to-sage-600 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            この提案でフォームを作成
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -670,7 +674,7 @@ function PostNode({
     }
   };
 
-  const indent = Math.min(depth * 24, 96);
+  const indent = Math.min(depth * 24, 60); // Max indent slightly reduced for mobile
 
   return (
     <div
@@ -681,24 +685,24 @@ function PostNode({
       }}
     >
       {/* Bulletin Board Note Style */}
-      <div className={`relative bg-white p-5 rounded-lg border-2 ${isMyPost ? 'border-amber-300' : 'border-amber-200'} shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 mb-3`}>
+      <div className={`relative bg-white p-4 md:p-5 rounded-lg border-2 ${isMyPost ? 'border-amber-300' : 'border-amber-200'} shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 mb-3`}>
         {/* Decorative Pin */}
         {depth === 0 && (
-          <div className="absolute -top-3 left-6">
-            <div className="w-6 h-6 bg-red-400 rounded-full shadow-lg border-2 border-red-500/50 flex items-center justify-center">
-              <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+          <div className="absolute -top-3 left-4 md:left-6">
+            <div className="w-4 h-4 md:w-6 md:h-6 bg-red-400 rounded-full shadow-lg border-2 border-red-500/50 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-red-600 rounded-full"></div>
             </div>
           </div>
         )}
 
         {/* Post Header */}
-        <div className="flex items-center justify-between mb-3 pt-2">
+        <div className="flex flex-wrap items-center justify-between mb-3 pt-2 gap-2">
           <div className="flex items-center gap-2">
-            <div className={`${isMyPost ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'} p-2 rounded-full shadow-sm`}>
-              <User className="h-4 w-4" />
+            <div className={`${isMyPost ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'} p-1.5 md:p-2 rounded-full shadow-sm`}>
+              <User className="h-3 w-3 md:h-4 md:w-4" />
             </div>
             <div>
-              <span className="font-bold text-sm text-slate-800">{post.user_name}</span>
+              <span className="font-bold text-xs md:text-sm text-slate-800">{post.user_name}</span>
               <span className="text-xs text-slate-500 ml-2">
                 {format(new Date(post.created_at), 'M月d日 H:mm', { locale: ja })}
               </span>
@@ -709,24 +713,24 @@ function PostNode({
           <div className="flex items-center gap-2">
             <button
               onClick={() => onLike(post.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm hover:shadow-md ${post.is_liked_by_me ? 'bg-pink-100 text-pink-600 ring-2 ring-pink-200' : 'bg-white/80 text-gray-500 hover:bg-pink-50 hover:text-pink-500'}`}
+              className={`flex items-center gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-full text-xs font-bold transition-all shadow-sm hover:shadow-md ${post.is_liked_by_me ? 'bg-pink-100 text-pink-600 ring-2 ring-pink-200' : 'bg-white/80 text-gray-500 hover:bg-pink-50 hover:text-pink-500'}`}
             >
-              <Heart className={`w-4 h-4 ${post.is_liked_by_me ? 'fill-current' : ''}`} />
+              <Heart className={`w-3 h-3 md:w-4 md:h-4 ${post.is_liked_by_me ? 'fill-current' : ''}`} />
               <span>{post.likes_count > 0 ? post.likes_count : ''}</span>
             </button>
 
             <button
               onClick={() => setIsReplying(!isReplying)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/80 text-gray-500 hover:bg-sage-50 hover:text-sage-600 transition-all shadow-sm hover:shadow-md"
+              className="flex items-center gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-full text-xs font-bold bg-white/80 text-gray-500 hover:bg-sage-50 hover:text-sage-600 transition-all shadow-sm hover:shadow-md"
             >
-              <Reply className="w-4 h-4" />
+              <Reply className="w-3 h-3 md:w-4 md:h-4" />
               返信
             </button>
           </div>
         </div>
 
         {/* Post Content */}
-        <div className="text-sm text-slate-700 leading-relaxed markdown-body pl-1 bg-white/40 p-3 rounded border border-white/60">
+        <div className="text-xs md:text-sm text-slate-700 leading-relaxed markdown-body pl-1 bg-white/40 p-2 md:p-3 rounded border border-white/60">
           <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
             {post.content}
           </ReactMarkdown>
@@ -768,7 +772,7 @@ function PostNode({
 
       {/* Replies */}
       {hasReplies && (
-        <div className="mt-2 ml-6">
+        <div className="mt-2 ml-4 md:ml-6">
           {!showReplies ? (
             <button
               onClick={() => setShowReplies(true)}

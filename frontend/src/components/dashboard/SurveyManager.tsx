@@ -250,8 +250,8 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
               const canEdit = isAdmin || (survey.created_by === user?.id && ['pending', 'rejected'].includes(survey.approval_status));
 
               return (
-                <div key={survey.id} className="glass-card p-4 group hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between">
+                <div key={survey.id} className="glass-card p-4 md:p-5 group hover:shadow-md transition-all">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         {survey.is_active ? (
@@ -286,7 +286,7 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
 
                     </div>
 
-                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity self-end sm:self-auto">
 
 
                       {canEdit && (
@@ -361,7 +361,7 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
           </div>
 
           <div className="space-y-6 max-w-3xl mx-auto">
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 md:p-6">
               <label className="block text-sm font-bold text-gray-700 mb-2">タイトル <span className="text-red-500">*</span></label>
               <input
                 type="text"
@@ -383,11 +383,11 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
             <div className="space-y-4">
               <h4 className="font-bold text-slate-600 mb-2">質問リスト</h4>
               {questions.map((q, idx) => (
-                <div key={idx} className="glass-card p-4 flex gap-4 items-start">
-                  <span className="bg-sage-100 text-sage-700 font-bold w-6 h-6 flex items-center justify-center rounded-full text-xs mt-2">
+                <div key={idx} className="glass-card p-3 md:p-4 flex gap-3 md:gap-4 items-start">
+                  <span className="bg-sage-100 text-sage-700 font-bold w-6 h-6 flex items-center justify-center rounded-full text-xs mt-2 shrink-0">
                     {idx + 1}
                   </span>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <input
                       type="text"
                       value={q.text}
@@ -408,7 +408,7 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
                   </div>
                   {questions.length > 1 && (
                     <Tooltip text="質問を削除">
-                      <button onClick={() => handleRemoveQuestion(idx)} className="text-slate-400 hover:text-red-500 p-2">
+                      <button onClick={() => handleRemoveQuestion(idx)} className="text-slate-400 hover:text-red-500 p-2 shrink-0">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </Tooltip>

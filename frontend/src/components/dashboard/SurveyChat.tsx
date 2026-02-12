@@ -91,7 +91,7 @@ export default function SurveyChat({ surveyId, currentUser, isDraft = false, dra
   if (loading) return <div className="text-center py-4 text-slate-400">読み込み中...</div>;
 
   return (
-    <div className="flex flex-col h-[400px] border border-sage-200 rounded-xl bg-white/50 overflow-hidden">
+    <div className="flex flex-col h-[300px] md:h-[400px] border border-sage-200 rounded-xl bg-white/50 overflow-hidden">
       <div className="bg-sage-50 px-4 py-3 border-b border-sage-100 flex items-center justify-between">
         <h4 className="font-bold text-sage-700 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-sage-500 animate-pulse"></span>

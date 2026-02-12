@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import { Send, CheckCircle, ClipboardList } from "lucide-react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import DashboardTabs from "@/components/dashboard/DashboardTabs";
+// Removed DashboardTabs import as it's not needed
 
 interface Question {
   id: number;
@@ -165,10 +165,8 @@ export default function SurveyPage() {
             title="アンケート回答"
             icon={<ClipboardList className="h-5 w-5" />}
             showBack={true}
+            backHref="/dashboard"
           />
-          <div className="px-6 py-4">
-            <DashboardTabs activeTab={displayTab} isAdmin={isAdmin} />
-          </div>
         </>
       )}
 
