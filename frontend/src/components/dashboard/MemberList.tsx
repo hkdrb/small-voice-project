@@ -36,46 +36,50 @@ export default function MemberList({ user }: { user: any }) {
 
   return (
     <div className="max-w-4xl mx-auto glass-card p-4 md:p-8 animate-in fade-in slide-in-from-bottom-2">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-sage-100 text-sage-600 rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-sage-100 text-sage-600 rounded-full flex items-center justify-center shrink-0">
             <Users className="h-6 w-6" />
           </div>
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-sage-dark">メンバーリスト</h2>
-            <p className="text-slate-500 text-sm">組織に参加しているメンバー一覧</p>
+            <p className="text-slate-500 text-xs sm:text-sm">組織に参加しているメンバー一覧</p>
           </div>
         </div>
         {user?.role === 'system_admin' && (
-          <Link href="/admin/system" className="btn-primary px-4 py-2 flex items-center gap-2 text-sm">
+          <Link href="/admin/system" className="btn-primary px-4 py-2.5 flex items-center gap-2 text-sm w-full sm:w-auto justify-center">
             <Settings className="h-4 w-4" /> システム管理を開く
           </Link>
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200">
-        <table className="w-full text-left text-sm min-w-[600px]">
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200">
+        <table className="w-full text-left text-sm">
           <thead className="bg-sage-50 text-sage-700 font-bold uppercase">
             <tr>
-              <th className="px-6 py-4">名前</th>
-              <th className="px-6 py-4">メールアドレス</th>
-              <th className="px-6 py-4">権限</th>
-              <th className="px-6 py-4 text-right">ステータス</th>
+              <th className="px-6 py-4 border-b border-gray-200">名前</th>
+              <th className="px-6 py-4 border-b border-gray-200">メールアドレス</th>
+              <th className="px-6 py-4 border-b border-gray-200">権限</th>
+              <th className="px-6 py-4 border-b border-gray-200 text-right">ステータス</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 bg-white">
             {members.length > 0 ? members.map(m => (
-              <tr key={m.id} className="hover:bg-gray-50/50">
+              <tr key={m.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-6 py-4 font-bold text-gray-800">{m.username}</td>
                 <td className="px-6 py-4 text-gray-500 font-mono">{m.email}</td>
                 <td className="px-6 py-4">
-                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold ${m.role === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${m.role === 'admin' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
                     {m.role === 'admin' && <Shield className="h-3 w-3" />}
                     {m.role === 'admin' ? '組織管理者' : '一般メンバー'}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <span className="text-green-600 text-xs font-bold">● Active</span>
+                  <span className="inline-flex items-center gap-1.5 text-green-600 text-xs font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    Active
+                  </span>
                 </td>
               </tr>
             )) : (
@@ -89,7 +93,34 @@ export default function MemberList({ user }: { user: any }) {
         </table>
       </div>
 
-      <div className="mt-4 text-center text-xs text-slate-400">
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-4">
+        {members.length > 0 ? members.map(m => (
+          <div key={m.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="font-bold text-gray-800">{m.username}</div>
+                <div className="text-xs text-slate-400 font-mono mt-0.5">{m.email}</div>
+              </div>
+              <span className="text-green-600 text-[10px] font-bold px-1.5 py-0.5 bg-green-50 rounded border border-green-100">
+                Active
+              </span>
+            </div>
+            <div className="pt-2 border-t border-gray-50 flex justify-between items-center">
+              <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold ${m.role === 'admin' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-slate-50 text-slate-500 border border-slate-100'}`}>
+                {m.role === 'admin' && <Shield className="h-3 w-3" />}
+                {m.role === 'admin' ? '組織管理者' : '一般メンバー'}
+              </span>
+            </div>
+          </div>
+        )) : (
+          <div className="p-8 text-center text-slate-400 bg-white rounded-xl border border-dashed border-gray-200">
+            メンバーがいません
+          </div>
+        )}
+      </div>
+
+      <div className="mt-8 pt-4 border-t border-gray-100 text-center text-xs text-slate-400">
         ※ メンバーの追加・招待はシステム管理画面から可能です
       </div>
     </div>

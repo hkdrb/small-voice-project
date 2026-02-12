@@ -23,7 +23,7 @@ export default function DashboardTabs({ activeTab, isAdmin, onTabChange }: Dashb
   };
 
   return (
-    <TabsList className="bg-white/50 p-1 rounded-xl border border-white/20 shadow-sm mb-4 md:mb-6 w-full flex justify-start overflow-x-auto">
+    <TabsList className="hidden md:flex bg-white/50 p-1 rounded-xl border border-white/20 shadow-sm mb-4 md:mb-6 w-full justify-start overflow-x-auto">
       {/* Admin Tabs */}
       {isAdmin && (
         <TabsTrigger

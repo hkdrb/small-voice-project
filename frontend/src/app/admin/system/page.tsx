@@ -3,16 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { Building, Users, Settings } from 'lucide-react';
+import { Building, Users, Settings, Menu } from 'lucide-react';
 import OrganizationManager from '@/components/admin/OrganizationManager';
 import UserManager from '@/components/admin/UserManager';
 import { TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { useSidebar } from '@/components/SidebarContext';
 
 export default function SystemAdminPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('orgs');
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
+  const { toggleMobileMenu } = useSidebar();
 
   useEffect(() => {
     // Verify System Admin Access
@@ -42,11 +44,19 @@ export default function SystemAdminPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="h-16 flex items-center justify-between px-6 border-b border-white/40 shrink-0">
-        <h1 className="text-xl font-bold text-sage-dark flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          システム管理
-        </h1>
+      <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-white/40 shrink-0 bg-white/50 backdrop-blur-sm sticky top-0 z-20">
+        <div className="flex items-center">
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden mr-3 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <Menu className="h-6 w-6 text-slate-600" />
+          </button>
+          <h1 className="text-xl font-bold text-sage-dark flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            システム管理
+          </h1>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-6">

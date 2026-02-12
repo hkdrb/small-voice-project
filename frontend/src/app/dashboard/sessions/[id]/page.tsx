@@ -13,6 +13,8 @@ import { SessionDetail } from '@/types/dashboard';
 import { Map as MapIcon, FileText, MessageCircle, ArrowLeft, Sparkles, Users, ChevronDown, User as UserIcon, CheckCircle, ListTodo, Lightbulb, MoreHorizontal, FileEdit, Archive, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import RichTextEditor from '@/components/ui/RichTextEditor';
+import { useSidebar } from '@/components/SidebarContext';
+import { Menu as MenuIcon } from 'lucide-react';
 
 // Dynamic import for Plotly
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -60,6 +62,7 @@ export default function SessionDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const targetTitle = searchParams.get('title');
+  const { toggleMobileMenu } = useSidebar();
 
   const [data, setData] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -409,6 +412,12 @@ export default function SessionDetailPage() {
       {/* Header */}
       <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-white/40 shrink-0 bg-white/50 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center flex-1 min-w-0 mr-2">
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden mr-3 p-1.5 rounded-lg hover:bg-slate-100 transition-colors shrink-0"
+          >
+            <MenuIcon className="h-6 w-6 text-slate-600" />
+          </button>
           <Link href="/dashboard" className="mr-2 md:mr-4 text-slate-400 hover:text-sage-dark transition-colors shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </Link>

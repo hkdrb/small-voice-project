@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-// import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Sidebar from "../components/Sidebar";
-
-
+import { SidebarProvider } from "@/components/SidebarContext";
+import SidebarWrapper from "@/components/SidebarWrapper";
 
 export const metadata: Metadata = {
   title: "Small Voice",
@@ -17,11 +15,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto relative">
-          {children}
-        </main>
+      <body className="flex h-screen overflow-hidden bg-slate-50">
+        <SidebarProvider>
+          <SidebarWrapper />
+          <main className="flex-1 overflow-y-auto relative">
+            {children}
+          </main>
+        </SidebarProvider>
       </body>
     </html>
   );

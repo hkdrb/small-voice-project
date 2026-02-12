@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { LayoutDashboard, FileText, Key, LogOut, Menu, BarChart2, Folder, Upload, Users, ClipboardList, ChevronDown, User as UserIcon, Settings, UserCircle } from "lucide-react";
 import axios from 'axios';
+import ProfileSettingsModal from './ProfileSettingsModal';
 
 interface SidebarProps {
   user: {
@@ -23,14 +24,36 @@ interface SidebarProps {
 
 export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // State
   const [availableOrgs, setAvailableOrgs] = useState<any[]>([]);
+  const [internalUser, setInternalUser] = useState<any | null>(user);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Derived state
-  const isAdmin = user?.role === 'system_admin' || user?.org_role === 'admin';
+  const currentUser = internalUser || user;
+  const isAdmin = currentUser?.role === 'system_admin' || currentUser?.org_role === 'admin';
+  const isSystemAdmin = currentUser?.role === 'system_admin';
 
   useEffect(() => {
-    // Mock data or fetch if needed
-  }, [user]);
+    // Skip fetching on auth pages
+    if (pathname === '/login' || pathname === '/register' || pathname === '/') {
+      return;
+    }
+
+    if (!user) {
+      axios.get('/api/auth/me', { withCredentials: true })
+        .then(res => setInternalUser(res.data))
+        .catch(e => {
+          // Silence 401 errors as they are handled by page-level redirection or expected for guests
+          if (e.response?.status !== 401) {
+            console.error("Failed to fetch user in Sidebar", e);
+          }
+        });
+    } else {
+      setInternalUser(user);
+    }
+  }, [user, pathname]);
 
   const handleOrgChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newOrgId = e.target.value;
@@ -44,30 +67,44 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
   };
 
   const navItems = [
-    { href: '/dashboard', label: 'ホーム', icon: <LayoutDashboard className="h-5 w-5" />, tab: null }, // Default
-    { href: '/dashboard?tab=answers', label: 'アンケート回答', icon: <ClipboardList className="h-5 w-5" />, tab: 'answers' },
+    { href: '/dashboard?tab=analysis', label: 'データ分析実行', icon: <BarChart2 className="h-5 w-5" />, tab: 'analysis', adminOnly: true },
+    { href: '/dashboard', label: 'レポート閲覧', icon: <FileText className="h-5 w-5" />, tab: null },
+    { href: '/dashboard?tab=answers', label: 'アンケート回答', icon: <Folder className="h-5 w-5" />, tab: 'answers' },
     { href: '/dashboard?tab=casual', label: '雑談掲示板', icon: <MessageSquare className="h-5 w-5" />, tab: 'casual' },
-    { href: '/dashboard?tab=requests', label: '作成・分析依頼', icon: <FileText className="h-5 w-5" />, tab: 'requests', adminOnly: false },
-  ];
-
-  const adminItems = [
-    { href: '/dashboard?tab=analysis', label: 'AI分析実行', icon: <BarChart2 className="h-5 w-5" />, tab: 'analysis' },
-    { href: '/dashboard?tab=reports', label: 'レポート一覧', icon: <Folder className="h-5 w-5" />, tab: 'reports' },
-    { href: '/dashboard?tab=surveys', label: 'フォーム管理', icon: <FileText className="h-5 w-5" />, tab: 'surveys' },
-    { href: '/dashboard?tab=import', label: 'CSVインポート', icon: <Upload className="h-5 w-5" />, tab: 'import' },
-    { href: '/dashboard?tab=members', label: 'メンバー管理', icon: <Users className="h-5 w-5" />, tab: 'members' },
+    { href: '/dashboard?tab=surveys', label: 'フォーム作成・管理', icon: <ClipboardList className="h-5 w-5" />, tab: 'surveys', adminOnly: true },
+    { href: '/dashboard?tab=requests', label: 'フォーム申請', icon: <Upload className="h-5 w-5" />, tab: 'requests', userOnly: true },
+    { href: '/dashboard?tab=import', label: 'CSVインポート', icon: <Upload className="h-5 w-5" />, tab: 'import', adminOnly: true },
+    { href: '/dashboard?tab=members', label: 'メンバーリスト', icon: <Users className="h-5 w-5" />, tab: 'members', adminOnly: true },
+    { href: '/admin/system', label: 'システム管理', icon: <Settings className="h-5 w-5" />, tab: 'system_admin', systemAdminOnly: true },
   ];
 
   // Helper to determine if link is active
   const isActive = (itemHref: string, itemTab: string | null) => {
+    const currentTab = searchParams.get('tab');
     if (itemTab === null) {
-      return pathname === '/dashboard' && !window.location.search.includes('tab=');
+      return pathname === '/dashboard' && !currentTab;
     }
-    return pathname === '/dashboard' && window.location.search.includes(`tab=${itemTab}`);
+    return pathname === '/dashboard' && currentTab === itemTab;
   };
 
-  // State for profile menu toggle
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  // State for profile menu toggle - REMOVED
+
+  const handleLogout = async () => {
+    if (onLogout) {
+      onLogout();
+      return;
+    }
+
+    try {
+      await axios.post('/api/auth/logout', {}, { withCredentials: true });
+      // Force reload to clear state or redirect
+      window.location.href = '/login';
+    } catch (error) {
+      console.error("Logout failed", error);
+      // Fallback redirect even if API fails
+      window.location.href = '/login';
+    }
+  };
 
   // Hide sidebar on login/register pages
   if (pathname === '/login' || pathname === '/register' || pathname === '/') {
@@ -101,8 +138,8 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
             <UserIcon className="h-5 w-5" />
           </div>
           <div className="overflow-hidden">
-            <p className="font-bold text-sage-dark truncate text-sm">{user?.name || user?.username || 'ゲスト'}</p>
-            <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+            <p className="font-bold text-sage-dark truncate text-sm">{currentUser?.name || currentUser?.username || 'ゲスト'}</p>
+            <p className="text-xs text-slate-500 truncate">{currentUser?.email}</p>
           </div>
         </div>
 
@@ -112,12 +149,12 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
           </label>
           <div className="relative">
             <select
-              value={user?.current_org_id || ''}
+              value={currentUser?.current_org_id || ''}
               onChange={handleOrgChange}
               className="w-full appearance-none glass-input px-4 py-3 text-base pr-8 cursor-pointer"
             >
               {availableOrgs.length === 0 && (
-                <option value={user?.current_org_id}>{user?.role === 'system_admin' ? 'システム管理' : 'デフォルト組織'}</option>
+                <option value={currentUser?.current_org_id}>{currentUser?.role === 'system_admin' ? 'システム管理' : 'デフォルト組織'}</option>
               )}
               {availableOrgs.map(org => (
                 <option key={org.id} value={org.id}>{org.name}</option>
@@ -132,62 +169,42 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onMobileClose}
-            className={`
-              flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
-              ${isActive(item.href, item.tab)
-                ? 'bg-sage-primary text-white shadow-md'
-                : 'text-slate-600 hover:bg-white/50 hover:text-sage-dark'
-              }
-            `}
-          >
-            <div className={`transition-transform duration-200 ${isActive(item.href, item.tab) ? 'scale-110' : 'group-hover:scale-110'}`}>
-              {item.icon}
-            </div>
-            <span className="font-medium text-sm">{item.label}</span>
-          </Link>
-        ))}
-
-        {isAdmin && (
-          <>
-            <div className="mt-6 mb-2 px-3">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">管理者メニュー</p>
-            </div>
-            {adminItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onMobileClose}
-                className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
-                  ${isActive(item.href, item.tab)
-                    ? 'bg-sage-dark text-white shadow-md'
-                    : 'text-slate-600 hover:bg-white/50 hover:text-sage-dark'
-                  }
-                `}
-              >
-                <div className={`transition-transform duration-200 ${isActive(item.href, item.tab) ? 'scale-110' : 'group-hover:scale-110'}`}>
-                  {item.icon}
-                </div>
-                <span className="font-medium text-sm">{item.label}</span>
-              </Link>
-            ))}
-          </>
-        )}
+        {navItems
+          .filter(item => {
+            if (item.adminOnly && !isAdmin) return false;
+            if (item.userOnly && isAdmin) return false;
+            if (item.systemAdminOnly && !isSystemAdmin) return false;
+            return true;
+          })
+          .map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onMobileClose}
+              className={`
+                flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
+                ${isActive(item.href, item.tab || (item.href.includes('system') ? 'system' : ''))
+                  ? 'bg-sage-primary text-white shadow-md'
+                  : 'text-slate-600 hover:bg-white/50 hover:text-sage-dark'
+                }
+              `}
+            >
+              <div className={`transition-transform duration-200 ${isActive(item.href, item.tab || (item.href.includes('system') ? 'system' : '')) ? 'scale-110' : 'group-hover:scale-110'}`}>
+                {item.icon}
+              </div>
+              <span className="font-medium text-sm">{item.label}</span>
+            </Link>
+          ))}
       </nav>
 
       {/* Footer Actions */}
       <div className="p-4 border-t border-white/40 bg-white/20">
         <button
-          onClick={onLogout}
-          className="flex items-center gap-2 text-slate-500 hover:text-red-500 transition-colors w-full px-2 py-2 rounded-lg hover:bg-red-50 group"
+          onClick={handleLogout}
+          className="flex items-center justify-center gap-3 w-full py-3.5 rounded-xl text-red-500 font-bold bg-red-500/10 hover:bg-red-500/20 transition-all duration-200 group active:scale-[0.98]"
         >
           <LogOut className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-          <span className="font-medium text-sm">ログアウト</span>
+          <span className="text-sm">ログアウト</span>
         </button>
       </div>
     </aside>
@@ -209,12 +226,12 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
           <label className="block text-xs font-bold text-gray-500 mb-2">所属組織 / プロジェクト</label>
           <div className="relative">
             <select
-              value={user?.current_org_id || ''}
+              value={currentUser?.current_org_id || ''}
               onChange={handleOrgChange}
               className="w-full bg-slate-100 border border-slate-200 text-gray-700 text-sm rounded-lg p-2.5 pr-8 appearance-none cursor-pointer focus:outline-none focus:border-sage-500 focus:ring-1 focus:ring-sage-200 transition-colors"
             >
               {availableOrgs.length === 0 && (
-                <option value={user?.current_org_id}>{user?.role === 'system_admin' ? 'システム管理' : 'デフォルト組織'}</option>
+                <option value={currentUser?.current_org_id}>{currentUser?.role === 'system_admin' ? 'システム管理' : 'デフォルト組織'}</option>
               )}
               {availableOrgs.map(org => (
                 <option key={org.id} value={org.id}>{org.name}</option>
@@ -228,79 +245,64 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
         <div className="mb-6">
           <label className="block text-xs font-bold text-gray-500 mb-2">ユーザーアカウント</label>
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <div className="font-bold text-gray-800 text-sm mb-0.5">{user?.name || user?.username || 'ゲスト'}</div>
-            <div className="text-[10px] text-gray-400 mb-2 truncate">{user?.email}</div>
+            <div className="font-bold text-gray-800 text-sm mb-0.5">{currentUser?.name || currentUser?.username || 'ゲスト'}</div>
+            <div className="text-[10px] text-gray-400 mb-2 truncate">{currentUser?.email}</div>
             <span className="inline-block border border-gray-200 rounded px-2 py-0.5 text-[10px] font-bold text-gray-600">
-              {user?.role === 'system_admin' ? 'システム管理者' : user?.org_role === 'admin' ? '管理者' : 'メンバー'}
+              {currentUser?.role === 'system_admin' ? 'システム管理者' : currentUser?.org_role === 'admin' ? '管理者' : 'メンバー'}
             </span>
           </div>
         </div>
 
         {/* Navigation */}
         <nav className="space-y-1 mb-8">
-          {/* Home Link */}
-          <Link
-            href="/dashboard"
-            className={`
-              flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
-              ${pathname === '/dashboard' && !window.location.search.includes('tab=')
-                ? 'bg-sage-100 text-sage-900 font-bold'
-                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-              }
-            `}
-          >
-            <LayoutDashboard className="h-5 w-5" />
-            <span className="text-sm">ホーム</span>
-          </Link>
+          {navItems
+            .filter(item => {
+              if (item.adminOnly && !isAdmin) return false;
+              if (item.userOnly && isAdmin) return false;
+              if (item.systemAdminOnly && !isSystemAdmin) return false;
+              // Hide items that are already present as tabs in the dashboard on PC
+              if (item.href.includes('/dashboard')) return false;
+              return true;
+            })
+            .map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`
+                  flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group
+                  ${isActive(item.href, item.tab || (item.href.includes('system') ? 'system' : ''))
+                    ? 'bg-sage-100 text-sage-900 font-bold'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                  }
+                `}
+              >
+                <div className={`transition-transform duration-200 ${isActive(item.href, item.tab || (item.href.includes('system') ? 'system' : '')) ? 'scale-110' : 'group-hover:scale-110'}`}>
+                  {item.icon}
+                </div>
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            ))}
 
-          {/* System Admin & Profile */}
-          <div className="mt-4 pt-4 border-t border-gray-200 space-y-1">
-            <Link
-              href="/dashboard?tab=members"
-              className={`
-                flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors
-                ${window.location.search.includes('tab=members') ? 'bg-sage-100 text-sage-900 font-bold' : ''}
-              `}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
             >
-              <Settings className="h-5 w-5" />
-              <span className="text-sm font-medium">システム管理</span>
-            </Link>
-
-            <div>
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="w-full flex items-center justify-between px-3 py-2.5 text-gray-500 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <UserCircle className="h-5 w-5" />
-                  <span className="text-sm font-medium">プロフィール設定</span>
-                </div>
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${isProfileOpen ? 'max-h-24 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}
-              >
-                <div className="flex items-center gap-3 px-3 py-2 pl-11 text-xs font-medium text-gray-500 hover:text-sage-700 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
-                  <Key className="w-3 h-3" />
-                  パスワード変更
-                </div>
-              </div>
-            </div>
+              <UserCircle className="h-5 w-5" />
+              <span className="text-sm font-medium">プロフィール設定</span>
+            </button>
           </div>
-
-          {/* Admin items removed from Desktop Sidebar as per request */}
         </nav>
       </div>
 
       {/* Footer */}
-      <div className="mt-auto p-6">
+      <div className="mt-auto p-6 mb-8">
         <button
-          onClick={onLogout}
-          className="flex items-center gap-2 text-red-600 font-bold text-sm hover:opacity-70 transition-opacity w-full"
+          onClick={handleLogout}
+          className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl text-red-500 font-bold bg-red-500/5 hover:bg-red-500/10 transition-all duration-200 group active:scale-[0.98] border border-red-500/10"
         >
-          <LogOut className="w-4 h-4" />
-          ログアウト
+          <LogOut className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          <span className="text-sm">ログアウト</span>
         </button>
       </div>
     </aside>
@@ -319,6 +321,12 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
 
       {MobileSidebar}
       {DesktopSidebar}
+
+      <ProfileSettingsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        user={currentUser}
+      />
     </>
   );
 }
