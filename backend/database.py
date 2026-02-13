@@ -327,23 +327,20 @@ def init_db():
     # ユーザー作成・初期データ投入
 
     # 1. System Admin
-    if not db.query(User).filter(User.email == "system@example.com").first():
-        sys_password = os.getenv("INITIAL_SYSTEM_PASSWORD")
-        if not sys_password:
-            sys_password = secrets.token_urlsafe(12)
-            logger.warning(f"Generated initial system password: {sys_password}")
-            
-        sys_user = User(
-            email="system@example.com", 
-            username="システム管理者", 
-            password_hash=bcrypt.hashpw(sys_password.encode(), bcrypt.gensalt()).decode(), 
-            role="system_admin",
-
-
-            must_change_password=True
-        )
-        db.add(sys_user)
-        db.commit()
+    system_emails = ["system@example.com", "system2@example.com", "system3@example.com", "system4@example.com", "system5@example.com"]
+    sys_password = os.getenv("INITIAL_SYSTEM_PASSWORD", "SystemAdmin1234!")
+    
+    for email in system_emails:
+        if not db.query(User).filter(User.email == email).first():
+            sys_user = User(
+                email=email, 
+                username=f"システム管理者 ({email.split('@')[0]})", 
+                password_hash=bcrypt.hashpw(sys_password.encode(), bcrypt.gensalt()).decode(), 
+                role="system_admin",
+                must_change_password=True
+            )
+            db.add(sys_user)
+    db.commit()
 
     # 2. Default Organization
     default_org = db.query(Organization).filter(Organization.name == "株式会社サンプル").first()
@@ -354,18 +351,13 @@ def init_db():
     
     # 3. Organization Admin (for Default Org)
     if not db.query(User).filter(User.email == "admin@example.com").first():
-        admin_password = os.getenv("INITIAL_ADMIN_PASSWORD")
-        if not admin_password:
-            admin_password = secrets.token_urlsafe(12)
-            logger.warning(f"Generated initial admin password: {admin_password}")
+        admin_password = os.getenv("INITIAL_ADMIN_PASSWORD", "OrgAdmin1234!")
 
         org_admin = User(
             email="admin@example.com", 
             username="組織管理者", 
             password_hash=bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt()).decode(), 
             role="system_user", # System context: system_user
-
-
             must_change_password=True
         )
         db.add(org_admin)
@@ -379,18 +371,13 @@ def init_db():
     if not db.query(User).filter(User.email == "user1@example.com").first():
         for i in range(1, 11):
             email = f"user{i}@example.com"
-            
-            user_password = os.getenv("INITIAL_USER_PASSWORD")
-            if not user_password:
-                user_password = secrets.token_urlsafe(12) # Just use random if not set, these are test users anyway
+            user_password = os.getenv("INITIAL_USER_PASSWORD", "GeneralUser1234!")
 
             gen_user = User(
                 email=email,
                 username=f"ユーザー{i}",
                 password_hash=bcrypt.hashpw(user_password.encode(), bcrypt.gensalt()).decode(),
                 role="system_user", # System context: system_user
-
-
                 must_change_password=True
             )
             db.add(gen_user)

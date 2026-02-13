@@ -36,7 +36,7 @@ def create_dummy_users(db):
         orgs[name] = org
 
     # Helper to hash password
-    user_pw = os.getenv("INITIAL_USER_PASSWORD", "password123")
+    user_pw = os.getenv("INITIAL_USER_PASSWORD", "GeneralUser1234!")
     hashed_pw = hash_pass(user_pw)
 
     # 2. Create Managers (3 members)
@@ -47,6 +47,9 @@ def create_dummy_users(db):
         {"email": "admin1@example.com", "username": "管理者1 (兼務)", "orgs": ["サンプル部署", "サンプル案件1", "サンプル案件2"]},
         {"email": "admin2@example.com", "username": "管理者2 (案件1責任者)", "orgs": ["サンプル部署", "サンプル案件1"]},
         {"email": "admin3@example.com", "username": "管理者3 (案件2責任者)", "orgs": ["サンプル部署", "サンプル案件2"]},
+        {"email": "admin4@example.com", "username": "管理者4 (兼務)", "orgs": ["サンプル部署", "サンプル案件1", "サンプル案件2"]},
+        {"email": "admin5@example.com", "username": "管理者5 (兼務)", "orgs": ["サンプル部署", "サンプル案件1", "サンプル案件2"]},
+        {"email": "admin6@example.com", "username": "管理者6 (兼務)", "orgs": ["サンプル部署", "サンプル案件1", "サンプル案件2"]},
     ]
     
     all_users = []
