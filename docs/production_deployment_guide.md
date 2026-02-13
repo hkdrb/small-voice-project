@@ -8,7 +8,6 @@ Google Compute Engine (GCE) を使用した Small Voice Project の本番デプ�
 
 - Google Cloud Platform アカウント（有効な請求先設定済み）
 - ドメイン取得済み（例：Google Domains、お名前.com）
-- 基本的なLinuxコマンド操作の知識
 
 ---
 
@@ -68,29 +67,22 @@ DNS反映には数分〜数時間かかります。
 1. GCP Console → **「VM インスタンス」**
 2. `small-voice-server` の **「SSH」** ボタンをクリック
 
-> **トラブルシューティング**: sudoコマンドで権限エラーが出る場合
-> 1. **「IAMと管理」→「IAM」** を開く
-> 2. 自分のアカウントに **「Compute OS 管理者ログイン」** ロールを追加
-> 3. SSH接続を閉じて再接続
-
 ### 2.2 Dockerのインストール
 
+以下のコマンドを一括実行して、Docker環境をセットアップします。
+
 ```bash
-# パッケージ更新
+# 必要なパッケージのインストールとGPGキーの追加
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl gnupg lsb-release git
-
-# Docker GPGキー追加
 sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
-# Dockerリポジトリ追加
+# Dockerリポジトリの追加とインストール
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Dockerインストール
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
@@ -98,43 +90,7 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plu
 sudo usermod -aG docker $USER
 ```
 
-### 2.3 作業用ユーザーの作成と切り替え
-
-管理作業用のユーザーを作成します：
-
-```bash
-# ユーザー作成
-sudo adduser workuser --gecos "Work User" --disabled-password
-echo "workuser:StrongPass123!" | sudo chpasswd
-
-# sudo権限付与
-sudo usermod -aG sudo workuser
-sudo usermod -aG docker workuser
-echo "workuser ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/workuser
-```
-
-作業ユーザーに切り替え：
-
-```bash
-su - workuser
-# パスワード: StrongPass123!
-```
-
-> **Tip**: 以降の作業はworkuserで実行することを推奨します。
-
-### 2.4 スワップ領域の作成
-
-e2-microはメモリが少ないため、スワップ領域を作成します：
-
-```bash
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-```
-
-### 2.5 ログアウトして再接続
+### 2.3 ログアウトして再接続
 
 Docker権限を反映するため、一度ログアウトして再接続してください：
 
@@ -303,20 +259,12 @@ docker compose -f docker-compose.prod.yml logs -f
 
 ## 4. アプリケーション更新
 
-コードを更新した場合の反映手順です。
-
-### 更新手順
-
 コードを更新した際は、以下の手順で本番環境に反映します。
-この手順では、GitHub Actionsでのビルド完了（通常3〜5分）を待ってから、安全に最新版を適用します。
+
+### 4.1 更新スクリプトの実行
 
 1. サーバーにSSH接続します。
 2. 以下のコマンドを実行します。
-
-> **トラブルシューティング**: `git pull` で権限エラー (`insufficient permission`) が出る場合、以下のコマンドで所有権を修正してください：
-> ```bash
-> sudo chown -R $USER:$USER ~/small-voice-project/.git
-> ```
 
 ```bash
 cd small-voice-project
@@ -330,21 +278,26 @@ cd small-voice-project
 - ✅ デプロイバージョン情報の記録
 - ✅ サービスの再起動 (`docker compose up -d`)
 
-更新が完了したら、[デプロイ反映の確認方法](#デプロイ反映の確認方法)の手順で確認してください。
+### 4.2 デプロイ反映の確認
+
+APIのルートエンドポイントにアクセスすることで、現在デプロイされているバージョンを確認できます。
+
+```bash
+curl https://small-voice.xyz/api/
+```
+
+レスポンス例:
+```json
+{
+  "message": "SmallVoice API is running",
+  "version": "85f3a98",
+  "deployed_at": "2026-02-01 12:45:00"
+}
+```
 
 ---
 
 ## 5. 運用管理
-
-### ログ確認
-
-```bash
-# 全サービスのログ
-docker compose -f docker-compose.prod.yml logs -f
-
-# 特定サービスのログ
-docker compose -f docker-compose.prod.yml logs -f backend
-```
 
 ### コンテナ状態確認
 
@@ -352,35 +305,28 @@ docker compose -f docker-compose.prod.yml logs -f backend
 docker compose -f docker-compose.prod.yml ps
 ```
 
-### データバックアップ
-
-GCPのスナップショット機能を使用：
-
-1. **「Compute Engine」→「スナップショット」**
-2. **「スナップショットを作成」** をクリック
-3. ソースディスク: `small-voice-server`
-4. 定期的に実行することを推奨
-
 ### デモ環境のデータリセット
 
 > ⚠️ **警告**: 本番環境では実行しないでください。全データが削除されます。
 
+ローカル開発環境と同様の手順で、本番環境（デモ環境）のデータをリセットまたは生成できます。
+
 ```bash
-# 全データ削除
+# 1. データベースを完全リセット (全テーブル削除)
 docker compose -f docker-compose.prod.yml exec backend python scripts/reset_db_clean.py
 
-# パターンA: デモ用フルセット投入 (一括)
-docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --with-dummy-data
+# 2. 初期セットアップ (テーブル作成 + 初期ユーザー/データ投入)
 
-# パターンB: 個別に実行
-# 1. ユーザーのみ作成
-# docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --init-users
+# パターンA: 初期ユーザーのみ作成 (データは空)
+# ログイン確認や、手動でデータを入れたい場合に使用します。
+docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --init-users
 
-# 2. セッション枠のみ作成
-# docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --seed-sessions
+# パターンB: 既存セッションにコメントを追加 (200件/回)
+# (既にセッションが存在する場合のみ実行可能)
+docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --seed-comments
 
-# 3. コメントのみ追加 (既存セッションに対して)
-# docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --seed-comments
+# パターンC: 雑談掲示板のテストデータを生成 (100件の投稿と返信)
+docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --seed-casual
 ```
 
 ### 議論コメントのCSVインポート (管理画面)
@@ -391,6 +337,61 @@ URLを直接叩くことでアクセスできます。
   - (`your-domain.com` は実際のドメインに置き換えてください)
 - **権限**: システム管理者 (`system_admin`) のみ実行可能
 - **用途**: デモデータの投入や、外部システムからのデータ移行など
+
+---
+
+## 6. データベース接続
+
+ローカルMacのDBクライアントツール（TablePlus、DBeaver等）から本番環境（GCE）のPostgreSQLデータベースに安全に接続する方法です。
+
+### 前提条件
+
+- Google Cloud Platform アカウント（本番環境へのアクセス権限）
+- DBクライアントツール（TablePlus、DBeaver、psql等）
+- gcloud CLIがインストールされていること
+
+### 6.1 gcloud CLIのセットアップ
+
+まだインストールしていない場合は、Homebrew等でインストールし、ログイン設定を行ってください。
+
+```bash
+brew install google-cloud-sdk
+gcloud init
+```
+※ `gcloud init` でプロジェクトとリージョン（asia-northeast1）を選択します。
+
+### 6.2 SSHトンネルの作成
+
+ローカルMacのターミナルで以下を実行し、SSHトンネル（ポートフォワーディング）を作成します。
+
+```bash
+gcloud compute ssh small-voice-server \
+  --zone=asia-northeast1-c \
+  --tunnel-through-iap \
+  -- -L 5434:localhost:5432 -N
+```
+
+**注意**:
+- このコマンドは接続を維持し続けます。**ターミナルウィンドウを閉じないでください**。
+- ポート `5434` を使用してローカルから接続します。
+
+### 6.3 DBクライアントツールで接続
+
+新しいターミナルタブやDBクライアントツールを開き、以下の情報で接続します。
+
+| 項目 | 設定値 |
+|------|-----|
+| **ホスト** | `localhost` |
+| **ポート** | `5434` |
+| **ユーザー名** | `postgres` |
+| **パスワード** | `postgres` |
+| **データベース名** | `small_voice_db` |
+
+※ パスワードは `docker-compose.prod.yml` の設定に準じます（デフォルトは `postgres`）。
+
+### 6.4 接続の終了
+
+作業が終わったら、SSHトンネルを実行しているターミナルで `Ctrl+C` を押して切断します。
 
 ---
 
@@ -409,38 +410,9 @@ URLを直接叩くことでアクセスできます。
 > - VMインスタンスを「停止」している間は、CPU/メモリのリソース料金（VM料金）は発生しません。ただし、**ディスク料金（30GB分）と固定IPアドレス料金は継続して発生**します。
 > - 米国リージョン（us-central1等）のe2-microは無料枠対象です。
 
-### デプロイ反映の確認方法
-APIのルートエンドポイントにアクセスすることで、現在デプロイされているバージョンを確認できます。
-
-```bash
-curl https://small-voice.xyz/api/
-```
-
-レスポンス例:
-```json
-{
-  "message": "SmallVoice API is running",
-  "version": "85f3a98",
-  "deployed_at": "2026-02-01 12:45:00"
-}
-```
-
-### データベース接続
-
-ローカルのDBクライアントツール（TablePlus、DBeaver等）から本番DBに接続する方法については、以下のガイドを参照してください：
-
-📖 **[本番DB接続ガイド](./db_connection_guide.md)**
-
-主な内容：
-- gcloud CLIのインストールと設定
-- SSH トンネル（IAP経由）の作成方法
-- 各種DBクライアントツールの接続手順
-- トラブルシューティング
-
 ### 参考リンク
 
 - [Google Cloud DNS ドキュメント](https://cloud.google.com/dns)
 - [Brevo（旧Sendinblue）](https://www.brevo.com/)
 - [Let's Encrypt](https://letsencrypt.org/)
 - [Docker Compose リファレンス](https://docs.docker.com/compose/)
-- [本番DB接続ガイド](./db_connection_guide.md)
