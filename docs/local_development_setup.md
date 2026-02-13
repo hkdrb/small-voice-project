@@ -28,8 +28,8 @@ GEMINI_API_KEY=your_api_key_here
 
 # AIモデル設定（タスク別に最適なモデルを使い分け）
 GEMINI_MODEL_NAME=gemini-2.5-flash
-GEMINI_MODEL_NAME_THINKING=gemini-2.5-flash
-GEMINI_MODEL_NAME_LIGHT=gemini-2.5-flash
+GEMINI_MODEL_NAME_THINKING=gemini-1.5-pro
+GEMINI_MODEL_NAME_LIGHT=gemini-1.5-flash
 GEMINI_EMBEDDING_MODEL_NAME=models/text-embedding-004
 
 # 開発用はコンテナ内のPostgreSQLを使用するため、DATABASE_URLの設定は不要です (docker-compose.yml内で自動設定されます)。
@@ -87,19 +87,11 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/reset_db_cl
 # ログイン確認や、手動でデータを入れたい場合に使用します。
 docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --init-users
 
-# パターンB: デモ用フルセット投入 (ユーザー + セッション + コメント一括)
-# すぐにデモを行いたい場合に使用します（Legacy: --with-dummy-data）
-docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --with-dummy-data
-
-# パターンC: 個別にデータ投入 (ステップ実行)
-# 1. ダミーセッション(分析データ枠)のみ作成
-docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --seed-sessions
-
-# 2. 既存セッションにコメントを追加 (200件/回)
+# パターンB: 既存セッションにコメントを追加 (200件/回)
 # (既にセッションが存在する場合のみ実行可能。何度でも実行してコメントを増やせます)
 docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --seed-comments
 
-# 3. 雑談掲示板のテストデータを生成 (100件の投稿と返信)
+# パターンC: 雑談掲示板のテストデータを生成 (100件の投稿と返信)
 docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --seed-casual
 ```
 
@@ -116,73 +108,5 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py 
 - **Host**: `localhost` (または `127.0.0.1`)
 - **Port**: `5433`
 - **User**: `postgres`
-- **Password**: `postgres`
-- **Database**: `voice_insight_db`
-
-### Linting / Formatting
-コードをコミットする前に実行してください。
-
-**Backend (Python)**
-```bash
-docker-compose -f docker-compose.dev.yml exec backend flake8 .
-```
 
 
-**Frontend (TypeScript/JavaScript)**
-```bash
-docker-compose -f docker-compose.dev.yml exec frontend npm run lint
-```
-
-## 🔑 デモ用ログイン情報 (初期設定)
-
-初回起動時に以下のユーザーが自動作成されます。パスワードはログ出力を確認するか、`.env` で `INITIAL_***_PASSWORD` を設定してください。
-
-| 役割 | Email | 説明 |
-| --- | --- | --- |
-| **System Admin** | `system@example.com` | システム管理者 |
-| **Org Admin** | `admin@example.com` | 組織管理者 |
-| **User** | `user1@example.com` | 一般ユーザー |
-
----
-
-## 手動セットアップ (Dockerを使用しない場合)
-Dockerを使用せず、ローカルマシンに直接環境を構築する場合の手順です。
-
-### 1. リポジトリのクローン
-```bash
-git clone https://github.com/koderahayato/small-voice-project.git
-cd small-voice-project
-```
-
-### 2. バックエンドのセットアップ
-```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-`.env` ファイルを作成し、Gemini APIキーとモデル設定を行ってください。
-```ini
-GEMINI_API_KEY=your_api_key_here
-# AIモデル設定
-GEMINI_MODEL_NAME=gemini-2.0-flash
-GEMINI_MODEL_NAME_THINKING=gemini-1.5-pro
-GEMINI_MODEL_NAME_LIGHT=gemini-1.5-flash
-# 開発用デフォルトDB設定
-DATABASE_URL=sqlite:///voice_insight.db
-```
-
-サーバー起動:
-```bash
-cd backend
-uvicorn main:app --reload --port 8000
-```
-※ 初回起動時にDBとデフォルトユーザーが自動生成されます。
-
-### 3. フロントエンドのセットアップ
-```bash
-cd frontend
-npm install
-npm run dev
-```
-ブラウザで `http://localhost:3000` にアクセスしてください。
