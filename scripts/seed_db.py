@@ -80,7 +80,7 @@ def create_dummy_users(db):
         
         user = db.query(User).filter(User.email == email).first()
         if not user:
-            user = User(email=email, username=username, password_hash=hashed_pw, role="system_user", must_change_password=True)
+            user = User(email=email, username=username, password_hash=hashed_admin_pw, role="system_user", must_change_password=True)
             db.add(user)
             db.commit()
             db.refresh(user)
