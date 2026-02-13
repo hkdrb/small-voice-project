@@ -24,7 +24,7 @@ def create_dummy_users(db):
     print("\n--- Rebuilding Organization Structure and Users ---")
     
     # 1. Ensure/Create Organizations
-    org_names = ["サンプル部署", "サンプル案件1", "サンプル案件2"]
+    org_names = ["株式会社サンプル", "サンプル部署", "サンプル案件1", "サンプル案件2"]
     orgs = {}
     for name in org_names:
         org = db.query(Organization).filter(Organization.name == name).first()
@@ -44,12 +44,13 @@ def create_dummy_users(db):
     # admin2: Project 1
     # admin3: Project 2
     managers_info = [
-        {"email": "admin1@example.com", "username": "管理者1 (兼務)", "orgs": ["サンプル部署", "サンプル案件1", "サンプル案件2"]},
-        {"email": "admin2@example.com", "username": "管理者2 (案件1責任者)", "orgs": ["サンプル部署", "サンプル案件1"]},
-        {"email": "admin3@example.com", "username": "管理者3 (案件2責任者)", "orgs": ["サンプル部署", "サンプル案件2"]},
-        {"email": "admin4@example.com", "username": "管理者4 (兼務)", "orgs": ["サンプル部署", "サンプル案件1", "サンプル案件2"]},
-        {"email": "admin5@example.com", "username": "管理者5 (兼務)", "orgs": ["サンプル部署", "サンプル案件1", "サンプル案件2"]},
-        {"email": "admin6@example.com", "username": "管理者6 (兼務)", "orgs": ["サンプル部署", "サンプル案件1", "サンプル案件2"]},
+        {"email": "admin@example.com", "username": "組織管理者 (全兼務)", "orgs": ["株式会社サンプル", "サンプル部署", "サンプル案件1", "サンプル案件2"]},
+        {"email": "admin1@example.com", "username": "管理者1 (兼務)", "orgs": ["株式会社サンプル", "サンプル部署", "サンプル案件1", "サンプル案件2"]},
+        {"email": "admin2@example.com", "username": "管理者2 (案件1責任者)", "orgs": ["株式会社サンプル", "サンプル部署", "サンプル案件1"]},
+        {"email": "admin3@example.com", "username": "管理者3 (案件2責任者)", "orgs": ["株式会社サンプル", "サンプル部署", "サンプル案件2"]},
+        {"email": "admin4@example.com", "username": "管理者4 (兼務)", "orgs": ["株式会社サンプル", "サンプル部署", "サンプル案件1", "サンプル案件2"]},
+        {"email": "admin5@example.com", "username": "管理者5 (兼務)", "orgs": ["株式会社サンプル", "サンプル部署", "サンプル案件1", "サンプル案件2"]},
+        {"email": "admin6@example.com", "username": "管理者6 (兼務)", "orgs": ["株式会社サンプル", "サンプル部署", "サンプル案件1", "サンプル案件2"]},
     ]
     
     all_users = []
@@ -86,7 +87,7 @@ def create_dummy_users(db):
             db.refresh(user)
         
         # Determine target orgs
-        target_org_names = ["サンプル部署"]
+        target_org_names = ["株式会社サンプル", "サンプル部署"]
         if i in [1, 2]:
             target_org_names.extend(["サンプル案件1", "サンプル案件2"])
         elif 3 <= i <= 6:
