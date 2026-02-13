@@ -100,8 +100,6 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py 
 特定の議論スレッドに対して、自作のCSVデータを投入したい場合に便利です。
 - URL: `http://localhost:3000/admin/csv-import`
 
-```
-
 ### データベースへの接続
 ホストマシンのクライアントツール（TablePlus, DBeaver, pgAdminなど）からデータベースに接続する場合は、以下の情報を使用してください。
 
