@@ -49,5 +49,4 @@ PCだけでなくスマートフォンからも利用可能です。
 - [データベース設計](docs/database.md)
 - [ローカル開発環境構築ガイド](docs/local_development_setup.md)
 - [本番環境ガイド（デプロイ・運用手順・DB接続）](docs/production_deployment_guide.md)
-- [**🚀 デモ用のテストユーザー・サンプルCSVはこちら**](docs/demo_guide.md)
 - [ユーザー利用マニュアル](docs/user_manual.md)
