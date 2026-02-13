@@ -1,22 +1,23 @@
 ﻿表示名,メールアドレス,パスワード(初期設定時),権限種別,所属組織
-システム管理者1,system2@example.com,SystemAdmin1234!,システム管理者,
-システム管理者2,system3@example.com,SystemAdmin1234!,システム管理者,
-システム管理者3,system4@example.com,SystemAdmin1234!,システム管理者,
-システム管理者4,system5@example.com,SystemAdmin1234!,システム管理者,
-システム管理者5,system@example.com,SystemAdmin1234!,システム管理者,
-組織管理者1,admin1@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1, サンプル案件2"
-組織管理者2,admin2@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1"
-組織管理者3,admin3@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件2"
-組織管理者4,admin4@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1, サンプル案件2"
-組織管理者5,admin5@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1, サンプル案件2"
-組織管理者6,admin6@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1, サンプル案件2"
-一般ユーザー1,user10@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件2"
-一般ユーザー2,user1@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1, サンプル案件2"
-一般ユーザー3,user2@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1, サンプル案件2"
-一般ユーザー4,user3@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1"
-一般ユーザー5,user4@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1"
-一般ユーザー6,user5@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1"
-一般ユーザー7,user6@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1"
-一般ユーザー8,user7@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件2"
-一般ユーザー9,user8@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件2"
-一般ユーザー10,user9@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件2"
+システム管理者 (system),system@example.com,SystemAdmin1234!,システム管理者,
+システム管理者 (system2),system2@example.com,SystemAdmin1234!,システム管理者,
+システム管理者 (system3),system3@example.com,SystemAdmin1234!,システム管理者,
+システム管理者 (system4),system4@example.com,SystemAdmin1234!,システム管理者,
+システム管理者 (system5),system5@example.com,SystemAdmin1234!,システム管理者,
+組織管理者,admin@example.com,OrgAdmin1234!,組織管理者,株式会社サンプル
+管理者1 (兼務),admin1@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1, サンプル案件2"
+管理者2 (案件1責任者),admin2@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1"
+管理者3 (案件2責任者),admin3@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件2"
+管理者4 (兼務),admin4@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1, サンプル案件2"
+管理者5 (兼務),admin5@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1, サンプル案件2"
+管理者6 (兼務),admin6@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1, サンプル案件2"
+ユーザー1,user1@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1, サンプル案件2"
+ユーザー2,user2@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1, サンプル案件2"
+ユーザー3,user3@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1"
+ユーザー4,user4@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1"
+ユーザー5,user5@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1"
+ユーザー6,user6@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件1"
+ユーザー7,user7@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件2"
+ユーザー8,user8@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件2"
+ユーザー9,user9@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件2"
+ユーザー10,user10@example.com,GeneralUser1234!,一般ユーザー,"株式会社サンプル, サンプル部署, サンプル案件2"
