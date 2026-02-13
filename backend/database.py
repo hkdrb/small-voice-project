@@ -350,7 +350,8 @@ def init_db():
         db.commit()
     
     # 3. Organization Admin (for Default Org)
-    if not db.query(User).filter(User.email == "admin@example.com").first():
+    org_admin = db.query(User).filter(User.email == "admin@example.com").first()
+    if not org_admin:
         admin_password = os.getenv("INITIAL_ADMIN_PASSWORD", "OrgAdmin1234!")
 
         org_admin = User(

@@ -36,8 +36,8 @@ def create_dummy_users(db):
         orgs[name] = org
 
     # Helper to hash password
-    user_pw = os.getenv("INITIAL_USER_PASSWORD", "GeneralUser1234!")
-    hashed_pw = hash_pass(user_pw)
+    admin_pw = os.getenv("INITIAL_ADMIN_PASSWORD", "OrgAdmin1234!")
+    hashed_admin_pw = hash_pass(admin_pw)
 
     # 2. Create Managers (3 members)
     # admin1: Both projects (掛け持ち)
@@ -56,7 +56,7 @@ def create_dummy_users(db):
     for m in managers_info:
         user = db.query(User).filter(User.email == m["email"]).first()
         if not user:
-            user = User(email=m["email"], username=m["username"], password_hash=hashed_pw, role="system_user", must_change_password=True)
+            user = User(email=m["email"], username=m["username"], password_hash=hashed_admin_pw, role="system_user", must_change_password=True)
             db.add(user)
             db.commit()
             db.refresh(user)
