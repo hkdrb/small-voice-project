@@ -141,5 +141,8 @@
 
 ---
 
-> [**🚀 デモ用のテストユーザーやCSVはこちら**](./test_users_list.md)
+> **🚀 デモを開始する**
+>
+> ・[**テストユーザー一覧をダウンロード (CSV)**](./assets/test_users_list.csv)
+> ・[**インポート用サンプルデータをダウンロード (ZIP)**](./assets/demo_csv_all.zip)
 
