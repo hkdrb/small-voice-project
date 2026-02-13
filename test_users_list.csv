@@ -1,9 +1,9 @@
 ﻿表示名,メールアドレス,パスワード(初期設定時),権限種別,所属組織
-システム管理者 (system),system@example.com,SystemAdmin1234!,システム管理者,
-システム管理者 (system2),system2@example.com,SystemAdmin1234!,システム管理者,
-システム管理者 (system3),system3@example.com,SystemAdmin1234!,システム管理者,
-システム管理者 (system4),system4@example.com,SystemAdmin1234!,システム管理者,
-システム管理者 (system5),system5@example.com,SystemAdmin1234!,システム管理者,
+システム管理者1,system@example.com,SystemAdmin1234!,システム管理者,
+システム管理者2,system2@example.com,SystemAdmin1234!,システム管理者,
+システム管理者3,system3@example.com,SystemAdmin1234!,システム管理者,
+システム管理者4,system4@example.com,SystemAdmin1234!,システム管理者,
+システム管理者5,system5@example.com,SystemAdmin1234!,システム管理者,
 組織管理者,admin@example.com,OrgAdmin1234!,組織管理者,株式会社サンプル
 管理者1 (兼務),admin1@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1, サンプル案件2"
 管理者2 (案件1責任者),admin2@example.com,OrgAdmin1234!,組織管理者,"サンプル部署, サンプル案件1"

@@ -61,7 +61,6 @@ export default function MemberList({ user }: { user: any }) {
               <th className="px-6 py-4 border-b border-gray-200">名前</th>
               <th className="px-6 py-4 border-b border-gray-200">メールアドレス</th>
               <th className="px-6 py-4 border-b border-gray-200">権限</th>
-              <th className="px-6 py-4 border-b border-gray-200 text-right">ステータス</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
@@ -75,16 +74,10 @@ export default function MemberList({ user }: { user: any }) {
                     {m.role === 'admin' ? '組織管理者' : '一般メンバー'}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <span className="inline-flex items-center gap-1.5 text-green-600 text-xs font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                    Active
-                  </span>
-                </td>
               </tr>
             )) : (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
+                <td colSpan={3} className="px-6 py-12 text-center text-slate-400">
                   メンバーがいません
                 </td>
               </tr>
@@ -102,9 +95,6 @@ export default function MemberList({ user }: { user: any }) {
                 <div className="font-bold text-gray-800">{m.username}</div>
                 <div className="text-xs text-slate-400 font-mono mt-0.5">{m.email}</div>
               </div>
-              <span className="text-green-600 text-[10px] font-bold px-1.5 py-0.5 bg-green-50 rounded border border-green-100">
-                Active
-              </span>
             </div>
             <div className="pt-2 border-t border-gray-50 flex justify-between items-center">
               <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold ${m.role === 'admin' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-slate-50 text-slate-500 border border-slate-100'}`}>

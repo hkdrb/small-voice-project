@@ -330,11 +330,11 @@ def init_db():
     system_emails = ["system@example.com", "system2@example.com", "system3@example.com", "system4@example.com", "system5@example.com"]
     sys_password = os.getenv("INITIAL_SYSTEM_PASSWORD", "SystemAdmin1234!")
     
-    for email in system_emails:
+    for i, email in enumerate(system_emails, 1):
         if not db.query(User).filter(User.email == email).first():
             sys_user = User(
                 email=email, 
-                username=f"システム管理者 ({email.split('@')[0]})", 
+                username=f"システム管理者{i}", 
                 password_hash=bcrypt.hashpw(sys_password.encode(), bcrypt.gensalt()).decode(), 
                 role="system_admin",
                 must_change_password=True

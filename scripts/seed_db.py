@@ -63,7 +63,7 @@ def create_dummy_users(db):
         
         # Assign memberships
         for o_name in m["orgs"]:
-            role = "admin" if o_name != "サンプル部署" else "general"
+            role = "admin" # 全ての所属組織で管理者権限を与える
             existing_member = db.query(OrganizationMember).filter_by(user_id=user.id, organization_id=orgs[o_name].id).first()
             if not existing_member:
                 db.add(OrganizationMember(user_id=user.id, organization_id=orgs[o_name].id, role=role))
