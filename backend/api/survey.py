@@ -399,18 +399,47 @@ def update_survey(
         survey.rejection_reason = None
 
     # Sync Questions
-    # 1. Delete old (use ORM delete to trigger cascades)
-    existing_questions = db.query(Question).filter(Question.survey_id == survey_id).all()
-    for q in existing_questions:
-        db.delete(q)
-    # 2. Add new
-    for idx, q_data in enumerate(data.questions):
-        db.add(Question(
-            survey_id=survey.id,
-            text=q_data.text,
-            is_required=q_data.is_required,
-            order=idx + 1
-        ))
+    # 1. Check for existing answers first to prevent data loss
+    existing_answers_count = db.query(Answer).filter(Answer.survey_id == survey_id).count()
+
+    if existing_answers_count > 0:
+        # Check if questions have changed
+        existing_questions = db.query(Question).filter(Question.survey_id == survey_id).order_by(Question.order).all()
+        
+        # Simple comparison: count, text, order, is_required
+        questions_changed = False
+        if len(existing_questions) != len(data.questions):
+            questions_changed = True
+        else:
+            for eq, nq in zip(existing_questions, data.questions):
+                if (eq.text != nq.text or 
+                    eq.is_required != nq.is_required): 
+                    questions_changed = True
+                    break
+        
+        if questions_changed:
+            raise HTTPException(
+                status_code=400, 
+                detail="このアンケートには既に回答が存在するため、質問の構成を変更できません。新しいアンケートを作成してください。"
+            )
+        else:
+            # Questions identical, skip delete/insert logic to preserve answer links
+            pass
+    else:
+        # No answers, safe to delete and recreate
+        # 1. Delete old
+        existing_questions = db.query(Question).filter(Question.survey_id == survey_id).all()
+        for q in existing_questions:
+            db.delete(q)
+        
+        # 2. Add new
+        for idx, q_data in enumerate(data.questions):
+            db.add(Question(
+                survey_id=survey.id,
+                text=q_data.text,
+                is_required=q_data.is_required,
+                order=idx + 1
+            ))
         
     db.commit()
     db.refresh(survey)
