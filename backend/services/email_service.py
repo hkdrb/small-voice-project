@@ -106,13 +106,16 @@ def _send_email(to_email, subject, html_body, text_body, mock_title):
             msg["From"] = formataddr((SENDER_NAME, SENDER_EMAIL))
             msg["To"] = to_email
             
+            msg["Reply-To"] = formataddr((SENDER_NAME, SENDER_EMAIL))
+            
             # Add Date and Message-ID for spam score improvement
             from email.utils import formatdate, make_msgid
             msg["Date"] = formatdate(localtime=True)
             msg["Message-ID"] = make_msgid(domain=SENDER_EMAIL.split('@')[-1] if '@' in SENDER_EMAIL else None)
 
-            part1 = MIMEText(text_body, "plain")
-            part2 = MIMEText(html_body, "html")
+            # Explicitly set charset to utf-8 to avoid encoding issues
+            part1 = MIMEText(text_body, "plain", "utf-8")
+            part2 = MIMEText(html_body, "html", "utf-8")
 
             msg.attach(part1)
             msg.attach(part2)
