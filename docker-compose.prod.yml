@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    image: ghcr.io/hkdrb/small-voice-project-backend:latest
+    image: ghcr.io/small-voice/small-voice-project-backend:latest
     restart: always
     environment:
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/small_voice_db
@@ -30,7 +30,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: ghcr.io/hkdrb/small-voice-project-frontend:latest
+    image: ghcr.io/small-voice/small-voice-project-frontend:latest
     restart: always
     environment:
       - NEXT_PUBLIC_API_URL=/api
@@ -64,9 +64,7 @@ services:
       - BASIC_AUTH_USER=${BASIC_AUTH_USER:-admin}
       - BASIC_AUTH_PASSWORD=${BASIC_AUTH_PASSWORD:-admin}
     command: >
-      /bin/sh -c "apk add --no-cache apache2-utils &&
-      htpasswd -cb /etc/nginx/.htpasswd $${BASIC_AUTH_USER} $${BASIC_AUTH_PASSWORD} &&
-      nginx -g 'daemon off;'"
+      /bin/sh -c "apk add --no-cache apache2-utils && htpasswd -cb /etc/nginx/.htpasswd $${BASIC_AUTH_USER} $${BASIC_AUTH_PASSWORD} && nginx -g 'daemon off;'"
     restart: always
 
 volumes:

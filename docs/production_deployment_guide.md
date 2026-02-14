@@ -193,7 +193,7 @@ sudo usermod -aG docker $USER
 
 #### 手順1: リポジトリのクローン
 ```bash
-git clone https://github.com/hkdrb/small-voice-project.git
+git clone https://github.com/small-voice/small-voice-project.git
 cd small-voice-project
 ```
 

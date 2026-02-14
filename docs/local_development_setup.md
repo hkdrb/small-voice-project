@@ -15,7 +15,7 @@ Python や Node.js をローカルマシンにインストールする必要は�
 
 ### 1. リポジトリのクローン
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+git clone https://github.com/small-voice/small-voice-project.git
 cd small-voice-project
 ```
 
