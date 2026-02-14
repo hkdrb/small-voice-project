@@ -60,6 +60,13 @@ services:
     depends_on:
       - backend
       - frontend
+    environment:
+      - BASIC_AUTH_USER=${BASIC_AUTH_USER:-admin}
+      - BASIC_AUTH_PASSWORD=${BASIC_AUTH_PASSWORD:-admin}
+    command: >
+      /bin/sh -c "apk add --no-cache apache2-utils &&
+      htpasswd -cb /etc/nginx/.htpasswd $${BASIC_AUTH_USER} $${BASIC_AUTH_PASSWORD} &&
+      nginx -g 'daemon off;'"
     restart: always
 
 volumes:

@@ -207,6 +207,8 @@ nano .env
 - `INITIAL_SYSTEM_PASSWORD` 等: 初期パスワード
 - `SMTP_...`: Brevo等のメール送信設定
 - `ENVIRONMENT`: `production`
+- `BASIC_AUTH_USER`: Basic認証のユーザー名 (指定しない場合は admin)
+- `BASIC_AUTH_PASSWORD`: Basic認証のパスワード (指定しない場合は admin)
 
 #### 手順3: SSL証明書の取得
 ```bash
