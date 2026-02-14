@@ -9,6 +9,10 @@ echo "🚀 Starting deployment process..."
 echo "📥 Pulling latest changes from git..."
 git pull origin main
 
+# 1.5 Clean up docker system
+echo "🧹 Cleaning up unused Docker images..."
+sudo docker system prune -af
+
 # 2. Pull Latest Images
 echo "⬇️ Pulling latest Docker images..."
 sudo docker compose -f docker-compose.prod.yml pull
