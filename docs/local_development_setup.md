@@ -54,6 +54,8 @@ docker-compose -f docker-compose.dev.yml up --build
 
 - **Frontend**: http://localhost:3000 (ホットリロード有効)
 - **Backend API**: http://localhost:8000 (自動リロード有効)
+- **API Docs (Swagger UI)**: http://localhost:8000/docs (対話型ドキュメント)
+- **API Docs (ReDoc)**: http://localhost:8000/redoc (参照用ドキュメント)
 - **Database**: `localhost:5433` (ホスト側からもアクセス可能)
 
 停止するには `Ctrl+C` を押すか、別のターミナルで以下を実行します。

@@ -689,13 +689,12 @@ small-voice-project/
   - パスワードリセット、招待リンク生成/検証
 - **`survey.py`**: 
   - `POST /api/surveys` - フォーム作成（一般ユーザー: 申請、管理者: 直接作成）
-  - `GET /api/surveys` - フォーム一覧（状態フィルタ: 申請中/承認済み/却下/公開中）
+  - `GET /api/surveys/{uuid}` - 公開フォームの取得（UUID指定、認証不要）
   - `PUT /api/surveys/{id}/approve` - 承認（組織管理者のみ）
   - `PUT /api/surveys/{id}/reject` - 却下（組織管理者のみ）
   - `PATCH /api/surveys/{id}/toggle` - 公開/停止切り替え（組織管理者のみ）
   - `POST /api/surveys/{id}/response` - フォーム回答送信
   - `GET /api/surveys/{id}/responses/csv` - フォーム回答CSVエクスポート（組織管理者のみ）
-  - `GET /api/surveys/{uuid}` - 公開フォームの取得（UUID指定、認証不要）
 - **`dashboard.py`**: 
   - **分析セッション管理**:
     - `POST /api/dashboard/sessions/analyze` - 新規分析セッション作成＋AI分析実行
@@ -703,6 +702,8 @@ small-voice-project/
     - `GET /api/dashboard/sessions/{session_id}` - セッション詳細取得
     - `DELETE /api/dashboard/sessions/{session_id}` - セッション削除
     - `PUT /api/dashboard/sessions/{session_id}/publish` - セッション公開/非公開切り替え
+  - **フォーム管理**:
+    - `GET /api/dashboard/surveys` - フォーム一覧（状態フィルタ: 申請中/承認済み/却下/公開中）
   - **課題生成・取得**:
     - `GET /api/dashboard/sessions/{session_id}/issues` - 課題一覧取得
   - **コメント・議論**:
@@ -733,7 +734,7 @@ small-voice-project/
   - `PUT /api/users/{id}` - ユーザー情報更新
 - **`notifications.py`**: 
   - `GET /api/notifications` - 通知一覧取得
-  - `PUT /api/notifications/{id}/read` - 既読マーク
+  - `POST /api/notifications/{id}/read` - 既読マーク
 
 #### Service層
 `backend/services/`
