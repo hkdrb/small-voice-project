@@ -111,16 +111,9 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
         } else {
           alert("フォーム申請をしました");
         }
-        // 新規作成後は編集画面（チャット画面）に遷移
-        setEditingSurveyId(res.data.id);
-        setView('edit');
       }
 
-      // 管理者の場合は一覧に戻る
-      if (isAdmin) {
-        resetForm();
-      }
-      // 申請者の場合は編集画面（チャット画面）に留まるため resetForm しない
+      resetForm();
 
       fetchSurveys();
     } catch (e) {
@@ -435,28 +428,15 @@ export default function SurveyManager({ user: propUser }: { user?: User }) {
               return null;
             })()}
 
-            {view === 'create' && (
+            {view === 'create' && !isAdmin && (
               <div className="pt-8 mt-8 border-t border-slate-200">
-                {isAdmin ? (
-                  <div className="flex flex-col h-[150px] border border-sage-200 rounded-xl bg-slate-50 overflow-hidden opacity-70">
-                    <div className="bg-sage-50 px-4 py-3 border-b border-sage-100 flex items-center justify-between">
-                      <h4 className="font-bold text-sage-700 flex items-center gap-2">
-                        申請に関するチャット
-                      </h4>
-                    </div>
-                    <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-                      （管理者のため、申請時のチャット入力は不要です）
-                    </div>
-                  </div>
-                ) : (
-                  <SurveyChat
-                    surveyId={null}
-                    currentUser={user}
-                    isDraft={true}
-                    draftText={pendingComment}
-                    onDraftChange={setPendingComment}
-                  />
-                )}
+                <SurveyChat
+                  surveyId={null}
+                  currentUser={user}
+                  isDraft={true}
+                  draftText={pendingComment}
+                  onDraftChange={setPendingComment}
+                />
               </div>
             )}
 
