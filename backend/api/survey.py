@@ -138,18 +138,6 @@ def get_survey(
         
     return survey
 
-@router.get("/uuid/{uuid}", response_model=SurveyResponse)
-def get_survey_by_uuid(
-    uuid: str,
-    current_user: UserResponse = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    # Public/Member access logic
-    survey = db.query(Survey).options(joinedload(Survey.questions)).filter(Survey.uuid == uuid).first()
-    
-    if not survey:
-        raise HTTPException(status_code=404, detail="Survey not found")
-
     # Check Org Membership
     if survey.organization_id:
         member = db.query(OrganizationMember).filter(
@@ -158,6 +146,7 @@ def get_survey_by_uuid(
         ).first()
         if not member:
             raise HTTPException(status_code=403, detail="Access denied")
+            
     # Check if user has answered
     has_answered = db.query(Answer).filter(
         Answer.survey_id == survey.id,

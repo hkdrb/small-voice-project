@@ -218,7 +218,7 @@ export default function SurveyPage() {
               <div key={q.id} className="glass-card p-6 !rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
                 <label className="block text-lg font-bold text-gray-800 mb-2">
                   {q.text}
-                  {q.is_required && <span className="ml-2 text-xs text-red-600 bg-red-100 px-2 py-1 rounded-md align-middle">必須</span>}
+                  {q.is_required && <span className="ml-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full align-middle">必須</span>}
                 </label>
                 <textarea
                   value={answers[q.id] || ""}

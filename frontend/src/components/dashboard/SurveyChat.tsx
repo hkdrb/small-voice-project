@@ -88,7 +88,15 @@ export default function SurveyChat({ surveyId, currentUser, isDraft = false, dra
     }
   };
 
+  const isAdmin = currentUser?.role === 'system_admin' || currentUser?.org_role === 'admin' || currentUser?.role === 'admin';
+
   if (loading) return <div className="text-center py-4 text-slate-400">読み込み中...</div>;
+
+  // Admins should not see the "Application Chat" when creating a new form (Draft mode)
+  // or generally when in Draft mode, as they are not "Applicants".
+  if (isDraft && isAdmin) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col h-[300px] md:h-[400px] border border-sage-200 rounded-xl bg-white/50 overflow-hidden">

@@ -29,9 +29,12 @@ export function middleware(request: NextRequest) {
 
   // Add Cache-Control headers to protected routes to prevent "Back" button from showing cached pages after logout
   if (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/admin')) {
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, private');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
+    response.headers.set('Surrogate-Control', 'no-store');
+    // Remove ETag to prevent conditional requests that might rely on stale cache
+    response.headers.delete('ETag');
   }
 
   return response;

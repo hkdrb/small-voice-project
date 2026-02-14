@@ -131,12 +131,13 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
 
     try {
       await axios.post('/api/auth/logout', {}, { withCredentials: true });
-      // Force reload to clear state or redirect
-      window.location.replace('/login');
     } catch (error) {
       console.error("Logout failed", error);
-      // Fallback redirect even if API fails
-      window.location.replace('/login');
+    } finally {
+      // Force full reload to clear state and ensure middleware runs on back navigation attempt
+      // Using href ensures a new navigation entry, pushing the dashboard to history but ensuring cache is re-evaluated.
+      // Ideally, we want to clear history, which isn't possible, but 'no-store' header handles the back button case.
+      window.location.href = '/login';
     }
   };
 
