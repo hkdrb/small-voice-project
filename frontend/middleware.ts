@@ -11,6 +11,11 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Redirect authenticated users away from auth pages
+  if (session && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
   // Root redirect
   if (request.nextUrl.pathname === '/') {
     if (session) {
@@ -20,9 +25,18 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  // Add Cache-Control headers to protected routes to prevent "Back" button from showing cached pages after logout
+  if (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/admin')) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+
+  return response;
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*', '/'],
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/', '/login', '/register'],
 };
