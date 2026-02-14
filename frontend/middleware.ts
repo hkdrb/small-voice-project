@@ -28,12 +28,16 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Add Cache-Control headers to protected routes to prevent "Back" button from showing cached pages after logout
-  if (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/admin')) {
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, private');
+  // Also apply to root to ensure redirects are fresh
+  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
+    request.nextUrl.pathname.startsWith('/admin') ||
+    request.nextUrl.pathname === '/';
+
+  if (isProtectedRoute) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
     response.headers.set('Surrogate-Control', 'no-store');
-    // Remove ETag to prevent conditional requests that might rely on stale cache
     response.headers.delete('ETag');
   }
 
@@ -41,5 +45,13 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*', '/', '/login', '/register'],
+  matcher: [
+    '/dashboard',
+    '/dashboard/:path*',
+    '/admin',
+    '/admin/:path*',
+    '/',
+    '/login',
+    '/register'
+  ],
 };

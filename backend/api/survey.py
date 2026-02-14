@@ -122,6 +122,29 @@ def create_survey(
 
     return new_survey
 
+@router.get("/uuid/{uuid}", response_model=SurveyResponse)
+def get_survey_by_uuid(
+    uuid: str,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).options(joinedload(Survey.questions)).filter(
+        Survey.uuid == uuid,
+        Survey.organization_id == current_user.current_org_id
+    ).first()
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+        
+    # Check if user has answered
+    has_answered = db.query(Answer).filter(
+        Answer.survey_id == survey.id,
+        Answer.user_id == current_user.id
+    ).first() is not None
+    
+    survey.has_answered = has_answered
+    return survey
+
 @router.get("/{survey_id}", response_model=SurveyResponse)
 def get_survey(
     survey_id: int,
@@ -136,17 +159,6 @@ def get_survey(
     if not survey:
         raise HTTPException(status_code=404, detail="Survey not found")
         
-    return survey
-
-    # Check Org Membership
-    if survey.organization_id:
-        member = db.query(OrganizationMember).filter(
-            OrganizationMember.user_id == current_user.id,
-            OrganizationMember.organization_id == survey.organization_id
-        ).first()
-        if not member:
-            raise HTTPException(status_code=403, detail="Access denied")
-            
     # Check if user has answered
     has_answered = db.query(Answer).filter(
         Answer.survey_id == survey.id,

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SidebarProvider } from "@/components/SidebarContext";
 import SidebarWrapper from "@/components/SidebarWrapper";
+import NavigationGuard from "@/components/NavigationGuard";
 
 export const metadata: Metadata = {
   title: "Small Voice",
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="flex h-screen overflow-hidden bg-slate-50">
+        <NavigationGuard />
         <SidebarProvider>
           <Suspense fallback={<div className="hidden md:block w-64 bg-slate-50 shrink-0" />}>
             <SidebarWrapper />
