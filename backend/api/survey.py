@@ -45,6 +45,7 @@ class SurveyResponse(BaseModel):
     is_active: bool
     created_at: datetime
     questions: List[QuestionResponse] = []
+    has_answered: bool = False
     
     class Config:
         from_attributes = True
@@ -157,7 +158,14 @@ def get_survey_by_uuid(
         ).first()
         if not member:
             raise HTTPException(status_code=403, detail="Access denied")
-            
+    # Check if user has answered
+    has_answered = db.query(Answer).filter(
+        Answer.survey_id == survey.id,
+        Answer.user_id == current_user.id
+    ).first() is not None
+    
+    survey.has_answered = has_answered
+    
     return survey
 
 @router.post("/{survey_id}/response")
@@ -185,6 +193,10 @@ def submit_response(
         Answer.survey_id == survey.id,
         Answer.user_id == current_user.id
     ).all()
+    
+    if existing_answers:
+         raise HTTPException(status_code=400, detail="回答済みです。重複回答はできません。")
+
     existing_map = {a.question_id: a for a in existing_answers}
     
     # 2. Process submission

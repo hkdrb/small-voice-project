@@ -21,6 +21,7 @@ interface Survey {
   description: string;
   is_active: boolean;
   questions: Question[];
+  has_answered: boolean;
 }
 
 export default function SurveyPage() {
@@ -33,6 +34,7 @@ export default function SurveyPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [hasAlreadyAnswered, setHasAlreadyAnswered] = useState(false);
   const [user, setUser] = useState<any | null>(null);
   const [error, setError] = useState("");
 
@@ -44,6 +46,10 @@ export default function SurveyPage() {
         // Fetch survey
         const res = await axios.get(`/api/surveys/uuid/${uuid}`, { withCredentials: true });
         setSurvey(res.data);
+
+        if (res.data.has_answered) {
+          setHasAlreadyAnswered(true);
+        }
 
         // Fetch user (to show dashboard navigation if logged in)
         try {
@@ -154,6 +160,31 @@ export default function SurveyPage() {
     );
   }
 
+  if (hasAlreadyAnswered) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-sage-light to-white flex flex-col">
+        {user && (
+          <DashboardHeader
+            title="回答済み"
+            showBack={true}
+          />
+        )}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="glass-card max-w-lg w-full p-10 text-center animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="h-10 w-10" />
+            </div>
+            <h2 className="text-2xl font-bold text-sage-dark mb-4">このアンケートは回答済みです</h2>
+            <p className="text-slate-600 mb-8">ご協力ありがとうございました。</p>
+            <button onClick={() => router.push("/dashboard")} className="btn-primary w-full py-3">
+              ダッシュボードへ戻る
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isAdmin = user?.role === 'system_admin' || user?.org_role === 'admin';
   const displayTab = isAdmin ? 'surveys' : 'answers';
 
@@ -187,7 +218,7 @@ export default function SurveyPage() {
               <div key={q.id} className="glass-card p-6 !rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
                 <label className="block text-lg font-bold text-gray-800 mb-2">
                   {q.text}
-                  {q.is_required && <span className="text-red-500 ml-1">*</span>}
+                  {q.is_required && <span className="ml-2 text-xs text-red-600 bg-red-100 px-2 py-1 rounded-md align-middle">必須</span>}
                 </label>
                 <textarea
                   value={answers[q.id] || ""}
