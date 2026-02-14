@@ -25,7 +25,7 @@ echo "ℹ️  Deploying version: $GIT_COMMIT_HASH at $DEPLOY_TIMESTAMP"
 
 # 5. Restart Services
 echo "🔄 Restarting services..."
-sudo GIT_COMMIT_HASH="$GIT_COMMIT_HASH" DEPLOY_TIMESTAMP="$DEPLOY_TIMESTAMP" docker compose -f docker-compose.prod.yml up -d
+sudo env GIT_COMMIT_HASH="$GIT_COMMIT_HASH" DEPLOY_TIMESTAMP="$DEPLOY_TIMESTAMP" docker compose -f docker-compose.prod.yml up -d --force-recreate
 
 echo "✅ Deployment completed successfully!"
 echo "   - Version: $GIT_COMMIT_HASH"
