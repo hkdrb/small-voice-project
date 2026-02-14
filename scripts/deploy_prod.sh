@@ -11,11 +11,11 @@ git pull origin main
 
 # 1.5 Clean up docker system
 echo "🧹 Cleaning up unused Docker images..."
-sudo docker system prune -af
+docker system prune -af
 
 # 2. Pull Latest Images
 echo "⬇️ Pulling latest Docker images..."
-sudo docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml pull
 
 # 3. Set Deployment Metadata in .env file directly
 GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -42,7 +42,7 @@ update_env "DEPLOY_TIMESTAMP" "$DEPLOY_TIMESTAMP"
 # 4. Restart Services
 echo "🔄 Restarting services..."
 # Now we don't need sudo -E or sudo env, because the values are in the .env file
-sudo docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 
 echo "✅ Deployment completed successfully!"
 echo "   - Version: $GIT_COMMIT_HASH"
