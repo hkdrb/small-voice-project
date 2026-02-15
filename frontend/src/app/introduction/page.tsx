@@ -47,6 +47,8 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/login"
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-8 py-4 bg-sage-600 hover:bg-sage-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 flex items-center gap-2 group"
             >
               <ExternalLink className="w-5 h-5 group-hover:rotate-45 transition-transform" />
@@ -83,7 +85,12 @@ export default function LandingPage() {
             <div>
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Login URL</label>
               <div className="mt-1 font-mono text-base sm:text-lg text-sage-700 selection:bg-sage-200">
-                <a href="https://small-voice.xyz/login" className="hover:underline flex items-center gap-2 break-all sm:break-normal">
+                <a
+                  href="https://small-voice.xyz/login"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline flex items-center gap-2 break-all sm:break-normal"
+                >
                   https://small-voice.xyz/login
                   <ExternalLink className="w-4 h-4 shrink-0" />
                 </a>
@@ -112,7 +119,7 @@ export default function LandingPage() {
         <section className="bg-white/60 backdrop-blur-md rounded-2xl p-5 sm:p-8 border border-white/50 shadow-sm hover:shadow-md transition-shadow">
           <h2 className="text-2xl font-bold flex items-center gap-3 mb-6 text-sage-900 border-b border-sage-200 pb-2">
             <Info className="w-6 h-6 text-sage-600" />
-            Small Voice 🍃について
+            Small Voiceについて
           </h2>
           <div className="space-y-8">
             <div>
@@ -297,7 +304,7 @@ export default function LandingPage() {
                             <Shield className="w-4 h-4" /> システム管理者
                           </h5>
                           <p className="text-xs text-purple-800/80 leading-relaxed">
-                            システム全体の統括。組織作成や全ユーザー管理。
+                            システム全体の統括。組織の作成や全ユーザーの管理権限を持ちます。
                           </p>
                         </div>
                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
@@ -305,7 +312,7 @@ export default function LandingPage() {
                             <Users className="w-4 h-4" /> 組織管理者
                           </h5>
                           <p className="text-xs text-blue-800/80 leading-relaxed">
-                            特定組織内のフォーム管理、分析実行、メンバー管理。
+                            所属する組織内におけるフォーム作成や管理、分析の実行や分析結果の管理を行います。
                           </p>
                         </div>
                         <div className="bg-green-50 p-4 rounded-xl border border-green-100">
@@ -313,7 +320,7 @@ export default function LandingPage() {
                             <User className="w-4 h-4" /> 一般ユーザー
                           </h5>
                           <p className="text-xs text-green-800/80 leading-relaxed">
-                            フォーム回答、申請、分析閲覧、議論参加。
+                            フォームへの回答や申請、分析結果の閲覧、議論への参加が可能です。
                           </p>
                         </div>
                       </div>
