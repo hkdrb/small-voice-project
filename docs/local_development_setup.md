@@ -89,11 +89,7 @@ docker-compose -f docker-compose.dev.yml exec backend python scripts/reset_db_cl
 # ログイン確認や、手動でデータを入れたい場合に使用します。
 docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --init-users
 
-# パターンB: 既存セッションにコメントを追加 (200件/回)
-# (既にセッションが存在する場合のみ実行可能。何度でも実行してコメントを増やせます)
-docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --seed-comments
-
-# パターンC: 雑談掲示板のテストデータを生成 (100件の投稿と返信)
+# パターンB: 雑談掲示板のテストデータを生成 (100件の投稿と返信)
 docker-compose -f docker-compose.dev.yml exec backend python scripts/seed_db.py --seed-casual
 ```
 
