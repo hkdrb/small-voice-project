@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Github, Play, ExternalLink, User, Shield, Users, Server, Database, Brain, Globe, Lock, Download, Info, CheckCircle2 } from 'lucide-react';
+import { CopyButton } from '@/components/CopyButton';
 
 export default function LandingPage() {
   const users = [
@@ -102,11 +103,13 @@ export default function LandingPage() {
                 <Lock className="w-4 h-4 text-orange-400" />
                 <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">Basic Auth Credentials</span>
               </div>
-              <div className="grid grid-cols-[80px_1fr] gap-2 font-mono text-sm text-slate-600">
+              <div className="grid grid-cols-[80px_1fr_auto] gap-2 font-mono text-sm text-slate-600 items-center">
                 <span className="text-slate-400">User:</span>
                 <span className="font-bold select-all">smallvoice</span>
+                <CopyButton text="smallvoice" className="ml-2" />
                 <span className="text-slate-400">Pass:</span>
                 <span className="font-bold select-all">R3HCydsK</span>
+                <CopyButton text="R3HCydsK" className="ml-2" />
               </div>
             </div>
             <div className="text-sm text-slate-500 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100 italic">
@@ -375,8 +378,18 @@ export default function LandingPage() {
                   {users.map((user, index) => (
                     <tr key={index} className="hover:bg-slate-50 transition-colors">
                       <td className="px-3 sm:px-6 py-4 font-medium text-slate-800 whitespace-nowrap">{user.name}</td>
-                      <td className="px-3 sm:px-6 py-4 font-mono select-all text-sage-700">{user.email}</td>
-                      <td className="px-3 sm:px-6 py-4 font-mono select-all text-slate-500">{user.pass}</td>
+                      <td className="px-3 sm:px-6 py-4 font-mono select-all text-sage-700">
+                        <div className="flex items-center gap-2">
+                          <span>{user.email}</span>
+                          <CopyButton text={user.email} />
+                        </div>
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 font-mono select-all text-slate-500">
+                        <div className="flex items-center gap-2">
+                          <span>{user.pass}</span>
+                          <CopyButton text={user.pass} />
+                        </div>
+                      </td>
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
                           ${user.role.includes('システム') ? 'bg-purple-100 text-purple-800' :
