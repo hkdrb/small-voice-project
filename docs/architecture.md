@@ -206,12 +206,14 @@
   - `GET /api/dashboard/sessions/{session_id}` - セッション詳細取得
   - `DELETE /api/dashboard/sessions/{session_id}` - セッション削除
   - `PUT /api/dashboard/sessions/{session_id}/publish` - セッション公開/非公開切り替え
+  - `PUT /api/dashboard/sessions/{session_id}/publish-analysis` - AI分析（ファシリテーター）公開/非公開切り替え
   - `POST /api/dashboard/sessions/{session_id}/comments/import` - CSVデータインポート
-- **データモデル**: `AnalysisSession` (テーマ、タイトル、作成日時、組織ID、公開フラグ)
+- **データモデル**: `AnalysisSession` (テーマ、タイトル、作成日時、組織ID、公開フラグ, `is_comment_analysis_published` (AIファシリテーター分析の公開フラグ))
 - **機能**:
   - 1つのセッションに、フォームの回答データまたはCSVデータを紐付け
   - クラスタリング結果、課題リスト、議論を一元管理
-  - 公開設定により、一般メンバーへの表示/非表示を制御
+  - セッション自体の公開設定により、一般メンバーへの表示/非表示を制御
+  - AIファシリテーター分析（`comment_analysis`）の公開設定フラグ（`is_comment_analysis_published`）により、個別にAI提案の表示/非表示を制御
 
 #### 3.2 意味ベクトル化
 - **実装**: `backend/services/analysis.py::get_vectors_semantic()`
@@ -290,7 +292,9 @@
 
 #### 6.1 実装
 - **関数**: `backend/services/analysis.py::analyze_thread_logic()`
-- **API**: `POST /api/dashboard/sessions/{session_id}/analyze-thread`
+- **API**: 
+  - `POST /api/dashboard/sessions/{session_id}/analyze-thread` - 分析実行
+  - `PUT /api/dashboard/sessions/{session_id}/publish-analysis` - 公開設定の更新
 - **入力**: `parent_comment_id` （スレッドのルートコメントID）
 - **処理フロー**:
   1. `parent_comment_id` を起点に、すべての子コメント（リプライ）を再帰的に取得
@@ -301,6 +305,7 @@
 #### 6.2 プロンプト設計
 - **役割**: 中立的かつ理性的なプロのファシリテーター（診断や分析ではなく、合意形成のためのサポートを提供）
 - **出力形式**: JSON形式で「論点」と「次のアクション」を構造化
+- **公開制御**: 組織管理者が分析を実行した直後は非公開状態。内容を確認後、管理者が「公開」操作を行うことで一般ユーザーに表示される仕組み。
 
 ### 7. マルチテナント構成
 ※ 組織管理機能の実装詳細です。
@@ -400,8 +405,9 @@
 | **`chat_new`** (申請チャット) | 申請フォームへのコメント投稿 | 管理者 or 申請者 | 投稿者以外の関係者 | `/dashboard?tab=surveys` (管理者) <br> `/dashboard?tab=requests` (申請者) | survey.py:608, 619 |
 | **`survey_released`** | フォーム公開 | 組織全メンバー | 公開者を除く全員 | `/dashboard?tab=answers` | survey.py:469 |
 | **`report_published`** | 分析レポート公開 | 組織全メンバー | 公開者を除く全員 | `/dashboard?tab=reports` | dashboard.py:209 |
-| **`report_published`** (AI分析更新) | AIスレッド分析実行・更新 | **公開中**: 組織全メンバー<br>**未公開**: 組織管理者のみ | 公開状態による | `/dashboard/sessions/{id}?title={議題}` | dashboard.py:565, 576 |
-| **`chat_new`** (レポート議論) | レポート課題チャットへのコメント投稿 | **公開中**: 組織全メンバー<br>**未公開**: 組織管理者のみ | 公開状態&投稿者除く | `/dashboard/sessions/{id}?title={議題}` | dashboard.py:416, 427 |
+| **`report_published`** (AI分析更新) | AIスレッド分析実行・更新 | **公開中**: 組織全メンバー<br>**未公開**: 組織管理者のみ | 公開状態・権限による | `/dashboard/sessions/{id}?title={議題}` | dashboard.py:601, 612 |
+| **`report_published`** (AI分析公開) | AIスレッド分析の公開操作 | 組織全メンバー | 公開者を除く全員 | `/dashboard/sessions/{id}` | dashboard.py:245 |
+| **`chat_new`** (レポート議論) | レポート課題チャットへのコメント投稿 | **公開中**: 組織全メンバー<br>**未公開**: 組織管理者のみ | 公開状態・権限により投稿者除く | `/dashboard/sessions/{id}?title={議題}` | dashboard.py:416, 427 |
 | **`chat_new`** (雑談掲示板) | 雑談掲示板への投稿・返信 | 組織全メンバー | 投稿者を除く全員 | `/dashboard?tab=casual` | casual_chat.py:70 |
 | **`casual_suggestion`** | 雑談AI提案公開 | 組織全メンバー | 公開者を除く全員 | `/dashboard?tab=casual` | casual_chat.py:305 |
 
@@ -702,6 +708,7 @@ small-voice-project/
     - `GET /api/dashboard/sessions/{session_id}` - セッション詳細取得
     - `DELETE /api/dashboard/sessions/{session_id}` - セッション削除
     - `PUT /api/dashboard/sessions/{session_id}/publish` - セッション公開/非公開切り替え
+    - `PUT /api/dashboard/sessions/{session_id}/publish-analysis` - AI分析（ファシリテーター）公開/非公開切り替え
   - **フォーム管理**:
     - `GET /api/dashboard/surveys` - フォーム一覧（状態フィルタ: 申請中/承認済み/却下/公開中）
   - **課題生成・取得**:
@@ -769,7 +776,7 @@ SQLAlchemyモデル定義とDB接続管理。
 - **Survey**: アンケートフォーム（タイトル、説明、質問、承認ステータス、公開フラグ）
 - **Question**: フォームの質問
 - **Answer**: ユーザーの回答
-- **AnalysisSession**: 分析セッション（テーマ、作成日時、組織ID）
+- **AnalysisSession**: 分析セッション（テーマ、作成日時、組織ID、セッション公開フラグ、AI分析公開フラグ）
 - **AnalysisResult**: クラスタリング結果（元テキスト、クラスタID、座標、サブトピック）
 - **IssueDefinition**: 分析セッションの課題定義レポート（JSON形式で課題リストを保存）
 - **Comment**: 課題へのコメント（親コメント、階層構造でリプライをサポート）

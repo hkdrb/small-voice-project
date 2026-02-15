@@ -218,6 +218,42 @@ def publish_session(
 
     return {"message": "Updated publish status", "is_published": session.is_published}
 
+@router.put("/sessions/{session_id}/publish-analysis")
+def publish_analysis(
+    session_id: int,
+    payload: dict,
+    current_user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Only Admin
+    is_admin = current_user.role in ['admin', 'system_admin'] or current_user.org_role == 'admin'
+    if not is_admin:
+         raise HTTPException(status_code=403, detail="Permission denied")
+         
+    session = db.query(AnalysisSession).filter(
+        AnalysisSession.id == session_id,
+        AnalysisSession.organization_id == current_user.current_org_id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    session.is_comment_analysis_published = payload.get("is_published", False)
+    db.commit()
+
+    if session.is_comment_analysis_published:
+        notify_organization_members(
+            db,
+            session.organization_id,
+            "report_published",
+            "AI分析公開",
+            f"レポート「{session.title}」のAI分析結果が公開されました。",
+            f"/dashboard/sessions/{session_id}",
+            exclude_user_id=current_user.id
+        )
+
+    return {"message": "Updated analysis publish status", "is_published": session.is_comment_analysis_published}
+
 @router.delete("/sessions/{session_id}")
 def delete_session(
     session_id: int,

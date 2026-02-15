@@ -209,6 +209,25 @@ function SessionDetailContent() {
     }
   };
 
+  const handleToggleAnalysisPublish = async () => {
+    if (!data) return;
+    const action = data.is_comment_analysis_published ? "非公開" : "公開";
+    if (!confirm(`AI分析結果を一般ユーザーに${action}にしますか？`)) return;
+    setIsUpdating(true);
+    try {
+      const newState = !data.is_comment_analysis_published;
+      await axios.put(`/api/dashboard/sessions/${id}/publish-analysis`, {
+        is_published: newState
+      }, { withCredentials: true });
+
+      setData({ ...data, is_comment_analysis_published: newState });
+    } catch (error) {
+      alert("更新に失敗しました");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   // Create Post State
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postContent, setPostContent] = useState('');
@@ -776,14 +795,24 @@ function SessionDetailContent() {
                     AIファシリテーターの整理と提案
                   </h4>
                   {activeThreadRootId && (user?.role === 'system_admin' || user?.org_role === 'admin') && (
-                    <button
-                      onClick={() => handleAnalyzeThread(activeThreadRootId!)}
-                      disabled={isAnalyzing}
-                      className="text-[10px] bg-white border border-amber-200 text-amber-700 px-2 py-1 rounded shadow-sm hover:bg-amber-50 transition-all flex items-center gap-1 disabled:opacity-50"
-                    >
-                      {isAnalyzing ? <div className="animate-spin h-3 w-3 border-b-2 border-amber-600 rounded-full"></div> : <span className="text-xs">↻</span>}
-                      更新
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleToggleAnalysisPublish}
+                        disabled={isUpdating}
+                        className={`text-[10px] px-2 py-1 rounded shadow-sm transition-all flex items-center gap-1 font-bold ${data.is_comment_analysis_published ? 'bg-amber-200 text-amber-800 hover:bg-amber-300' : 'bg-white border border-amber-200 text-amber-700 hover:bg-amber-50'}`}
+                        title={data.is_comment_analysis_published ? "非公開にする" : "一般公開する"}
+                      >
+                        {data.is_comment_analysis_published ? <><Archive className="w-3 h-3" /> 非公開</> : <><CheckCircle className="w-3 h-3 text-green-600" /> 公開</>}
+                      </button>
+                      <button
+                        onClick={() => handleAnalyzeThread(activeThreadRootId!)}
+                        disabled={isAnalyzing}
+                        className="text-[10px] bg-white border border-amber-200 text-amber-700 px-2 py-1 rounded shadow-sm hover:bg-amber-50 transition-all flex items-center gap-1 font-bold disabled:opacity-50"
+                      >
+                        {isAnalyzing ? <div className="animate-spin h-3 w-3 border-b-2 border-amber-600 rounded-full"></div> : <span className="text-xs">↻</span>}
+                        更新
+                      </button>
+                    </div>
                   )}
                 </div>
 
