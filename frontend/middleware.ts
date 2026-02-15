@@ -16,6 +16,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
+  // Allow access to introduction page
+  if (request.nextUrl.pathname.startsWith('/introduction')) {
+    return NextResponse.next();
+  }
+
   // Root redirect
   if (request.nextUrl.pathname === '/') {
     if (session) {
@@ -52,6 +57,7 @@ export const config = {
     '/admin/:path*',
     '/',
     '/login',
-    '/register'
+    '/register',
+    '/introduction'
   ],
 };

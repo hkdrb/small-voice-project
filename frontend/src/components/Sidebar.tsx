@@ -142,7 +142,7 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
   };
 
   // Hide sidebar on auth/public pages
-  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password' || pathname === '/invite' || pathname === '/' || pathname.startsWith('/survey');
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password' || pathname === '/invite' || pathname === '/' || pathname.startsWith('/survey') || pathname === '/introduction';
   if (isAuthPage) {
     return null;
   }

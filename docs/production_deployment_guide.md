@@ -113,6 +113,10 @@ docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py
 
 # パターンB: 雑談掲示板のテストデータを生成
 docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --seed-casual
+
+# パターンC: 既存セッションにコメントを追加 (200件/回)
+# (既にセッションが存在する場合のみ実行可能。何度でも実行してコメントを増やせます)
+docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py --seed-comments
 ```
 
 #### 議論コメントのCSVインポート
