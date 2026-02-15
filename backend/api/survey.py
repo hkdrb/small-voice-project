@@ -263,6 +263,8 @@ def import_csv(
         
         # 2. Questions & Answers
         questions = []
+        # 2. Questions
+        questions_map = {}
         for i, col in enumerate(target_cols):
             q = Question(
                 survey_id=new_survey.id,
@@ -273,19 +275,37 @@ def import_csv(
             db.add(q)
             db.commit()
             db.refresh(q)
-            questions.append(q)
+            questions_map[col] = q
             
-            # Answers
-            col_data = df[col].dropna().astype(str).tolist()
-            answers = [
-                Answer(
+        # 3. Answers (Iterate by ROW to preserve alignment and group by time)
+        answers_to_add = []
+        base_time = now_jst()
+        
+        for idx, row in df.iterrows():
+            # Use distinct timestamp per row to group answers (simulating a "session" or "response")
+            # Adding 1 second per row to ensure uniqueness suitable for sorting/grouping
+            row_time = base_time + timedelta(seconds=idx)
+            
+            for col in target_cols:
+                val = row[col]
+                # Check for NaN/Empty
+                if pd.isna(val):
+                    continue
+                val_str = str(val).strip()
+                if not val_str or val_str.lower() == 'nan':
+                    continue
+                    
+                q = questions_map[col]
+                answers_to_add.append(Answer(
                     survey_id=new_survey.id,
                     question_id=q.id,
                     user_id=None,
-                    content=val
-                ) for val in col_data if val.strip()
-            ]
-            db.add_all(answers)
+                    content=val_str,
+                    created_at=row_time
+                ))
+        
+        if answers_to_add:
+            db.add_all(answers_to_add)
             
         db.commit()
         return {"message": "Import successful", "survey_id": new_survey.id}
@@ -325,16 +345,24 @@ def get_survey_responses_csv(
     user_responses = defaultdict(lambda: {"user_info": {"username": "ゲスト", "email": "-"}, "answers": {}})
 
     for ans in answers:
-        user_id = ans.user_id if ans.user_id is not None else f"guest_{ans.id}" # Handle nulls if any
+        # Group by User ID if available, otherwise by created_at (for imported/guest data)
+        if ans.user_id:
+             key = str(ans.user_id)
+        else:
+             # Use timestamp to group anonymous/imported answers
+             key = ans.created_at.isoformat() if ans.created_at else f"guest_{ans.id}"
+
+        user_responses[key]["answers"][ans.question_id] = ans.content
+        
         if ans.user:
-            user_responses[user_id]["user_info"] = {
+            user_responses[key]["user_info"] = {
                 "username": ans.user.username or ans.user.email,
                 "email": ans.user.email
             }
-        
-        user_responses[user_id]["answers"][ans.question_id] = ans.content
-        if "created_at" not in user_responses[user_id] or ans.created_at > user_responses[user_id]["created_at"]:
-            user_responses[user_id]["created_at"] = ans.created_at
+            
+        # Update timestamp for the group (using max)
+        if "created_at" not in user_responses[key] or ans.created_at > user_responses[key]["created_at"]:
+            user_responses[key]["created_at"] = ans.created_at
 
     # 5. Generate CSV
     output = io.StringIO()
