@@ -159,6 +159,27 @@ docker compose -f docker-compose.prod.yml exec backend python scripts/seed_db.py
    - 値: 手順1のIPアドレス
 3. 反映を待ちます（数分〜数時間）
 
+#### 手順4: メール配信設定 (Brevo & Cloud DNS)
+
+本番環境からのメール（招待、PWリセット等）が迷惑メール判定されないよう、Brevo（旧Sendinblue）を使用し、適切なDNS設定を行います。
+
+1. **Brevoアカウント設定**:
+   - [Brevo](https://www.brevo.com/) でアカウントを作成し、「Transactional Emails」機能を有効化します。
+   - SMTPキーを取得します（ログインパスワードとは異なります）。
+
+2. **DNSレコードの設定 (Cloud DNS)**:
+   Google Cloud DNS に以下のレコードを追加してください。これは**必須設定**です。
+
+   | 設定項目 | ホスト名 | タイプ | 値 (データ) | 備考 |
+   |---|---|---|---|---|
+   | **SPF** | (空欄) | TXT | `v=spf1 include:spf.brevo.com ~all` | 正当な送信元としてBrevoを許可 |
+   | **DMARC** | `_dmarc` | TXT | `v=DMARC1; p=none; rua=mailto:admin@small-voice.xyz` | 認証失敗時のポリシー (レポート先は自社管理者に変更可) |
+   | **DKIM1** | `brevo1._domainkey` | CNAME | `b1.small-voice-xyz.dkim.brevo.com.` | **重要**: 値はBrevo管理画面 (`Senders & IP` > `Domains`) で指定されたものを使用してください |
+   | **DKIM2** | `brevo2._domainkey` | CNAME | `b2.small-voice-xyz.dkim.brevo.com.` | 同上 |
+
+   > **注意**: DKIMのホスト名（`brevo1`など）や値はBrevoのアカウントごとに異なる場合があります。必ずBrevoの管理画面で表示される値を設定してください。
+
+
 ### 2.3 サーバー初期設定
 
 #### 手順1: SSH接続
@@ -205,7 +226,12 @@ nano .env
 `.env` 内の以下の項目を適切に設定してください：
 - `GEMINI_API_KEY`: Google AI Studioで取得
 - `INITIAL_SYSTEM_PASSWORD` 等: 初期パスワード
-- `SMTP_...`: Brevo等のメール送信設定
+- **メール送信設定 (Brevo)**:
+  - `SMTP_SERVER`: `smtp-relay.brevo.com`
+  - `SMTP_PORT`: `587`
+  - `SMTP_USERNAME`: Brevoのログインメールアドレス
+  - `SMTP_PASSWORD`: Brevoで取得したSMTPキー (ログインパスワードではありません)
+  - `SENDER_EMAIL`: 送信元アドレス (例: `noreply@small-voice.xyz`)
 - `ENVIRONMENT`: `production`
 - `BASIC_AUTH_USER`: Basic認証のユーザー名 (指定しない場合は admin)
 - `BASIC_AUTH_PASSWORD`: Basic認証のパスワード (指定しない場合は admin)

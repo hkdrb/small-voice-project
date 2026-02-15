@@ -20,7 +20,6 @@ SENDER_NAME = os.getenv("SENDER_NAME", "Small Voice")
 
 def send_invitation_email(email, token):
     """招待メール送信（環境に応じて分岐）"""
-    # Remove trailing slash if present to avoid double slashes
     frontend_base = FRONTEND_URL.rstrip('/')
     invitation_link = f"{frontend_base}/invite?token={token}"
     subject = "【Small Voice】アカウント招待のお知らせ"
@@ -30,8 +29,13 @@ def send_invitation_email(email, token):
     <html>
     <head>
         <meta charset="UTF-8">
+        <title>【Small Voice】アカウント招待のお知らせ</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <!-- Preheader Text -->
+        <span style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+            Small Voice システムへの招待が届きました。リンクからパスワードを設定してください。
+        </span>
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: #2c3e50;">Small Voice へようこそ</h2>
             <p>Small Voice システムへの招待が届きました。</p>
@@ -84,9 +88,27 @@ def send_reset_email(email, token):
     reset_link = f"{frontend_base}/invite?token={token}"
     subject = "パスワードリセットのご案内"
     body = f"""
-    <p>以下のリンクからパスワードを再設定してください。</p>
-    <p><a href="{reset_link}">{reset_link}</a></p>
-    <p>(有効期限: 1時間)</p>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>パスワードリセットのご案内</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <!-- Preheader Text -->
+        <span style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+            パスワード再設定のリンクをお送りします。有効期限は1時間です。
+        </span>
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #2c3e50;">パスワードリセット</h2>
+            <p>以下のリンクからパスワードを再設定してください。</p>
+            <div style="margin: 20px 0;">
+                <a href="{reset_link}" style="color: #3498db;">{reset_link}</a>
+            </div>
+            <p>(有効期限: 1時間)</p>
+        </div>
+    </body>
+    </html>
     """
     text_body = f"以下のリンクからパスワードを再設定してください。\n{reset_link}\n(有効期限: 1時間)"
 
@@ -112,6 +134,11 @@ def _send_email(to_email, subject, html_body, text_body, mock_title):
             from email.utils import formatdate, make_msgid
             msg["Date"] = formatdate(localtime=True)
             msg["Message-ID"] = make_msgid(domain=SENDER_EMAIL.split('@')[-1] if '@' in SENDER_EMAIL else None)
+            
+            # Add Auto-Submitted header to indicate this is an automated system email
+            # This helps prevent auto-responders and clarifies the nature of the email to filters
+            msg["Auto-Submitted"] = "auto-generated"
+            msg["X-Auto-Response-Suppress"] = "OOF, DR, RN, NRN, AutoReply"
 
             # Explicitly set charset to utf-8 to avoid encoding issues
             part1 = MIMEText(text_body, "plain", "utf-8")
@@ -127,7 +154,9 @@ def _send_email(to_email, subject, html_body, text_body, mock_title):
                     server.send_message(msg)
             else:
                 with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+                    server.ehlo()
                     server.starttls()
+                    server.ehlo()
                     server.login(SMTP_USERNAME, SMTP_PASSWORD)
                     server.send_message(msg)
             
