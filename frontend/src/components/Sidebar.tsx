@@ -36,8 +36,10 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
   const isSystemAdmin = currentUser?.role === 'system_admin';
 
   useEffect(() => {
-    // Skip fetching on auth pages
-    if (pathname === '/login' || pathname === '/register' || pathname === '/') {
+    // Skip fetching on auth and public pages
+    const isPublicPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password' || pathname === '/invite' || pathname === '/' || pathname.startsWith('/survey') || pathname === '/introduction';
+
+    if (isPublicPage) {
       return;
     }
 
