@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Github, Play, ExternalLink, User, Shield, Users, Server, Database, Brain, Globe, Lock, Download, Info, CheckCircle2 } from 'lucide-react';
 
@@ -36,10 +37,10 @@ export default function LandingPage() {
           <div className="inline-block px-4 py-1.5 mb-6 text-xs font-semibold tracking-wider text-sage-800 uppercase bg-sage-200/50 rounded-full border border-sage-300/50 backdrop-blur-sm">
             Project Introduction
           </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sage-800 to-sage-600 mb-6 tracking-tight drop-shadow-sm">
-            Small Voice <span className="text-4xl align-top">🍃</span>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sage-800 to-sage-600 mb-6 tracking-tight drop-shadow-sm">
+            Small Voice <span className="text-3xl sm:text-4xl align-top">🍃</span>
           </h1>
-          <p className="text-xl md:text-2xl text-slate-600 max-w-4xl mx-auto mb-10 leading-relaxed font-light">
+          <p className="text-lg sm:text-xl md:text-2xl text-slate-600 max-w-4xl mx-auto mb-10 leading-relaxed font-light px-4">
             組織内の「小さな声」を聴き、課題解決を促進する<br className="hidden md:inline" />AI搭載型ブロードリスニングシステム
           </p>
 
@@ -73,7 +74,7 @@ export default function LandingPage() {
       <main className="max-w-6xl mx-auto px-4 py-12 sm:px-6 lg:px-8 space-y-16">
 
         {/* Environment Info */}
-        <section className="bg-white/60 backdrop-blur-md rounded-2xl p-8 border border-white/50 shadow-sm hover:shadow-md transition-shadow">
+        <section className="bg-white/60 backdrop-blur-md rounded-2xl p-5 sm:p-8 border border-white/50 shadow-sm hover:shadow-md transition-shadow">
           <h2 className="text-2xl font-bold flex items-center gap-3 mb-6 text-sage-900 border-b border-sage-200 pb-2">
             <Globe className="w-6 h-6 text-sage-600" />
             🔗 デモ公開URL
@@ -81,10 +82,10 @@ export default function LandingPage() {
           <div className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Login URL</label>
-              <div className="mt-1 font-mono text-lg text-sage-700 selection:bg-sage-200">
-                <a href="https://small-voice.xyz/login" className="hover:underline flex items-center gap-2">
+              <div className="mt-1 font-mono text-base sm:text-lg text-sage-700 selection:bg-sage-200">
+                <a href="https://small-voice.xyz/login" className="hover:underline flex items-center gap-2 break-all sm:break-normal">
                   https://small-voice.xyz/login
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="w-4 h-4 shrink-0" />
                 </a>
               </div>
             </div>
@@ -108,7 +109,7 @@ export default function LandingPage() {
         </section>
 
         {/* About Small Voice */}
-        <section className="bg-white/60 backdrop-blur-md rounded-2xl p-8 border border-white/50 shadow-sm hover:shadow-md transition-shadow">
+        <section className="bg-white/60 backdrop-blur-md rounded-2xl p-5 sm:p-8 border border-white/50 shadow-sm hover:shadow-md transition-shadow">
           <h2 className="text-2xl font-bold flex items-center gap-3 mb-6 text-sage-900 border-b border-sage-200 pb-2">
             <Info className="w-6 h-6 text-sage-600" />
             Small Voice 🍃について
@@ -125,6 +126,19 @@ export default function LandingPage() {
               <p className="text-slate-600 leading-relaxed mt-4">
                 ブロードキャストによって生じがちな情報の偏りを是正し、統計的な分析によって浮き彫りになった課題に対し、対話を通じて異なる意見の架け橋を見出したり、意思決定の質を高めたりすることを目的としています。
               </p>
+
+              <div className="mt-8 max-w-2xl mx-auto rounded-2xl overflow-hidden shadow-lg border border-sage-200 bg-white p-2">
+                <Image
+                  src="/images/broad-listening-concept.png"
+                  alt="ブロードリスニングのコンセプト（ブロードキャストとの比較）"
+                  width={800}
+                  height={533}
+                  className="w-full h-auto rounded-xl"
+                />
+                <p className="text-center text-xs text-slate-400 mt-2 italic">
+                  図：ブロードキャストからブロードリスニングの時代へ
+                </p>
+              </div>
             </div>
 
             <div>
@@ -143,16 +157,16 @@ export default function LandingPage() {
               <div className="space-y-8">
 
                 {/* Feature 1 */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-sage-100 p-3 rounded-xl text-sage-600 shrink-0">
+                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-0 sm:gap-4">
+                    <div className="hidden sm:block bg-sage-100 p-3 rounded-xl text-sage-600 shrink-0">
                       <Database className="w-8 h-8" />
                     </div>
                     <div>
                       <h4 className="text-xl font-bold text-sage-900 mb-3">多様なデータ収集方法</h4>
                       <div className="space-y-3">
                         <p className="text-slate-600 leading-relaxed">
-                          管理者によるフォーム作成・管理に加えて、さまざまな方法でデータ収集が可能です：
+                          管理者によるフォーム作成・管理に加えて、さまざまな方法でデータ収集が可能です。
                         </p>
                         <ul className="space-y-4 mt-4">
                           <li className="flex items-start gap-3 text-sm text-slate-600">
@@ -183,9 +197,9 @@ export default function LandingPage() {
                 </div>
 
                 {/* Feature 2 */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-sage-100 p-3 rounded-xl text-sage-600 shrink-0">
+                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-0 sm:gap-4">
+                    <div className="hidden sm:block bg-sage-100 p-3 rounded-xl text-sage-600 shrink-0">
                       <Brain className="w-8 h-8" />
                     </div>
                     <div>
@@ -230,9 +244,9 @@ export default function LandingPage() {
                 </div>
 
                 {/* Feature 3 */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-sage-100 p-3 rounded-xl text-sage-600 shrink-0">
+                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-0 sm:gap-4">
+                    <div className="hidden sm:block bg-sage-100 p-3 rounded-xl text-sage-600 shrink-0">
                       <Server className="w-8 h-8" />
                     </div>
                     <div>
@@ -267,9 +281,9 @@ export default function LandingPage() {
                 </div>
 
                 {/* Feature 4 */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-sage-100 p-3 rounded-xl text-sage-600 shrink-0">
+                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-0 sm:gap-4">
+                    <div className="hidden sm:block bg-sage-100 p-3 rounded-xl text-sage-600 shrink-0">
                       <Shield className="w-8 h-8" />
                     </div>
                     <div>
@@ -343,20 +357,20 @@ export default function LandingPage() {
               <table className="w-full text-sm text-left text-slate-600">
                 <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="px-6 py-4 font-bold">表示名</th>
-                    <th className="px-6 py-4 font-bold">メールアドレス</th>
-                    <th className="px-6 py-4 font-bold">パスワード(初期)</th>
-                    <th className="px-6 py-4 font-bold whitespace-nowrap">権限種別</th>
-                    <th className="px-6 py-4 font-bold w-1/3">所属組織</th>
+                    <th className="px-3 sm:px-6 py-4 font-bold">表示名</th>
+                    <th className="px-3 sm:px-6 py-4 font-bold">メールアドレス</th>
+                    <th className="px-3 sm:px-6 py-4 font-bold">パスワード(初期)</th>
+                    <th className="px-3 sm:px-6 py-4 font-bold whitespace-nowrap">権限種別</th>
+                    <th className="px-3 sm:px-6 py-4 font-bold w-1/3">所属組織</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {users.map((user, index) => (
                     <tr key={index} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-slate-800 whitespace-nowrap">{user.name}</td>
-                      <td className="px-6 py-4 font-mono select-all text-sage-700">{user.email}</td>
-                      <td className="px-6 py-4 font-mono select-all text-slate-500">{user.pass}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4 font-medium text-slate-800 whitespace-nowrap">{user.name}</td>
+                      <td className="px-3 sm:px-6 py-4 font-mono select-all text-sage-700">{user.email}</td>
+                      <td className="px-3 sm:px-6 py-4 font-mono select-all text-slate-500">{user.pass}</td>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
                           ${user.role.includes('システム') ? 'bg-purple-100 text-purple-800' :
                             user.role.includes('組織') ? 'bg-blue-100 text-blue-800' :
@@ -364,7 +378,7 @@ export default function LandingPage() {
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-500">{user.org}</td>
+                      <td className="px-3 sm:px-6 py-4 text-xs text-slate-500">{user.org}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -379,7 +393,7 @@ export default function LandingPage() {
             <Database className="w-6 h-6 text-sage-600" />
             👤 テスト用レポートデータ
           </h2>
-          <div className="bg-slate-50 rounded-2xl p-8 border border-slate-200 text-center">
+          <div className="bg-slate-50 rounded-2xl p-5 sm:p-8 border border-slate-200 text-center">
             <p className="text-slate-600 mb-6">
               分析機能お試し用に、ダミーデータのセットを用意しました。<br />
               ダウンロードしてCSVインポート機能から取り込むことで、すぐに分析を試すことができます。
@@ -404,7 +418,7 @@ export default function LandingPage() {
             <Info className="w-6 h-6 text-sage-600" />
             📌 補足事項
           </h2>
-          <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-5 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
             <ul className="space-y-4 text-slate-600 leading-relaxed list-inside">
               <li className="flex gap-3">
                 <span className="text-sage-500 font-bold shrink-0">•</span>
