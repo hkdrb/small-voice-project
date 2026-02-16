@@ -6,14 +6,15 @@ interface ProfileSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: {
-    name?: string;
+    username?: string;
     email?: string;
   } | null;
 }
 
 export default function ProfileSettingsModal({ isOpen, onClose, user }: ProfileSettingsModalProps) {
-  const [name, setName] = useState(user?.name || '');
+  const [username, setUsername] = useState(user?.username || '');
   const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -27,17 +28,27 @@ export default function ProfileSettingsModal({ isOpen, onClose, user }: ProfileS
     try {
       // Build payload
       const payload: any = {};
-      if (name) payload.name = name;
-      if (password) payload.password = password;
+      if (username !== user?.username) payload.username = username;
+      if (password) {
+        payload.password = password;
+        if (!currentPassword) {
+          setMessage({ type: 'error', text: 'パスワード変更には現在のパスワードが必要です' });
+          setLoading(false);
+          return;
+        }
+        payload.current_password = currentPassword;
+      }
 
       if (Object.keys(payload).length === 0) {
         setLoading(false);
+        onClose();
         return;
       }
 
       await axios.put('/api/auth/me', payload, { withCredentials: true });
       setMessage({ type: 'success', text: 'プロフィールを更新しました' });
-      setPassword(''); // Clear password field
+      setPassword('');
+      setCurrentPassword('');
       setTimeout(() => {
         window.location.reload(); // Reload to reflect changes
       }, 1000);
@@ -45,7 +56,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, user }: ProfileS
       console.error('Failed to update profile:', error);
       setMessage({
         type: 'error',
-        text: error.response?.data?.message || 'プロフィールの更新に失敗しました'
+        text: error.response?.data?.detail || error.response?.data?.message || 'プロフィールの更新に失敗しました'
       });
     } finally {
       setLoading(false);
@@ -87,10 +98,11 @@ export default function ProfileSettingsModal({ isOpen, onClose, user }: ProfileS
             <div className="relative">
               <input
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 placeholder="名前を入力"
                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-primary/20 focus:border-sage-primary transition-all"
+                required
               />
               <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -112,6 +124,26 @@ export default function ProfileSettingsModal({ isOpen, onClose, user }: ProfileS
               <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
           </div>
+
+          {password && (
+            <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+              <label className="text-sm font-bold text-gray-700 block">
+                現在のパスワード
+                <span className="ml-2 text-xs font-normal text-red-500">（必須）</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-primary/20 focus:border-sage-primary transition-all"
+                  required
+                />
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+          )}
 
           <div className="pt-4 flex justify-end gap-3">
             <button

@@ -12,7 +12,6 @@ interface SidebarProps {
     role: string;
     org_role?: string;
     current_org_id?: number;
-    name?: string;
     username?: string;
     email?: string;
   } | null;
@@ -176,7 +175,7 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
             <UserIcon className="h-5 w-5" />
           </div>
           <div className="overflow-hidden">
-            <p className="font-bold text-sage-dark truncate text-sm">{currentUser?.name || currentUser?.username || 'ゲスト'}</p>
+            <p className="font-bold text-sage-dark truncate text-sm">{currentUser?.username || 'ゲスト'}</p>
             <p className="text-xs text-slate-500 truncate">{currentUser?.email}</p>
           </div>
         </div>
@@ -283,7 +282,7 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
         <div className="mb-6">
           <label className="block text-xs font-bold text-gray-500 mb-2">ユーザーアカウント</label>
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <div className="font-bold text-gray-800 text-sm mb-0.5">{currentUser?.name || currentUser?.username || 'ゲスト'}</div>
+            <div className="font-bold text-gray-800 text-sm mb-0.5">{currentUser?.username || 'ゲスト'}</div>
             <div className="text-[10px] text-gray-400 mb-2 truncate">{currentUser?.email}</div>
             <span className="inline-block border border-gray-200 rounded px-2 py-0.5 text-[10px] font-bold text-gray-600">
               {currentUser?.role === 'system_admin' ? 'システム管理者' : currentUser?.org_role === 'admin' ? '管理者' : 'メンバー'}

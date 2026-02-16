@@ -216,7 +216,7 @@ def get_my_orgs(
 
 
 class UserUpdate(BaseModel):
-    username: str
+    username: str | None = None
     password: str | None = None
     current_password: str | None = None
 
@@ -230,7 +230,8 @@ def update_profile(
     if not user:
         raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
         
-    user.username = update_data.username
+    if update_data.username is not None:
+        user.username = update_data.username
     
     if update_data.password and update_data.password.strip():
         # Verify current password
