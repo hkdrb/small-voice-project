@@ -151,7 +151,7 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
   // --- Mobile Sidebar Implementation (Current Design) ---
   const MobileSidebar = (
     <aside className={`
-      w-64 h-screen shrink-0 pb-6 flex flex-col border-r border-white/40 bg-white/30 backdrop-blur-md overflow-hidden
+      w-64 h-dvh shrink-0 pb-6 flex flex-col border-r border-white/40 bg-white/30 backdrop-blur-md overflow-hidden
       fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out
       md:hidden
       ${isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
@@ -249,7 +249,7 @@ export default function Sidebar({ user, onLogout, isMobileOpen, setIsMobileOpen,
 
   // --- Desktop Sidebar Implementation (Restored Design) ---
   const DesktopSidebar = (
-    <aside className="hidden md:flex w-64 h-screen flex-col bg-gray-50 border-r border-gray-200 sticky top-0 overflow-y-auto shrink-0 z-30">
+    <aside className="hidden md:flex w-64 h-dvh flex-col bg-gray-50 border-r border-gray-200 sticky top-0 overflow-y-auto shrink-0 z-30">
       <div className="p-6">
         {/* Logo */}
         <div className="mb-8">

@@ -30,7 +30,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-sage-50 text-slate-800 font-sans selection:bg-sage-200 selection:text-sage-900">
+    <div className="min-h-dvh bg-sage-50 text-slate-800 font-sans selection:bg-sage-200 selection:text-sage-900">
 
       {/* Hero Section */}
       <header className="relative overflow-hidden bg-gradient-to-br from-sage-100 to-white py-20 px-4 sm:px-6 lg:px-8 shadow-sm">

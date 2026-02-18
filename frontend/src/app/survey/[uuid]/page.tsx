@@ -108,7 +108,7 @@ export default function SurveyPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-sage-light flex items-center justify-center">
+      <div className="min-h-dvh bg-sage-light flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sage-primary"></div>
       </div>
     );
@@ -116,7 +116,7 @@ export default function SurveyPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-sage-light flex flex-col">
+      <div className="min-h-dvh bg-sage-light flex flex-col">
         {user && (
           <DashboardHeader
             title="エラー"
@@ -137,7 +137,7 @@ export default function SurveyPage() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-sage-light to-white flex flex-col">
+      <div className="min-h-dvh bg-linear-to-br from-sage-light to-white flex flex-col">
         {user && (
           <DashboardHeader
             title="送信完了"
@@ -162,7 +162,7 @@ export default function SurveyPage() {
 
   if (hasAlreadyAnswered) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-sage-light to-white flex flex-col">
+      <div className="min-h-dvh bg-linear-to-br from-sage-light to-white flex flex-col">
         {user && (
           <DashboardHeader
             title="回答済み"
@@ -189,7 +189,7 @@ export default function SurveyPage() {
   const displayTab = isAdmin ? 'surveys' : 'answers';
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-sage-light to-white flex flex-col">
+    <div className="min-h-dvh bg-linear-to-br from-sage-light to-white flex flex-col">
       {user && (
         <>
           <DashboardHeader

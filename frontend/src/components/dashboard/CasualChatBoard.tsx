@@ -307,7 +307,7 @@ export default function CasualChatBoard({ user }: CasualChatBoardProps) {
         {/* Floating Action Button (FAB) for New Post */}
         <button
           onClick={() => setIsComposerOpen(true)}
-          className="fixed bottom-6 right-6 z-30 md:absolute md:bottom-8 md:right-8 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center group"
+          className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-30 md:absolute md:bottom-8 md:right-8 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center group"
           title="新規投稿"
         >
           <MessageSquare className="w-6 h-6 md:w-7 md:h-7 fill-current" />

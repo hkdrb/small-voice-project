@@ -39,7 +39,7 @@ body {
   background: linear-gradient(135deg, #F1F4F2 0%, #E0E8E4 100%);
   color: var(--foreground);
   font-family: var(--font-sans);
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Apply pointer cursor only to clickable elements */

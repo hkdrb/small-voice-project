@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="flex h-screen overflow-hidden bg-slate-50">
+      <body className="flex h-dvh overflow-hidden bg-slate-50">
         <NavigationGuard />
         <SidebarProvider>
           <Suspense fallback={<div className="hidden md:block w-64 bg-slate-50 shrink-0" />}>

@@ -44,7 +44,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div className="min-h-dvh flex flex-col items-center justify-center p-4">
       {/* Increased max-width and padding as requested by user */}
       <div className="w-full max-w-2xl glass-card overflow-hidden px-12 py-16">
         <div className="">
