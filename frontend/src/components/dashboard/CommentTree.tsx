@@ -63,7 +63,7 @@ export default function CommentTree({
     roots.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     const sortChildren = (nodes: CommentItem[]) => {
-      nodes.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      nodes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       nodes.forEach(n => {
         if (n.children && n.children.length > 0) sortChildren(n.children);
       });
