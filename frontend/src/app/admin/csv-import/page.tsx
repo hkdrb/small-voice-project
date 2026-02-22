@@ -15,8 +15,8 @@ export default function CsvImportPage() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
 
-  const [issues, setIssues] = useState<string[]>([]);
-  const [selectedIssue, setSelectedIssue] = useState<string>('');
+  const [issues, setIssues] = useState<{ id: string, title: string }[]>([]);
+  const [selectedIssue, setSelectedIssue] = useState<{ id: string, title: string } | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,7 +47,7 @@ export default function CsvImportPage() {
   useEffect(() => {
     if (!selectedSessionId) {
       setIssues([]);
-      setSelectedIssue('');
+      setSelectedIssue(null);
       return;
     }
 
@@ -81,7 +81,10 @@ export default function CsvImportPage() {
     setMessage(null);
 
     const formData = new FormData();
-    formData.append('issue_title', selectedIssue);
+    formData.append('issue_title', selectedIssue.title);
+    if (selectedIssue.id) {
+      formData.append('issue_id', selectedIssue.id);
+    }
     formData.append('file', file);
 
     try {
@@ -145,14 +148,18 @@ export default function CsvImportPage() {
             </label>
             <select
               className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5C7066] focus:border-transparent"
-              value={selectedIssue}
-              onChange={(e) => setSelectedIssue(e.target.value)}
+              value={selectedIssue?.id || selectedIssue?.title || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                const found = issues.find(iss => (iss.id || iss.title) === val);
+                setSelectedIssue(found || null);
+              }}
               disabled={!selectedSessionId}
               required
             >
               <option value="">課題を選択してください</option>
-              {issues.map((title, i) => (
-                <option key={i} value={title}>{title}</option>
+              {issues.map((iss, i) => (
+                <option key={i} value={iss.id || iss.title}>{iss.title}</option>
               ))}
             </select>
             {selectedSessionId && issues.length === 0 && (

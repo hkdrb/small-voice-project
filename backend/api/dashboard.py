@@ -651,7 +651,7 @@ def get_session_issues(
     try:
         issues = json.loads(issue_def.content)
         if isinstance(issues, list):
-            return [issue.get("title") for issue in issues if issue.get("title")]
+            return [{"id": issue.get("id"), "title": issue.get("title")} for issue in issues if issue.get("title")]
         return []
     except:
         return []
@@ -660,6 +660,7 @@ def get_session_issues(
 def import_session_comments(
     session_id: int,
     issue_title: str = Form(...),
+    issue_id: Optional[str] = Form(None),
     file: UploadFile = File(...),
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -675,18 +676,24 @@ def import_session_comments(
 
     # 3. Find or Create System Root for Issue
     hidden_tag = f"<!-- issue:{issue_title} -->"
+    id_tag = f"<!-- issue_id:{issue_id} -->" if issue_id else ""
     
     # Check for existing root
     # We look for a comment in this session that is a root (parent_id is None) and contains the tag
-    root_comment = db.query(Comment).filter(
+    # Priority to issue_id if provided
+    root_query = db.query(Comment).filter(
         Comment.session_id == session_id,
-        Comment.parent_id == None,
-        Comment.content.like(f"%{hidden_tag}%")
-    ).first()
+        Comment.parent_id == None
+    )
+    
+    if issue_id:
+        root_comment = root_query.filter(Comment.content.like(f"%{id_tag}%")).first()
+    else:
+        root_comment = root_query.filter(Comment.content.like(f"%{hidden_tag}%")).first()
     
     if not root_comment:
         # Create new root
-        system_content = f"System Root for Issue: {issue_title}\n\n{hidden_tag} <!-- system_root -->"
+        system_content = f"System Root for Issue: {issue_title}\n\n{id_tag}{hidden_tag} <!-- system_root -->"
         root_comment = Comment(
             session_id=session_id,
             user_id=current_user.id, # System Admin owns the root

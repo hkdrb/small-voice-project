@@ -242,7 +242,8 @@ function SessionDetailContent() {
       // 1. Prepare Root if needed
       if (!rootId) {
         // Create System Root (Hidden)
-        const systemContent = `System Root for Issue: ${activeIssue.title}\n\n<!-- issue:${activeIssue.title} --> <!-- system_root -->`;
+        const idTag = activeIssue.id ? `<!-- issue_id:${activeIssue.id} --> ` : '';
+        const systemContent = `System Root for Issue: ${activeIssue.title}\n\n${idTag}<!-- issue:${activeIssue.title} --> <!-- system_root -->`;
 
         const rootRes = await axios.post(`/api/dashboard/sessions/${id}/comments`, {
           content: systemContent,
@@ -338,12 +339,17 @@ function SessionDetailContent() {
       return;
     }
 
-    // Match by hidden tag OR legacy visible tag
-    const hiddenTag = `<!-- issue:${activeIssue.title} -->`;
+    // Match by unique ID tag (new) OR hidden title tag OR legacy visible tag
+    const idTag = activeIssue.id ? `<!-- issue_id:${activeIssue.id} -->` : null;
+    const titleTag = `<!-- issue:${activeIssue.title} -->`;
     const legacyPattern = `【議題: ${activeIssue.title}`;
 
     const found = data.comments.find(c =>
-      !c.parent_id && (c.content.includes(hiddenTag) || c.content.includes(legacyPattern))
+      !c.parent_id && (
+        (idTag && c.content.includes(idTag)) ||
+        c.content.includes(titleTag) ||
+        c.content.includes(legacyPattern)
+      )
     );
 
     if (found) {
@@ -357,7 +363,11 @@ function SessionDetailContent() {
   }, [activeIssue, data?.comments]);
 
   const handleDiscuss = (issue: any) => {
-    setActiveIssue((prev: any) => (prev?.title === issue.title ? null : issue));
+    setActiveIssue((prev: any) => {
+      const prevKey = prev?.id || prev?.title;
+      const currKey = issue?.id || issue?.title;
+      return prevKey === currKey ? null : issue;
+    });
     // We rely on useEffect to handle thread switching/creation logic
   };
 

@@ -438,6 +438,7 @@ def generate_issue_logic_from_clusters(df, theme_name):
 {{
   "issues": [
     {{
+      "id": "UUID",
       "title": "議題タイトル",
       "related_topics": ["カテゴリ名"], 
       "insight": "なぜこれを議論すべきか...",
@@ -457,8 +458,13 @@ def generate_issue_logic_from_clusters(df, theme_name):
                 if clean_text.startswith("json"): clean_text = clean_text[4:]
             clean_text = clean_text.strip()
             
+            import uuid
             data = json.loads(clean_text)
-            return data.get("issues", [])
+            issues = data.get("issues", [])
+            for issue in issues:
+                if "id" not in issue:
+                    issue["id"] = str(uuid.uuid4())
+            return issues
         except Exception as e:
             logger.error(f"Generate Issue Logic failed: {e}")
             return []
