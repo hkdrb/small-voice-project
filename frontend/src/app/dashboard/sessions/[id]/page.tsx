@@ -62,6 +62,7 @@ function SessionDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const targetTitle = searchParams.get('title');
+  const targetId = searchParams.get('issue_id');
   const { toggleMobileMenu } = useSidebar();
 
   const [data, setData] = useState<SessionDetail | null>(null);
@@ -78,7 +79,7 @@ function SessionDetailContent() {
 
   // Auto-open issue from query param
   useEffect(() => {
-    if (data && targetTitle && !activeIssue) {
+    if (data && (targetTitle || targetId) && !activeIssue) {
       let issues: any[] = [];
       try {
         if (data && data.report_content) {
@@ -88,12 +89,18 @@ function SessionDetailContent() {
       } catch (e) { }
 
       const tTitle = targetTitle as string;
-      const found = issues.find((i: any) => i.title === tTitle);
+      const tId = targetId as string;
+
+      const found = issues.find((i: any) => {
+        if (tId) return i.id === tId;
+        return i.title === tTitle;
+      });
+
       if (found) {
         setActiveIssue(found);
       }
     }
-  }, [data, targetTitle, activeIssue]);
+  }, [data, targetTitle, targetId, activeIssue]);
 
   // State for linking Issue List with Clustering Map
   const [selectedIssueTopics, setSelectedIssueTopics] = useState<string[]>([]);
@@ -339,25 +346,30 @@ function SessionDetailContent() {
       return;
     }
 
-    // Match by unique ID tag (new) OR hidden title tag OR legacy visible tag
-    const idTag = activeIssue.id ? `<!-- issue_id:${activeIssue.id} -->` : null;
-    const titleTag = `<!-- issue:${activeIssue.title} -->`;
-    const legacyPattern = `【議題: ${activeIssue.title}`;
+    // Strict matching logic: If issue has ID, only match by ID tag in comment content
+    const found = data.comments.find(c => {
+      if (c.parent_id) return false;
 
-    const found = data.comments.find(c =>
-      !c.parent_id && (
-        (idTag && c.content.includes(idTag)) ||
-        c.content.includes(titleTag) ||
-        c.content.includes(legacyPattern)
-      )
-    );
+      const commentIssueId = c.content.match(/<!-- issue_id:(.*?) -->/)?.[1];
+      const commentIssueTitleTag = `<!-- issue:${activeIssue.title} -->`;
+      const legacyPattern = `【議題: ${activeIssue.title}`;
+
+      if (activeIssue.id) {
+        // Current issue has ID: MUST match ID in comment
+        return commentIssueId === activeIssue.id;
+      } else {
+        // Legacy issue: match Title, but ONLY if the comment also has no unique ID
+        if (commentIssueId) return false;
+        return c.content.includes(commentIssueTitleTag) || c.content.includes(legacyPattern);
+      }
+    });
 
     if (found) {
       setActiveThreadRootId(found.id);
       setIsCreatingPost(false);
     } else {
       setActiveThreadRootId(null);
-      setPostContent(''); // Clear content, don't pre-fill visible text
+      setPostContent('');
       setIsCreatingPost(true);
     }
   }, [activeIssue, data?.comments]);

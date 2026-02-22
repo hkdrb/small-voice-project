@@ -17,21 +17,32 @@ from backend.services.notification_service import create_notification, notify_or
 
 router = APIRouter()
 
-def get_issue_title_for_comment(db: Session, comment_id: int) -> Optional[str]:
-    """Finds the issue title associated with a thread by tracing back to the root comment."""
+def get_issue_info_for_comment(db: Session, comment_id: int) -> Optional[dict]:
+    """Finds the issue info associated with a thread by tracing back to the root comment."""
     curr = db.query(Comment).filter(Comment.id == comment_id).first()
     while curr and curr.parent_id:
         curr = db.query(Comment).filter(Comment.id == curr.parent_id).first()
     
     if curr:
+        res = {"title": None, "id": None}
+        
+        # Match by ID tag
+        id_match = re.search(r'<!-- issue_id:(.*?) -->', curr.content)
+        if id_match:
+            res["id"] = id_match.group(1)
+            
         # Match by hidden comment tag: <!-- issue:TITLE -->
-        match = re.search(r'<!-- issue:(.*?) -->', curr.content)
-        if match:
-            return match.group(1)
-        # Match by visible legacy format: 【議題: TITLE】
-        legacy_match = re.search(r'【議題: (.*?)】', curr.content)
-        if legacy_match:
-            return legacy_match.group(1)
+        title_match = re.search(r'<!-- issue:(.*?) -->', curr.content)
+        if title_match:
+            res["title"] = title_match.group(1)
+        else:
+            # Match by visible legacy format: 【議題: TITLE】
+            legacy_match = re.search(r'【議題: (.*?)】', curr.content)
+            if legacy_match:
+                res["title"] = legacy_match.group(1)
+        
+        if res["title"]:
+            return res
     return None
 
 # --- Pydantic Models for Response ---
@@ -444,8 +455,12 @@ def create_comment(
     db.refresh(new_comment)
     
     # Notify based on publication status
-    issue_title = get_issue_title_for_comment(db, new_comment.id)
-    url_suffix = f"?title={quote(issue_title)}" if issue_title else ""
+    issue_info = get_issue_info_for_comment(db, new_comment.id)
+    url_suffix = ""
+    if issue_info:
+        title_part = f"title={quote(issue_info['title'])}"
+        id_part = f"&issue_id={issue_info['id']}" if issue_info.get('id') else ""
+        url_suffix = f"?{title_part}{id_part}"
     
     if session.is_published:
         # Everyone can see it
@@ -594,8 +609,12 @@ def analyze_thread(
         db.commit()
         
         # Notify organization members only if the AI analysis is actually published
-        issue_title = get_issue_title_for_comment(db, payload.parent_comment_id)
-        url_suffix = f"?title={quote(issue_title)}" if issue_title else ""
+        issue_info = get_issue_info_for_comment(db, payload.parent_comment_id)
+        url_suffix = ""
+        if issue_info:
+            title_part = f"title={quote(issue_info['title'])}"
+            id_part = f"&issue_id={issue_info['id']}" if issue_info.get('id') else ""
+            url_suffix = f"?{title_part}{id_part}"
 
         if session.is_comment_analysis_published:
             notify_organization_members(
