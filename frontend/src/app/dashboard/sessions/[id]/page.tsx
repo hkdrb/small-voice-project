@@ -680,7 +680,7 @@ function SessionDetailContent() {
 
                         {/* Expandable Content */}
                         <div className={`transition-all duration-300 ease-in-out border-t border-slate-100 bg-slate-50/50
-                            ${isExpanded ? 'max-h-[800px] opacity-100 p-4' : 'max-h-0 opacity-0 p-0 overflow-hidden'}
+                            ${isExpanded ? 'max-h-[2000px] opacity-100 p-4 overflow-y-auto' : 'max-h-0 opacity-0 p-0 overflow-hidden'}
                         `}>
                           {isSmallVoice ? (
                             <div className="space-y-2">

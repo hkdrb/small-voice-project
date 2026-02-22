@@ -193,7 +193,7 @@ export default function AnalysisRunner({ onSuccess }: AnalysisRunnerProps) {
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-sage-primary"></div>
               <span className="font-bold text-sage-700">AI分析を実行中...</span>
             </div>
-            <div className="space-y-1 font-mono text-xs text-slate-600 h-32 overflow-y-auto duration-300">
+            <div className="space-y-1 font-mono text-xs text-slate-600 h-48 md:h-64 overflow-y-auto duration-300">
               {progressLog.map((log, i) => (
                 <div key={i} className="animate-in fade-in slide-in-from-left-2 duration-300">
                   <span className="text-slate-400 mr-2">{new Date().toLocaleTimeString()}</span>
