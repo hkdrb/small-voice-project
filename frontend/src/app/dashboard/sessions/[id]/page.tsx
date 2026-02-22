@@ -356,7 +356,7 @@ function SessionDetailContent() {
 
       if (activeIssue.id) {
         // Current issue has ID: MUST match ID in comment
-        return commentIssueId === activeIssue.id;
+        return String(commentIssueId) === String(activeIssue.id);
       } else {
         // Legacy issue: match Title, but ONLY if the comment also has no unique ID
         if (commentIssueId) return false;
@@ -909,7 +909,7 @@ function SessionDetailContent() {
               {/* Chat Thread */}
               <div className="flex-1 p-4 md:p-6 pb-32">
                 <CommentTree
-                  comments={data.comments || []}
+                  comments={activeThreadRootId ? (data.comments || []) : []}
                   rootCid={activeThreadRootId || -1}
                   currentUserId={user?.id}
                   sessionId={data.id}
