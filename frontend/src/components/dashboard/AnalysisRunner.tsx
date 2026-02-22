@@ -87,7 +87,7 @@ export default function AnalysisRunner({ onSuccess }: AnalysisRunnerProps) {
 
     // Simulation of progress
     const steps = [
-      { t: 1500, msg: "🔍 回答 데이터를読み込み中..." },
+      { t: 1500, msg: "🔍 回答データを読み込み中..." },
       { t: 3000, msg: "🧠 AIによる意味解析を実行中 (Vectorization)..." },
       { t: 6000, msg: "📊 トピックの自動クラスタリング中 (K-Means)..." },
       { t: 12000, msg: "🗺️ 2次元マップへの配置計算中 (PCA)..." },
